@@ -1,0 +1,58 @@
+1:"$Sreact.fragment"
+2:I[99440,["/_next/static/chunks/b09c9c873e20c900.js","/_next/static/chunks/ef1d8d79c33c783f.js","/_next/static/chunks/7c099157164476f2.js","/_next/static/chunks/80be762275a9570b.js"],"BlogPostClient"]
+4:I[99297,["/_next/static/chunks/dd564eae3624070e.js","/_next/static/chunks/7558a883d94e49ab.js"],"OutletBoundary"]
+5:"$Sreact.suspense"
+3:T825,
+## Introduction
+
+Building a portfolio website is one of the most important projects for any developer. It's not just a showcase of your work—it's a reflection of your skills, attention to detail, and passion for your craft.
+
+In this article, I'll walk you through how I built this portfolio using Next.js 14, TypeScript, Tailwind CSS, and Framer Motion.
+
+## Why Next.js 14?
+
+Next.js has evolved significantly over the years. With version 14, we get:
+
+- **App Router**: A new file-system based router built on React Server Components
+- **Server Components**: Render components on the server for better performance
+- **Streaming**: Progressive rendering of UI components
+- **Turbopack**: A Rust-based bundler that's incredibly fast
+
+## The Tech Stack
+
+### TypeScript
+
+Type safety is non-negotiable for me. TypeScript catches errors at compile time and provides excellent IDE support with autocompletion and inline documentation.
+
+### Tailwind CSS
+
+Utility-first CSS has revolutionized how I style applications. Tailwind's JIT compiler and extensive customization options make it perfect for rapid development.
+
+### Framer Motion
+
+Animations can make or break a user experience. Framer Motion provides a declarative API for creating smooth, performant animations in React.
+
+## Key Features
+
+### Dark Mode
+
+Implementing dark mode with Next.js and Tailwind is straightforward.
+
+### Animations
+
+Page transitions and micro-interactions add polish to the user experience.
+
+## Performance Optimizations
+
+1. **Image Optimization**: Using Next.js Image component for automatic optimization
+2. **Code Splitting**: Leveraging dynamic imports for heavy components
+3. **Font Optimization**: Using next/font for zero-layout-shift fonts
+4. **Static Generation**: Pre-rendering pages at build time
+
+## Conclusion
+
+Building this portfolio was a rewarding experience. It pushed me to learn new technologies and refine my skills. The result is a fast, accessible, and beautiful website that I'm proud to share.
+
+Feel free to explore the source code and use it as inspiration for your own portfolio!
+    0:{"buildId":"ZR-WejzX4O03-LOrzTHdo","rsc":["$","$1","c",{"children":[["$","$L2",null,{"post":{"slug":"building-modern-portfolio","title":"Building a Modern Portfolio with Next.js 14","excerpt":"A deep dive into creating a performant, accessible, and beautiful portfolio website using the latest web technologies.","content":"$3","date":"2025-02-15","readTime":"8 min read","tags":["Next.js","React","TypeScript"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/7c099157164476f2.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/80be762275a9570b.js","async":true}]],["$","$L4",null,{"children":["$","$5",null,{"name":"Next.MetadataOutlet","children":"$@6"}]}]]}],"loading":null,"isPartial":false}
+6:null

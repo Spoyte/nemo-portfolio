@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[99440,["/_next/static/chunks/b09c9c873e20c900.js","/_next/static/chunks/ef1d8d79c33c783f.js","/_next/static/chunks/7c099157164476f2.js","/_next/static/chunks/80be762275a9570b.js"],"BlogPostClient"]
+3:I[99297,["/_next/static/chunks/dd564eae3624070e.js","/_next/static/chunks/7558a883d94e49ab.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+0:{"buildId":"ZR-WejzX4O03-LOrzTHdo","rsc":["$","$1","c",{"children":[["$","$L2",null,{"post":{"slug":"tailwind-best-practices","title":"Tailwind CSS Best Practices in 2025","excerpt":"Tips and tricks for writing maintainable, scalable CSS with Tailwind.","content":"Content coming soon...","date":"2025-01-28","readTime":"6 min read","tags":["CSS","Tailwind"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/7c099157164476f2.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/80be762275a9570b.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"loading":null,"isPartial":false}
+5:null
