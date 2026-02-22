@@ -70,7 +70,7 @@ export function TestimonialsSection() {
   return (
     <section className="py-20 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <{/* Header */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -83,7 +83,7 @@ export function TestimonialsSection() {
           </p>
         </motion.div>
 
-        <{/* Featured Testimonial */}
+        {/* Featured Testimonial */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -91,7 +91,7 @@ export function TestimonialsSection() {
           className="mb-12"
         >
           <div className="relative max-w-4xl mx-auto">
-            <{/* Quote Icon */}
+            {/* Quote Icon */}
             <div className="absolute -top-6 -left-6 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Quote className="h-6 w-6 text-primary" />
             </div>
@@ -104,19 +104,19 @@ export function TestimonialsSection() {
               transition={{ duration: 0.3 }}
               className="bg-card border border-border rounded-2xl p-8 md:p-12"
             >
-              <{/* Stars */}
+              {/* Stars */}
               <div className="flex gap-1 mb-6">
                 {Array.from({ length: TESTIMONIALS[activeIndex].rating }).map((_, i) => (
                   <Star key={i} className="h-5 w-5 fill-yellow-500 text-yellow-500" />
                 ))}
               </div>
 
-              <{/* Quote */}
+              {/* Quote */}
               <blockquote className="text-xl md:text-2xl font-medium mb-8 leading-relaxed">
                 "{TESTIMONIALS[activeIndex].quote}"
               </blockquote>
 
-              <{/* Author */}
+              {/* Author */}
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
                   {TESTIMONIALS[activeIndex].avatar}
@@ -132,7 +132,7 @@ export function TestimonialsSection() {
           </div>
         </motion.div>
 
-        <{/* Navigation Dots */}
+        {/* Navigation Dots */}
         <div className="flex justify-center gap-2 mb-12">
           {TESTIMONIALS.map((_, index) => (
             <button
@@ -147,7 +147,7 @@ export function TestimonialsSection() {
           ))}
         </div>
 
-        <{/* Testimonial Grid */}
+        {/* Testimonial Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {TESTIMONIALS.map((testimonial, index) => (
             <motion.div

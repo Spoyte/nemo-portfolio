@@ -12,7 +12,7 @@ interface StatItemProps {
   duration?: number;
 }
 
-function AnimatedNumber({ value, suffix = "", prefix = "", duration = 2 }: StatItemProps) {
+function AnimatedNumber({ value, suffix = "", prefix = "", label, duration = 2 }: StatItemProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
 

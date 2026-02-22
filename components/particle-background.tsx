@@ -19,7 +19,7 @@ export function ParticleBackground() {
   const mouseY = useMotionValue(0);
   const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   const initParticles = useCallback((width: number, height: number) => {
     const particleCount = Math.min(Math.floor((width * height) / 15000), 100);

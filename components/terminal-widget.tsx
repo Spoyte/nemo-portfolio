@@ -84,6 +84,13 @@ Tech: React, Python, TensorFlow, D3.js`,
 export function TerminalWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+
+  // Emit event when terminal is opened for easter egg tracking
+  useEffect(() => {
+    if (isOpen) {
+      window.dispatchEvent(new CustomEvent("terminal-opened"));
+    }
+  }, [isOpen]);
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
