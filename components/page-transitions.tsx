@@ -1,118 +1,196 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
-const transitionVariants: Variants = {
-  initial: {
-    opacity: 0,
-    y: 20,
-    scale: 0.98,
-  },
-  animate: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: 0.4,
-      ease: "easeOut",
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-    scale: 0.98,
-    transition: {
-      duration: 0.3,
-    },
-  },
-};
-
+// Page transition wrapper
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={pathname}
-        variants={transitionVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="min-h-screen"
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
-// Loading screen for route transitions
-export function RouteLoader() {
-  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     setIsLoading(true);
-    setProgress(0);
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 30;
-      });
-    }, 100);
-
-    const timer = setTimeout(() => {
-      setProgress(100);
-      setTimeout(() => setIsLoading(false), 300);
-    }, 500);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    };
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   return (
-    <AnimatePresence>
-      {isLoading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-[200] h-1 bg-transparent"
-        >
+    <>
+      <AnimatePresence mode="wait">
+        {isLoading && (
           <motion.div
-            className="h-full bg-gradient-to-r from-primary via-orange-500 to-primary"
-            initial={{ width: "0%" }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.2 }}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+            key="loader"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            >
+              <Loader2 className="h-8 w-8 text-primary" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        key={pathname}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        {children}
+      </motion.div>
+    </>
   );
 }
 
-// Staggered children animation wrapper
-interface StaggerContainerProps {
-  children: React.ReactNode;
-  className?: string;
-  staggerDelay?: number;
+// Skeleton components
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div className={`animate-pulse bg-muted rounded ${className}`} />
+  );
 }
 
-export function StaggerContainer({
-  children,
+export function CardSkeleton() {
+  return (
+    <div className="p-6 rounded-xl border bg-card space-y-4">
+      <Skeleton className="h-6 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
+      <div className="flex gap-2">
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-8 w-20" />
+      </div>
+    </div>
+  );
+}
+
+export function ProjectCardSkeleton() {
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <Skeleton className="h-48 w-full rounded-none" />
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <div className="flex gap-2">
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-6 w-16" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function BlogCardSkeleton() {
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <Skeleton className="h-40 w-full rounded-none" />
+      <div className="p-6 space-y-3">
+        <div className="flex gap-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+      </div>
+    </div>
+  );
+}
+
+export function SkillBarSkeleton() {
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-12" />
+      </div>
+      <Skeleton className="h-2 w-full" />
+    </div>
+  );
+}
+
+export function ProfileSkeleton() {
+  return (
+    <div className="flex items-center gap-4">
+      <Skeleton className="h-16 w-16 rounded-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+    </div>
+  );
+}
+
+export function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="p-6 rounded-xl border bg-card text-center space-y-2">
+          <Skeleton className="h-8 w-16 mx-auto" />
+          <Skeleton className="h-4 w-24 mx-auto" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Scroll-triggered reveal animation
+export function Reveal({ 
+  children, 
+  delay = 0,
+  direction = "up"
+}: { 
+  children: React.ReactNode; 
+  delay?: number;
+  direction?: "up" | "down" | "left" | "right";
+}) {
+  const directions = {
+    up: { y: 40, x: 0 },
+    down: { y: -40, x: 0 },
+    left: { y: 0, x: 40 },
+    right: { y: 0, x: -40 },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, ...directions[direction] }}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ 
+        duration: 0.5, 
+        delay,
+        ease: [0.25, 0.1, 0.25, 1]
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Stagger container for lists
+export function StaggerContainer({ 
+  children, 
   className = "",
-  staggerDelay = 0.1,
-}: StaggerContainerProps) {
+  staggerDelay = 0.1
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  staggerDelay?: number;
+}) {
   return (
     <motion.div
       initial="hidden"
-      animate="visible"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
       variants={{
         hidden: { opacity: 0 },
         visible: {
@@ -129,72 +207,20 @@ export function StaggerContainer({
   );
 }
 
-export function StaggerItem({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function StaggerItem({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       variants={{
         hidden: { opacity: 0, y: 20 },
-        visible: {
-          opacity: 1,
+        visible: { 
+          opacity: 1, 
           y: 0,
           transition: {
             duration: 0.5,
-            ease: "easeOut",
-          },
+            ease: [0.25, 0.1, 0.25, 1]
+          }
         },
       }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-// Reveal on scroll
-interface RevealProps {
-  children: React.ReactNode;
-  className?: string;
-  direction?: "up" | "down" | "left" | "right";
-  delay?: number;
-}
-
-export function Reveal({
-  children,
-  className = "",
-  direction = "up",
-  delay = 0,
-}: RevealProps) {
-  const directions = {
-    up: { y: 40, x: 0 },
-    down: { y: -40, x: 0 },
-    left: { y: 0, x: 40 },
-    right: { y: 0, x: -40 },
-  };
-
-  return (
-    <motion.div
-      initial={{
-        opacity: 0,
-        ...directions[direction],
-      }}
-      whileInView={{
-        opacity: 1,
-        y: 0,
-        x: 0,
-      }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{
-        duration: 0.6,
-        delay,
-        ease: "easeOut",
-      }}
-      className={className}
     >
       {children}
     </motion.div>

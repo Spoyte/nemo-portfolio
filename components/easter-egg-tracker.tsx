@@ -2,7 +2,24 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Gamepad2, Terminal, Eye, MousePointer, Keyboard, Zap, Heart, Star } from "lucide-react";
+import { 
+  Trophy, 
+  Gamepad2, 
+  Terminal, 
+  Eye, 
+  MousePointer, 
+  Keyboard, 
+  Zap, 
+  Heart, 
+  Star,
+  Sparkles,
+  Ghost,
+  Rocket,
+  Music,
+  Code,
+  Command
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EasterEggTrigger {
   id: string;
@@ -10,58 +27,91 @@ interface EasterEggTrigger {
   description: string;
   icon: React.ReactNode;
   unlocked: boolean;
+  rarity: "common" | "rare" | "epic" | "legendary";
 }
 
 const EASTER_EGGS: Omit<EasterEggTrigger, "unlocked">[] = [
   {
     id: "konami",
     name: "Code Breaker",
-    description: "Entered the Konami code",
+    description: "Entered the Konami code (↑↑↓↓←→←→BA)",
     icon: <Gamepad2 className="h-5 w-5" />,
+    rarity: "epic",
   },
   {
     id: "explorer",
     name: "Curious Explorer",
     description: "Found the secret page",
     icon: <Eye className="h-5 w-5" />,
+    rarity: "common",
   },
   {
     id: "clicker",
     name: "Click Master",
     description: "Clicked 100 times on the page",
     icon: <MousePointer className="h-5 w-5" />,
+    rarity: "common",
   },
   {
     id: "typist",
     name: "Speed Typist",
     description: "Typed 50 characters in 10 seconds",
     icon: <Keyboard className="h-5 w-5" />,
+    rarity: "common",
   },
   {
     id: "night-owl",
     name: "Night Owl",
     description: "Visited at midnight",
     icon: <Zap className="h-5 w-5" />,
+    rarity: "rare",
   },
   {
     id: "returner",
     name: "Welcome Back",
     description: "Returned for a 5th visit",
     icon: <Heart className="h-5 w-5" />,
+    rarity: "common",
   },
   {
     id: "terminal-master",
     name: "Terminal Master",
     description: "Used the terminal widget",
     icon: <Terminal className="h-5 w-5" />,
+    rarity: "rare",
+  },
+  {
+    id: "konami-secret",
+    name: "Secret Unlocked",
+    description: "Found the secret Konami code variant",
+    icon: <Ghost className="h-5 w-5" />,
+    rarity: "legendary",
+  },
+  {
+    id: "matrix",
+    name: "Matrix Mode",
+    description: "Activated Matrix rain effect",
+    icon: <Code className="h-5 w-5" />,
+    rarity: "epic",
+  },
+  {
+    id: "disco",
+    name: "Disco Mode",
+    description: "Triggered the party lights",
+    icon: <Music className="h-5 w-5" />,
+    rarity: "rare",
   },
   {
     id: "completionist",
     name: "Completionist",
     description: "Unlocked all easter eggs",
     icon: <Star className="h-5 w-5" />,
+    rarity: "legendary",
   },
 ];
+
+const KONAMI_CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+const SECRET_CODE = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
 
 export function EasterEggTracker() {
   const [eggs, setEggs] = useState<EasterEggTrigger[]>([]);
@@ -69,6 +119,10 @@ export function EasterEggTracker() {
   const [clickCount, setClickCount] = useState(0);
   const [keyCount, setKeyCount] = useState(0);
   const [lastKeyTime, setLastKeyTime] = useState(0);
+  const [konamiProgress, setKonamiProgress] = useState(0);
+  const [secretProgress, setSecretProgress] = useState(0);
+  const [matrixMode, setMatrixMode] = useState(false);
+  const [discoMode, setDiscoMode] = useState(false);
 
   // Load unlocked eggs from localStorage
   useEffect(() => {
@@ -115,6 +169,50 @@ export function EasterEggTracker() {
       return updated;
     });
   }, []);
+
+  // Konami code detection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key;
+      
+      // Check Konami code
+      if (key === KONAMI_CODE[konamiProgress]) {
+        const newProgress = konamiProgress + 1;
+        setKonamiProgress(newProgress);
+        if (newProgress === KONAMI_CODE.length) {
+          unlockEgg("konami");
+          setKonamiProgress(0);
+          // Trigger matrix mode
+          setMatrixMode(true);
+          setTimeout(() => setMatrixMode(false), 5000);
+        }
+      } else if (key === KONAMI_CODE[0]) {
+        setKonamiProgress(1);
+      } else {
+        setKonamiProgress(0);
+      }
+
+      // Check secret code
+      if (key === SECRET_CODE[secretProgress]) {
+        const newProgress = secretProgress + 1;
+        setSecretProgress(newProgress);
+        if (newProgress === SECRET_CODE.length) {
+          unlockEgg("konami-secret");
+          setSecretProgress(0);
+          // Trigger disco mode
+          setDiscoMode(true);
+          setTimeout(() => setDiscoMode(false), 5000);
+        }
+      } else if (key === SECRET_CODE[0]) {
+        setSecretProgress(1);
+      } else {
+        setSecretProgress(0);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [konamiProgress, secretProgress, unlockEgg]);
 
   // Track clicks for click master
   useEffect(() => {
@@ -166,8 +264,50 @@ export function EasterEggTracker() {
   const unlockedCount = eggs.filter(e => e.unlocked).length;
   const totalCount = eggs.length;
 
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'common': return 'text-gray-500 border-gray-500/20';
+      case 'rare': return 'text-blue-500 border-blue-500/20';
+      case 'epic': return 'text-purple-500 border-purple-500/20';
+      case 'legendary': return 'text-yellow-500 border-yellow-500/20';
+      default: return 'text-gray-500';
+    }
+  };
+
   return (
     <>
+      {/* Matrix Mode Effect */}
+      <AnimatePresence>
+        {matrixMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] pointer-events-none bg-black"
+          >
+            <MatrixRain />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Disco Mode Effect */}
+      <AnimatePresence>
+        {discoMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] pointer-events-none"
+            style={{
+              background: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff, #ffff00, #ff00ff)',
+              backgroundSize: '400% 400%',
+              animation: 'gradient 2s ease infinite',
+              mixBlendMode: 'overlay',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Floating Trophy Button */}
       <motion.button
         initial={{ opacity: 0, scale: 0 }}
@@ -255,7 +395,7 @@ export function EasterEggTracker() {
                         transition={{ delay: index * 0.05 }}
                         className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                           egg.unlocked
-                            ? "bg-card border-border"
+                            ? `bg-card ${getRarityColor(egg.rarity)}`
                             : "bg-muted/50 border-transparent opacity-60"
                         }`}
                       >
@@ -269,13 +409,22 @@ export function EasterEggTracker() {
                           {egg.unlocked ? egg.icon : <span>?️</span>}
                         </div>
                         <div className="flex-1">
-                          <h3 className={`font-semibold ${!egg.unlocked && "blur-sm"}`}>
-                            {egg.unlocked ? egg.name : "Hidden Achievement"}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className={`font-semibold ${!egg.unlocked && "blur-sm"}`}>
+                              {egg.unlocked ? egg.name : "Hidden Achievement"}
+                            </h3>
+                            {egg.unlocked && (
+                              <Badge variant="outline" className={`text-xs ${getRarityColor(egg.rarity)}`}>
+                                {egg.rarity}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {egg.unlocked ? egg.description : "Keep exploring to unlock!"}
                           </p>
-                        </div>                        {egg.unlocked && (
+                        </div>
+                        
+                        {egg.unlocked && (
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -303,3 +452,64 @@ export function EasterEggTracker() {
     </>
   );
 }
+
+// Matrix Rain Effect Component
+function MatrixRain() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*';
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+    const drops: number[] = [];
+
+    for (let i = 0; i < columns; i++) {
+      drops[i] = 1;
+    }
+
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0F0';
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    };
+
+    const interval = setInterval(draw, 35);
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="w-full h-full" />;
+}
+
+import { useRef } from "react";

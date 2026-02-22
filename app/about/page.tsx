@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import { Calendar, MapPin, Briefcase, GraduationCap, Coffee, Music, Book, Gamepad2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -72,31 +69,22 @@ export default function AboutPage() {
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
-        >
+        <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">About Me</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             A passionate developer who loves creating beautiful, functional, and user-friendly digital experiences.
           </p>
-        </motion.div>
+        </div>
 
         {/* Bio Section */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20"
-        >
-          <motion.div variants={itemVariants} className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
+          <div className="space-y-6">
             <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-orange-500/20 flex items-center justify-center">
               <div className="text-6xl font-bold text-gradient">N</div>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div variants={itemVariants} className="space-y-6">
+          <div className="space-y-6">
             <h2 className="text-2xl font-bold">My Story</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
@@ -126,30 +114,21 @@ export default function AboutPage() {
                 <span>7+ Years Experience</span>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         <Separator className="my-16" />
 
         {/* Timeline */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-20"
-        >
+        <div className="mb-20">
           <h2 className="text-3xl font-bold text-center mb-12">My Journey</h2>
 
           <div className="relative">
             <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-px bg-border md:-translate-x-1/2" />
 
             {timeline.map((item, index) => (
-              <motion.div
+              <div
                 key={item.year}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
                 className={`relative flex items-start gap-8 mb-12 ${
                   index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
                 }`}
@@ -170,30 +149,21 @@ export default function AboutPage() {
                     <p className="text-muted-foreground mt-3">{item.description}</p>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         <Separator className="my-16" />
 
         {/* Interests */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
+        <div>
           <h2 className="text-3xl font-bold text-center mb-12">Beyond Coding</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {interests.map((interest, index) => (
-              <motion.div
+            {interests.map((interest) => (
+              <div
                 key={interest.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
                 className="text-center p-6 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
               >
                 <div className="inline-flex p-3 rounded-full bg-primary/10 mb-4">
@@ -201,10 +171,10 @@ export default function AboutPage() {
                 </div>
                 <h3 className="font-semibold">{interest.label}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{interest.description}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -10,8 +10,7 @@ import { MusicWidget } from "@/components/music-widget";
 import { CommandPalette } from "@/components/command-palette";
 import { CursorFollower } from "@/components/cursor-follower";
 import { EasterEggTracker } from "@/components/easter-egg-tracker";
-import { RouteLoader } from "@/components/page-transitions";
-import { KonamiEasterEgg, SecretClicker, HiddenPageTrigger } from "@/components/easter-eggs-enhanced";
+import { Toaster } from "@/components/toaster";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -49,7 +48,7 @@ export default function RootLayout({
           <CursorFollower>
             <Analytics />
             <ScrollProgress />
-            <RouteLoader />
+            <Toaster />
             <div className="flex flex-col min-h-screen">
               <Navigation />
               <main className="flex-1">{children}</main>
@@ -59,9 +58,6 @@ export default function RootLayout({
             <MusicWidget />
             <CommandPalette />
             <EasterEggTracker />
-            <KonamiEasterEgg />
-            <SecretClicker />
-            <HiddenPageTrigger />
           </CursorFollower>
         </ThemeProvider>
       </body>
