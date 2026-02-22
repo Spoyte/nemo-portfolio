@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { CursorFollower } from "@/components/cursor-follower";
 import { EasterEggTracker } from "@/components/easter-egg-tracker";
 import { RouteLoader } from "@/components/page-transitions";
+import { KonamiEasterEgg, SecretClicker, HiddenPageTrigger } from "@/components/easter-eggs-enhanced";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -58,6 +59,9 @@ export default function RootLayout({
             <MusicWidget />
             <CommandPalette />
             <EasterEggTracker />
+            <KonamiEasterEgg />
+            <SecretClicker />
+            <HiddenPageTrigger />
           </CursorFollower>
         </ThemeProvider>
       </body>

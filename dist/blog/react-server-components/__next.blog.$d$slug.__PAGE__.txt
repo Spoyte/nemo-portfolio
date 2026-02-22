@@ -1,6 +1,110 @@
 1:"$Sreact.fragment"
-2:I[99440,["/_next/static/chunks/b6963cac27ec4eb5.js","/_next/static/chunks/7e0b7bd539bb80b8.js","/_next/static/chunks/0f321a15d732f7af.js","/_next/static/chunks/758e88cf2c9dfae3.js"],"BlogPostClient"]
-3:I[99297,["/_next/static/chunks/dd564eae3624070e.js","/_next/static/chunks/7558a883d94e49ab.js"],"OutletBoundary"]
-4:"$Sreact.suspense"
-0:{"buildId":"eaXx8bMblo_uwReR4uSf5","rsc":["$","$1","c",{"children":[["$","$L2",null,{"post":{"slug":"react-server-components","title":"Understanding React Server Components","excerpt":"An in-depth look at React Server Components and when to use them.","content":"Content coming soon...","date":"2025-01-20","readTime":"15 min read","tags":["React","Next.js","Performance"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/758e88cf2c9dfae3.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"loading":null,"isPartial":false}
-5:null
+2:I[99440,["/_next/static/chunks/863afedab347dbb5.js","/_next/static/chunks/7e0b7bd539bb80b8.js","/_next/static/chunks/084d009f18adaed4.js","/_next/static/chunks/bda809f44adfb44b.js","/_next/static/chunks/5f8bde2f6ee2a983.js"],"BlogPostClient"]
+7:I[99297,["/_next/static/chunks/dd564eae3624070e.js","/_next/static/chunks/92c3ae0a0cbb7ff1.js"],"OutletBoundary"]
+8:"$Sreact.suspense"
+3:Tc41,
+## Introduction
+
+Building a portfolio website is one of the most important projects for any developer. It's not just a showcase of your work—it's a reflection of your skills, attention to detail, and passion for your craft.
+
+In this article, I'll walk you through how I built this portfolio using Next.js 14, TypeScript, Tailwind CSS, and Framer Motion.
+
+## Why Next.js 14?
+
+Next.js has evolved significantly over the years. With version 14, we get:
+
+- **App Router**: A new file-system based router built on React Server Components
+- **Server Components**: Render components on the server for better performance
+- **Streaming**: Progressive rendering of UI components
+- **Turbopack**: A Rust-based bundler that's incredibly fast
+
+### The App Router
+
+The App Router is a paradigm shift in how we build React applications. It enables:
+
+1. Nested layouts that persist across routes
+2. Server Components by default
+3. Simplified data fetching
+4. Built-in SEO optimizations
+
+## The Tech Stack
+
+### TypeScript
+
+Type safety is non-negotiable for me. TypeScript catches errors at compile time and provides excellent IDE support with autocompletion and inline documentation.
+
+```typescript
+// Example of type-safe component props
+interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+export function Button({ variant, size = 'md', children, onClick }: ButtonProps) {
+  // Component implementation
+}
+```
+
+### Tailwind CSS
+
+Utility-first CSS has revolutionized how I style applications. Tailwind's JIT compiler and extensive customization options make it perfect for rapid development.
+
+```css
+/* Instead of writing custom CSS */
+.card {
+  display: flex;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* You write utility classes */
+// className="flex p-4 rounded-lg shadow-lg"
+```
+
+### Framer Motion
+
+Animations can make or break a user experience. Framer Motion provides a declarative API for creating smooth, performant animations in React.
+
+## Key Features
+
+### Dark Mode
+
+Implementing dark mode with Next.js and Tailwind is straightforward.
+
+```tsx
+// layout.tsx
+import { ThemeProvider } from 'next-themes';
+
+export default function RootLayout({ children }) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system">
+      {children}
+    </ThemeProvider>
+  );
+}
+```
+
+### Animations
+
+Page transitions and micro-interactions add polish to the user experience.
+
+## Performance Optimizations
+
+1. **Image Optimization**: Using Next.js Image component for automatic optimization
+2. **Code Splitting**: Leveraging dynamic imports for heavy components
+3. **Font Optimization**: Using next/font for zero-layout-shift fonts
+4. **Static Generation**: Pre-rendering pages at build time
+
+## Conclusion
+
+Building this portfolio was a rewarding experience. It pushed me to learn new technologies and refine my skills. The result is a fast, accessible, and beautiful website that I'm proud to share.
+
+Feel free to explore the source code and use it as inspiration for your own portfolio!
+    0:{"buildId":"SGw3yQ2RiUSMmoRWvieqI","rsc":["$","$1","c",{"children":[["$","$L2",null,{"post":{"slug":"react-server-components","title":"Understanding React Server Components","excerpt":"An in-depth look at React Server Components, how they work, and when to use them in your applications.","content":"\n## Introduction\n\nReact Server Components represent a fundamental shift in how we build React applications.\n\n## What Are Server Components?\n\nServer Components are React components that run exclusively on the server.\n\n## Benefits\n\n1. Zero bundle size\n2. Direct backend access\n3. Improved performance\n\n## When to Use Them\n\nUnderstanding the right use cases is crucial.\n\n## Conclusion\n\nServer Components are the future of React development.\n    ","date":"2025-01-20","readTime":"15 min read","tags":["React","Next.js","Performance"]},"relatedPosts":[{"slug":"building-modern-portfolio","title":"Building a Modern Portfolio with Next.js 14","excerpt":"A deep dive into creating a performant, accessible, and beautiful portfolio website using the latest web technologies.","content":"$3","date":"2025-02-15","readTime":"8 min read","tags":["Next.js","React","TypeScript"],"relevance":2},{"slug":"typescript-tips","title":"Advanced TypeScript Patterns for React Developers","excerpt":"Level up your TypeScript skills with these advanced patterns and best practices for building type-safe React applications.","content":"\n## Introduction\n\nTypeScript has become the standard for building scalable React applications. In this article, we'll explore advanced patterns that will take your TypeScript skills to the next level.\n\n## Discriminated Unions\n\nDiscriminated unions are perfect for handling different states in your application.\n\n```typescript\ntype AsyncState<T> = \n  | { status: 'idle' }\n  | { status: 'loading' }\n  | { status: 'success'; data: T }\n  | { status: 'error'; error: Error };\n\nfunction Component() {\n  const [state, setState] = useState<AsyncState<User>>({ status: 'idle' });\n  \n  // TypeScript knows exactly what properties are available\n  if (state.status === 'success') {\n    return <div>{state.data.name}</div>;\n  }\n}\n```\n\n## Template Literal Types\n\nCreate powerful string types with template literals.\n\n## Conclusion\n\nMastering these patterns will make you a more effective TypeScript developer.\n    ","date":"2025-02-10","readTime":"12 min read","tags":["TypeScript","React"],"relevance":1},{"slug":"animation-framer-motion","title":"Creating Smooth Animations with Framer Motion","excerpt":"Learn how to add delightful micro-interactions and page transitions to your React applications using Framer Motion.","content":"\n## Introduction\n\nAnimation is an essential part of modern web design. Framer Motion makes it incredibly easy to add polished animations to your React apps.\n\n## Basic Animations\n\nGetting started with Framer Motion is simple.\n\n```tsx\nimport { motion } from 'framer-motion';\n\nfunction App() {\n  return (\n    <motion.div\n      initial={{ opacity: 0, y: 20 }}\n      animate={{ opacity: 1, y: 0 }}\n      transition={{ duration: 0.5 }}\n    >\n      Hello World\n    </motion.div>\n  );\n}\n```\n\n## Gestures\n\nAdd interaction-based animations.\n\n## Layout Animations\n\nAnimate layout changes automatically.\n\n## Conclusion\n\nFramer Motion is a powerful tool for creating delightful user experiences.\n    ","date":"2025-02-05","readTime":"10 min read","tags":["Animation","Framer Motion","React"],"relevance":1}]}],["$L4","$L5"],"$L6"]}],"loading":null,"isPartial":false}
+4:["$","script","script-0",{"src":"/_next/static/chunks/bda809f44adfb44b.js","async":true}]
+5:["$","script","script-1",{"src":"/_next/static/chunks/5f8bde2f6ee2a983.js","async":true}]
+6:["$","$L7",null,{"children":["$","$8",null,{"name":"Next.MetadataOutlet","children":"$@9"}]}]
+9:null
