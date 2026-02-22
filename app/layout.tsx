@@ -4,6 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { Analytics } from "@/components/analytics";
+import { ScrollProgress } from "@/components/scroll-progress";
+import { TerminalWidget } from "@/components/terminal-widget";
+import { MusicWidget } from "@/components/music-widget";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -32,11 +35,14 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           <Analytics />
+          <ScrollProgress />
           <div className="flex flex-col min-h-screen">
             <Navigation />
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <TerminalWidget />
+          <MusicWidget />
         </ThemeProvider>
       </body>
     </html>

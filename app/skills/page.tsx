@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Code2,
   Palette,
@@ -11,10 +11,14 @@ import {
   Terminal,
   Star,
   Zap,
+  Award,
+  BookOpen,
+  TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 const skillCategories = [
   {
@@ -75,41 +79,186 @@ const skillCategories = [
   },
 ];
 
+const certifications = [
+  {
+    title: "AWS Certified Developer",
+    issuer: "Amazon Web Services",
+    date: "2023",
+    icon: Cloud,
+    credential: "AWS-DEV-12345",
+  },
+  {
+    title: "Meta Frontend Developer",
+    issuer: "Meta",
+    date: "2022",
+    icon: Code2,
+    credential: "META-FE-67890",
+  },
+  {
+    title: "Google UX Design",
+    issuer: "Google",
+    date: "2021",
+    icon: Palette,
+    credential: "GOOGLE-UX-54321",
+  },
+];
+
+const learningGoals = [
+  { name: "Rust", progress: 40, target: "Systems programming" },
+  { name: "Three.js", progress: 60, target: "3D web graphics" },
+  { name: "AI/ML", progress: 25, target: "Machine learning" },
+  { name: "WebAssembly", progress: 35, target: "High-performance web" },
+];
+
+// Radar Chart Component
+function SkillsRadar() {
+  const skills = [
+    { name: "Frontend", value: 92 },
+    { name: "Backend", value: 85 },
+    { name: "Design", value: 83 },
+    { name: "DevOps", value: 79 },
+    { name: "Tools", value: 88 },
+  ];
+
+  const size = 300;
+  const center = size / 2;
+  const radius = 100;
+  const angleStep = (2 * Math.PI) / skills.length;
+
+  const getPoint = (index: number, value: number) => {
+    const angle = index * angleStep - Math.PI / 2;
+    const r = (value / 100) * radius;
+    return {
+      x: center + r * Math.cos(angle),
+      y: center + r * Math.sin(angle),
+    };
+  };
+
+  const pathData = skills
+    .map((skill, i) => {
+      const point = getPoint(i, skill.value);
+      return `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`;
+    })
+    .join(" ") + " Z";
+
+  return (
+    <div className="flex justify-center">
+      <svg width={size} height={size} className="overflow-visible">
+        {/* Background circles */}
+        {[25, 50, 75, 100].map((level) => (
+          <circle
+            key={level}
+            cx={center}
+            cy={center}
+            r={(level / 100) * radius}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity={0.1}
+            className="text-foreground"
+          />
+        ))}
+
+        {/* Axes */}
+        {skills.map((_, i) => {
+          const end = getPoint(i, 100);
+          return (
+            <line
+              key={i}
+              x1={center}
+              y1={center}
+              x2={end.x}
+              y2={end.y}
+              stroke="currentColor"
+              strokeOpacity={0.1}
+              className="text-foreground"
+            />
+          );
+        })}
+
+        {/* Data area */}
+        <motion.path
+          d={pathData}
+          fill="rgba(220, 38, 38, 0.2)"
+          stroke="rgb(220, 38, 38)"
+          strokeWidth={2}
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+        />
+
+        {/* Data points */}
+        {skills.map((skill, i) => {
+          const point = getPoint(i, skill.value);
+          return (
+            <motion.circle
+              key={i}
+              cx={point.x}
+              cy={point.y}
+              r={5}
+              fill="rgb(220, 38, 38)"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 1 + i * 0.1 }}
+            />
+          );
+        })}
+
+        {/* Labels */}
+        {skills.map((skill, i) => {
+          const point = getPoint(i, 115);
+          return (
+            <text
+              key={i}
+              x={point.x}
+              y={point.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="text-xs fill-foreground font-medium"
+            >
+              {skill.name}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 function SkillBar({ skill, index }: { skill: typeof skillCategories[0]["skills"][0]; index: number }) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{skill.name}</span>
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="group"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 10 }}
+            className="text-xs text-muted-foreground"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium">{skill.name}</span>
-              <span className="text-sm text-muted-foreground">{skill.level}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: `${skill.level}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 1, delay: index * 0.1, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
-              />
-            </div>
+            {skill.description}
           </motion.div>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-xs">
-          <p>{skill.description}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+        <span className="text-sm text-muted-foreground">{skill.level}%</span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          whileInView={{ width: `${skill.level}%` }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, delay: index * 0.1, ease: "easeOut" }}
+          className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
+        />
+      </div>
+    </motion.div>
   );
 }
 
@@ -129,8 +278,71 @@ export default function SkillsPage() {
           </p>
         </motion.div>
 
-        {/* Skills Tabs */}
-        <Tabs defaultValue="frontend" className="w-full">
+        {/* Skills Radar + Tabs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
+          {/* Radar Chart */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Skill Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SkillsRadar />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Skill Categories */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Top Skills
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {[
+                  { name: "React / Next.js", level: 95 },
+                  { name: "TypeScript", level: 92 },
+                  { name: "Tailwind CSS", level: 95 },
+                  { name: "Node.js", level: 88 },
+                  { name: "UI/UX Design", level: 85 },
+                ].map((skill, index) => (
+                  <div key={skill.name}>
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium">{skill.name}</span>
+                      <span className="text-sm text-muted-foreground">{skill.level}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${skill.level}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: index * 0.1 }}
+                        className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Detailed Skills Tabs */}
+        <Tabs defaultValue="frontend" className="w-full mb-20">
           <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full max-w-3xl mx-auto mb-12">
             {skillCategories.map((category) => (
               <TabsTrigger
@@ -168,11 +380,11 @@ export default function SkillsPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-20"
+          className="mb-20"
         >
           <h2 className="text-3xl font-bold text-center mb-12">Tech Stack</h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
             {[
               { name: "React", color: "#61DAFB" },
               { name: "Next.js", color: "#000000" },
@@ -210,38 +422,22 @@ export default function SkillsPage() {
           </div>
         </motion.div>
 
-        {/* Certifications */}
+        {/* Learning Goals */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-20"
+          className="mb-20"
         >
-          <h2 className="text-3xl font-bold text-center mb-12">Certifications</h2>
+          <h2 className="text-3xl font-bold text-center mb-12 flex items-center justify-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" />
+            Currently Learning
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "AWS Certified Developer",
-                issuer: "Amazon Web Services",
-                date: "2023",
-                icon: Cloud,
-              },
-              {
-                title: "Meta Frontend Developer",
-                issuer: "Meta",
-                date: "2022",
-                icon: Code2,
-              },
-              {
-                title: "Google UX Design",
-                issuer: "Google",
-                date: "2021",
-                icon: Palette,
-              },
-            ].map((cert, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {learningGoals.map((goal, index) => (
               <motion.div
-                key={cert.title}
+                key={goal.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -249,14 +445,64 @@ export default function SkillsPage() {
               >
                 <Card className="hover:border-primary/50 transition-colors">
                   <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">{goal.name}</h3>
+                        <p className="text-sm text-muted-foreground">{goal.target}</p>
+                      </div>
+                      <Badge variant="outline">{goal.progress}%</Badge>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${goal.progress}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                        className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Certifications */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-3xl font-bold text-center mb-12 flex items-center justify-center gap-2">
+            <Award className="h-6 w-6 text-primary" />
+            Certifications
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {certifications.map((cert, index) => (
+              <motion.div
+                key={cert.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="hover:border-primary/50 transition-colors h-full">
+                  <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="p-3 rounded-full bg-primary/10">
                         <cert.icon className="h-6 w-6 text-primary" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-semibold">{cert.title}</h3>
                         <p className="text-sm text-muted-foreground">{cert.issuer}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{cert.date}</p>
+                        <div className="flex items-center justify-between mt-3">
+                          <Badge variant="secondary">{cert.date}</Badge>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {cert.credential}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
