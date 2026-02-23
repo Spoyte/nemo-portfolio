@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Download, Sparkles, Code2, Palette, Zap, Trophy, Terminal } from "lucide-react";
+import { ArrowRight, Download, Sparkles, Code2, Palette, Zap, Trophy, Terminal, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VisitorCounter } from "@/components/visitor-counter";
-import { TestimonialsSection } from "@/components/testimonials-section";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { EasterEgg } from "@/components/easter-egg";
 import { ParticleBackground } from "@/components/particle-background";
@@ -16,8 +15,8 @@ import { TiltCard, MagneticButton, Floating, Spotlight } from "@/components/tilt
 import { TextScramble, GradientText } from "@/components/text-effects";
 import { Reveal, StaggerContainer, StaggerItem } from "@/components/page-transitions";
 import { Confetti, AchievementNotification, useAchievements } from "@/components/confetti";
-import { CodePlayground } from "@/components/code-playground";
-import { TestimonialsCarousel } from "@/components/testimonials-carousel";
+import { InteractiveTestimonials } from "@/components/interactive-testimonials";
+import { GamificationSystem } from "@/components/gamification";
 import { useEffect, useState } from "react";
 
 const features = [
@@ -84,7 +83,7 @@ export default function Home() {
 
             <StaggerItem>
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-                Hi, I'm{" "}
+                Hi, I&apos;m{" "}
                 <span className="text-gradient-animated">Nemo</span>
               </h1>
             </StaggerItem>
@@ -263,51 +262,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Analytics Dashboard */}
+      {/* Analytics Dashboard + Gamification */}
       <section className="py-20 border-y border-border/50 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Site Analytics</h2>
             <p className="text-muted-foreground">
-              Real-time insights into this portfolio's performance.
+              Real-time insights into this portfolio&apos;s performance.
             </p>
           </Reveal>
-          <AnalyticsDashboard />
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <TestimonialsSection />
-
-      {/* Code Playground */}
-      <section className="py-20 border-y border-border/50 bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Reveal className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-              <Terminal className="h-4 w-4" />
-              <span className="text-sm font-medium">Interactive Demo</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <AnalyticsDashboard />
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Code Playground</h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto">
-              Try out some interactive code snippets and discover fun facts about this portfolio.
-            </p>
-          </Reveal>
-          <CodePlayground />
+            <div className="lg:col-span-1">
+              <GamificationSystem />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Testimonials Carousel */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Reveal className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What People Say</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Feedback from clients and collaborators I've had the pleasure of working with.
-            </p>
-          </Reveal>
-          <TestimonialsCarousel />
-        </div>
-      </section>
+      {/* Interactive Testimonials */}
+      <InteractiveTestimonials />
 
       {/* CTA Section */}
       <section className="py-20">

@@ -147,11 +147,13 @@ export function StatsSkeleton() {
 export function Reveal({ 
   children, 
   delay = 0,
-  direction = "up"
+  direction = "up",
+  className = ""
 }: { 
   children: React.ReactNode; 
   delay?: number;
   direction?: "up" | "down" | "left" | "right";
+  className?: string;
 }) {
   const directions = {
     up: { y: 40, x: 0 },
@@ -170,6 +172,7 @@ export function Reveal({
         delay,
         ease: [0.25, 0.1, 0.25, 1]
       }}
+      className={className}
     >
       {children}
     </motion.div>

@@ -6,11 +6,12 @@ import { Footer } from "@/components/footer";
 import { Analytics } from "@/components/analytics";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { TerminalWidget } from "@/components/terminal-widget";
-import { MusicWidget } from "@/components/music-widget";
 import { CommandPalette } from "@/components/command-palette";
 import { CursorFollower } from "@/components/cursor-follower";
 import { EasterEggTracker } from "@/components/easter-egg-tracker";
 import { Toaster } from "@/components/toaster";
+import { AIChatWidget } from "@/components/ai-chat";
+import { MusicPlayerWidget } from "@/components/music-player";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -55,7 +56,8 @@ export default function RootLayout({
               <Footer />
             </div>
             <TerminalWidget />
-            <MusicWidget />
+            <MusicPlayerWidget />
+            <AIChatWidget />
             <CommandPalette />
             <EasterEggTracker />
           </CursorFollower>
