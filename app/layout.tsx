@@ -12,6 +12,8 @@ import { EasterEggTracker } from "@/components/easter-egg-tracker";
 import { Toaster } from "@/components/toaster";
 import { AIChatWidget } from "@/components/ai-chat";
 import { MusicPlayerWidget } from "@/components/music-player";
+import { VoiceNavigation } from "@/components/voice-navigation";
+import { RealTimeCollaboration } from "@/components/real-time-collaboration";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -60,6 +62,8 @@ export default function RootLayout({
             <AIChatWidget />
             <CommandPalette />
             <EasterEggTracker />
+            <VoiceNavigation />
+            <RealTimeCollaboration />
           </CursorFollower>
         </ThemeProvider>
       </body>

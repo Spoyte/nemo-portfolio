@@ -2,7 +2,21 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Download, Sparkles, Code2, Palette, Zap, Trophy, Terminal, Heart } from "lucide-react";
+import { 
+  ArrowRight, 
+  Download, 
+  Sparkles, 
+  Code2, 
+  Palette, 
+  Zap, 
+  Trophy, 
+  Terminal, 
+  Heart,
+  Gamepad2,
+  Wand2,
+  Layers,
+  Lightbulb
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VisitorCounter } from "@/components/visitor-counter";
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
@@ -19,6 +33,8 @@ import { InteractiveTestimonials } from "@/components/interactive-testimonials";
 import { GamificationSystem } from "@/components/gamification";
 import { LiveVisitorMap } from "@/components/live-visitor-map";
 import { QuoteOfTheDay } from "@/components/quote-of-the-day";
+import { SkillsVisualization } from "@/components/skills-3d-visualization";
+import { AIProjectGenerator } from "@/components/ai-project-generator";
 import { useEffect, useState } from "react";
 
 const features = [
@@ -282,6 +298,80 @@ export default function Home() {
               <LiveVisitorMap />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Features Showcase */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Interactive Features</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Explore the playground for interactive demos, 3D visualizations, and AI-powered tools.
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Reveal delay={0}>
+              <TiltCard tiltAmount={8}>
+                <Link href="/playground">
+                  <div className="p-8 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all text-center group h-full cursor-pointer"
+                  >
+                    <div className="inline-flex p-4 rounded-xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform">
+                      <Layers className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-3">3D Skills Globe</h3>
+                    <p className="text-muted-foreground">
+                      Explore my technical skills in an interactive 3D visualization. Drag to rotate and click to learn more.
+                    </p>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <TiltCard tiltAmount={8}>
+                <Link href="/playground">
+                  <div className="p-8 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all text-center group h-full cursor-pointer"
+                  >
+                    <div className="inline-flex p-4 rounded-xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform">
+                      <Wand2 className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-3">AI Project Generator</h3>
+                    <p className="text-muted-foreground">
+                      Stuck on what to build? Let AI spark your creativity with personalized project ideas.
+                    </p>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.2}>
+              <TiltCard tiltAmount={8}>
+                <Link href="/playground">
+                  <div className="p-8 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all text-center group h-full cursor-pointer"
+                  >
+                    <div className="inline-flex p-4 rounded-xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform">
+                      <Gamepad2 className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-3">Achievement System</h3>
+                    <p className="text-muted-foreground">
+                      Unlock achievements as you explore. Gamified experience with XP, levels, and rewards.
+                    </p>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+          </div>
+
+          <Reveal className="text-center mt-12">
+            <Link href="/playground">
+              <Button size="lg" className="group">
+                Explore Playground
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </Reveal>
         </div>
       </section>
 

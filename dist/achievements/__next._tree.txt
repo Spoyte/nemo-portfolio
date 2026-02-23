@@ -1,2 +1,2 @@
-:HL["/_next/static/chunks/4063caa8b2180ec0.css","style"]
-0:{"buildId":"7JgA3ezWExCFoq759wgPm","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"achievements","paramType":null,"paramKey":"achievements","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+:HL["/_next/static/chunks/ae457537536b3343.css","style"]
+0:{"buildId":"UfRbGL4Zb4CzXycHB3RLO","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"achievements","paramType":null,"paramKey":"achievements","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
