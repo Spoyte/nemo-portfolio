@@ -16,11 +16,9 @@ const navItems = [
   { href: "/journey", label: "Journey" },
   { href: "/now", label: "Now" },
   { href: "/playground", label: "Playground" },
-  { href: "/art", label: "Art" },
-  { href: "/uses", label: "Uses" },
-  { href: "/testimonials", label: "Love" },
-  { href: "/quotes", label: "Quotes" },
-  { href: "/achievements", label: "Quests" },
+  { href: "/achievements", label: "Achievements" },
+  { href: "/analytics", label: "Analytics" },
+  { href: "/hire-me", label: "Hire Me" },
   { href: "/contact", label: "Contact" },
 ];
 

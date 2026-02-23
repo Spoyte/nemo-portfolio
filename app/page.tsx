@@ -36,6 +36,9 @@ import { QuoteOfTheDay } from "@/components/quote-of-the-day";
 import { SkillsVisualization } from "@/components/skills-3d-visualization";
 import { AIProjectGenerator } from "@/components/ai-project-generator";
 import { useEffect, useState } from "react";
+import { ScrollReveal, StaggerReveal, TextReveal, BlurReveal } from "@/components/scroll-reveal";
+import { Card3D, FloatingCard3D } from "@/components/card-3d";
+import { ParticleText } from "@/components/particle-text";
 
 const features = [
   {
