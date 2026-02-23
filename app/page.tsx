@@ -17,6 +17,8 @@ import { Reveal, StaggerContainer, StaggerItem } from "@/components/page-transit
 import { Confetti, AchievementNotification, useAchievements } from "@/components/confetti";
 import { InteractiveTestimonials } from "@/components/interactive-testimonials";
 import { GamificationSystem } from "@/components/gamification";
+import { LiveVisitorMap } from "@/components/live-visitor-map";
+import { QuoteOfTheDay } from "@/components/quote-of-the-day";
 import { useEffect, useState } from "react";
 
 const features = [
@@ -262,7 +264,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Analytics Dashboard + Gamification */}
+      {/* Analytics Dashboard + Gamification + Live Map */}
       <section className="py-20 border-y border-border/50 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center mb-12">
@@ -275,10 +277,24 @@ export default function Home() {
             <div className="lg:col-span-2">
               <AnalyticsDashboard />
             </div>
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <GamificationSystem />
+              <LiveVisitorMap />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Quote of the Day */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Daily Inspiration</h2>
+            <p className="text-muted-foreground">
+              A quote to inspire your day.
+            </p>
+          </Reveal>
+          <QuoteOfTheDay />
         </div>
       </section>
 
