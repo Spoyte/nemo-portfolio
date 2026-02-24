@@ -6,6 +6,7 @@ import { recursiveTrees } from "./recursive-trees";
 import { waveInterference } from "./wave-interference";
 import { cellularAutomata } from "./cellular-automata";
 import { voronoiOrganic } from "./voronoi-organic";
+import { topographicFlow } from "./topographic-flow";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -15,6 +16,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "wave-interference": waveInterference,
   "cellular-automata": cellularAutomata,
   "voronoi-organic": voronoiOrganic,
+  "topographic-flow": topographicFlow,
 };
 
 export * from "./core";

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topographic Flow - Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 20px; font-size: 1.5rem; opacity: 0.9; }
+    canvas {
+      border: 1px solid #333;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      image-rendering: pixelated;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      padding: 10px 20px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover { background: #1d4ed8; }
+    button.secondary { background: #4b5563; }
+    button.secondary:hover { background: #374151; }
+    .info {
+      margin-top: 15px;
+      font-size: 12px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>🗻 Topographic Flow</h1>
+  <canvas id="canvas" width="400" height="400"></canvas>
+  <div class="controls">
+    <button id="playPause">Pause</button>
+    <button class="secondary" data-scheme="ocean">Ocean</button>
+    <button class="secondary" data-scheme="earth">Earth</button>
+    <button class="secondary" data-scheme="heatmap">Heatmap</button>
+    <button class="secondary" data-scheme="monochrome">Mono</button>
+  </div>
+  <div class="info">Animated topographic maps with flowing contour lines</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Simplex-like noise
+    class NoiseGenerator {
+      constructor() {
+        this.perm = new Array(512);
+        const p = new Array(256).fill(0).map((_, i) => i);
+        for (let i = 255; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [p[i], p[j]] = [p[j], p[i]];
+        }
+        for (let i = 0; i < 512; i++) {
+          this.perm[i] = p[i & 255];
+        }
+      }
+      
+      fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+      lerp(t, a, b) { return a + t * (b - a); }
+      
+      grad(hash, x, y) {
+        const h = hash & 15;
+        const u = h < 8 ? x : y;
+        const v = h < 4 ? y : h === 12 || h === 14 ? x : 0;
+        return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+      }
+      
+      noise(x, y) {
+        const X = Math.floor(x) & 255;
+        const Y = Math.floor(y) & 255;
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        const u = this.fade(x);
+        const v = this.fade(y);
+        const A = this.perm[X] + Y;
+        const B = this.perm[X + 1] + Y;
+        
+        return this.lerp(v,
+          this.lerp(u, this.grad(this.perm[A], x, y), this.grad(this.perm[B], x - 1, y)),
+          this.lerp(u, this.grad(this.perm[A + 1], x, y - 1), this.grad(this.perm[B + 1], x - 1, y - 1))
+        );
+      }
+      
+      fbm(x, y, octaves = 4) {
+        let value = 0;
+        let amplitude = 0.5;
+        let frequency = 1;
+        for (let i = 0; i < octaves; i++) {
+          value += amplitude * this.noise(x * frequency, y * frequency);
+          amplitude *= 0.5;
+          frequency *= 2;
+        }
+        return value;
+      }
+    }
+    
+    const colorSchemes = {
+      ocean: { low: [10, 30, 60], mid: [40, 100, 140], high: [200, 220, 240], contour: [255, 255, 255] },
+      earth: { low: [60, 40, 20], mid: [120, 160, 80], high: [220, 210, 180], contour: [40, 30, 20] },
+      heatmap: { low: [40, 20, 60], mid: [200, 80, 60], high: [255, 220, 100], contour: [255, 255, 255] },
+      monochrome: { low: [20, 20, 20], mid: [100, 100, 100], high: [240, 240, 240], contour: [255, 255, 255] },
+    };
+    
+    const noise = new NoiseGenerator();
+    let time = 0;
+    let isPlaying = true;
+    let colorScheme = 'ocean';
+    
+    const width = 400;
+    const height = 400;
+    const noiseScale = 0.003;
+    const contourInterval = 8;
+    const animationSpeed = 0.0003;
+    
+    const imageData = ctx.createImageData(width, height);
+    const data = imageData.data;
+    
+    function lerp(a, b, t) { return a + t * (b - a); }
+    
+    function render() {
+      const scheme = colorSchemes[colorScheme];
+      const offsetX = time * 50;
+      const offsetY = time * 30;
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const nx = (x + offsetX) * noiseScale;
+          const ny = (y + offsetY) * noiseScale;
+          const elevation = noise.fbm(nx, ny, 5);
+          const normalized = (elevation + 1) * 0.5;
+          
+          const contourLevel = Math.floor(normalized * 100 / contourInterval);
+          const isContour = Math.abs((normalized * 100) - contourLevel * contourInterval) < 1.5;
+          
+          const idx = (y * width + x) * 4;
+          
+          if (isContour) {
+            data[idx] = scheme.contour[0];
+            data[idx + 1] = scheme.contour[1];
+            data[idx + 2] = scheme.contour[2];
+            data[idx + 3] = 200;
+          } else {
+            let r, g, b;
+            if (normalized < 0.4) {
+              const t = normalized / 0.4;
+              r = lerp(scheme.low[0], scheme.mid[0], t);
+              g = lerp(scheme.low[1], scheme.mid[1], t);
+              b = lerp(scheme.low[2], scheme.mid[2], t);
+            } else {
+              const t = (normalized - 0.4) / 0.6;
+              r = lerp(scheme.mid[0], scheme.high[0], t);
+              g = lerp(scheme.mid[1], scheme.high[1], t);
+              b = lerp(scheme.mid[2], scheme.high[2], t);
+            }
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+            data[idx + 3] = 255;
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    }
+    
+    function animate() {
+      render();
+      time += animationSpeed;
+      if (isPlaying) requestAnimationFrame(animate);
+    }
+    
+    // Controls
+    document.getElementById('playPause').addEventListener('click', function() {
+      isPlaying = !isPlaying;
+      this.textContent = isPlaying ? 'Pause' : 'Play';
+      if (isPlaying) animate();
+    });
+    
+    document.querySelectorAll('[data-scheme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        colorScheme = btn.dataset.scheme;
+      });
+    });
+    
+    animate();
+  </script>
+</body>
+</html>
