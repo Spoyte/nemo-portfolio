@@ -9,6 +9,7 @@ import { voronoiOrganic } from "./voronoi-organic";
 import { topographicFlow } from "./topographic-flow";
 import { strangeAttractor } from "./strange-attractor";
 import { reactionDiffusion } from "./reaction-diffusion";
+import { dla } from "./dla";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -21,8 +22,10 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "topographic-flow": topographicFlow,
   "strange-attractor": strangeAttractor,
   "reaction-diffusion": reactionDiffusion,
+  "dla": dla,
 };
 
 export * from "./core";
 
 export * from './reaction-diffusion';
+export * from './dla';
