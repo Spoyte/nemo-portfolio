@@ -7,6 +7,7 @@ import { waveInterference } from "./wave-interference";
 import { cellularAutomata } from "./cellular-automata";
 import { voronoiOrganic } from "./voronoi-organic";
 import { topographicFlow } from "./topographic-flow";
+import { strangeAttractor } from "./strange-attractor";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -17,6 +18,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "cellular-automata": cellularAutomata,
   "voronoi-organic": voronoiOrganic,
   "topographic-flow": topographicFlow,
+  "strange-attractor": strangeAttractor,
 };
 
 export * from "./core";
