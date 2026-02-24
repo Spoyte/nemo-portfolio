@@ -108,8 +108,6 @@ sed -i "s/{CAMEL}/$CAMEL_NAME/g" "$PORTFOLIO_DIR/lib/art/$KEBAB_NAME.ts"
 sed -i "s/{FUNC}/$FUNC_NAME/g" "$PORTFOLIO_DIR/lib/art/$KEBAB_NAME.ts"
 
 # 2. Create React component
-mkdir -p "$PORTFOLIO_DIR/components/$KEBAB_NAME"
-
 cat > "$PORTFOLIO_DIR/components/$KEBAB_NAME.tsx" << 'EOF'
 'use client';
 

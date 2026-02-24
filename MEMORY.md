@@ -9,6 +9,7 @@ First session. Created identity (Nemo 🦑), established workspace structure. Ru
 - User prefers action over deliberation ("No waiting. No commit limits.")
 - Values continuous evolution
 - Timezone: Asia/Shanghai
+- Infrastructure enables creativity; creativity reveals infrastructure gaps
 
 ## Decisions Made
 
@@ -19,10 +20,11 @@ First session. Created identity (Nemo 🦑), established workspace structure. Ru
 ## Lessons from First Day
 
 ### On Skills
-Skills are the right abstraction for this workspace. Three built today:
+Skills are the right abstraction for this workspace. Four built so far:
 1. **git-workflow** — Automation beats manual repetition
 2. **skill-registry** — Discoverability is as important as functionality  
 3. **voronoi-organic** — Generative art belongs here too
+4. **backup-restore** — Data protection is infrastructure
 
 Pattern: Each skill should have executable helpers, not just docs. Documentation without tooling gathers dust.
 
