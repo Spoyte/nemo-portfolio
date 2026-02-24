@@ -17,6 +17,7 @@ import { fluidSmoke } from "./fluid-smoke-generator";
 import { particleSwarm } from "./particle-swarm-generator";
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { perlinTerrainGenerator } from "./perlin-terrain";
+import { kaleidoscopeSymmetry } from "./kaleidoscope-symmetry";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -37,6 +38,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "particle-swarm": particleSwarm,
   "mandelbrot-explorer": mandelbrotExplorer,
   "perlin-terrain": perlinTerrainGenerator,
+  "kaleidoscope": kaleidoscopeSymmetry,
 };
 
 export * from "./core";
