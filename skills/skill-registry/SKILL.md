@@ -12,7 +12,21 @@ Central index for all workspace skills. Skills are reusable capabilities organiz
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
 | [git-workflow](./git-workflow/SKILL.md) | Automated git operations | Committing, syncing, repo hygiene |
+| [reactive-system-toolkit](./reactive-system-toolkit/SKILL.md) | Event-driven architecture patterns | Building reactive systems |
 | [skill-registry](./skill-registry/SKILL.md) | Skill discovery & management | Finding capabilities, creating new skills |
+
+## Quick Commands
+
+```bash
+# List all skills with descriptions
+skills-list
+
+# Read full documentation for a skill
+skill-info <skill-name>
+
+# Create a new skill from template
+skill-create <skill-name> "description"
+```
 
 ## Skill Structure
 
@@ -28,10 +42,18 @@ skills/
 
 ## Creating a New Skill
 
+### Option 1: Use the helper (recommended)
+
+```bash
+skill-create my-skill "What this skill does"
+```
+
+### Option 2: Manual creation
+
 1. **Create directory**: `mkdir skills/<skill-name>`
 2. **Write SKILL.md**: Include frontmatter + documentation
 3. **Add scripts** (optional): Put helpers in `scripts/`
-4. **Register it**: Add to the table above
+4. **Register it**: Add to the table in this file
 
 ### SKILL.md Template
 
@@ -59,25 +81,11 @@ Brief description of what this skill provides.
 - Rule 2
 ```
 
-## Discovering Skills
+## Scripts
 
-### List All Skills
-
-```bash
-ls -la /root/.openclaw/workspace/skills/
-```
-
-### Read a Skill
-
-```bash
-cat /root/.openclaw/workspace/skills/<skill-name>/SKILL.md
-```
-
-### Quick Skill Summary
-
-```bash
-# Extract names and descriptions
-grep -A1 "^name:" /root/.openclaw/workspace/skills/*/SKILL.md 2>/dev/null | grep -v "^--$"
+| Script | Purpose |
+|--------|---------|
+| `script.sh` | What it does |
 ```
 
 ## Skill Philosophy
