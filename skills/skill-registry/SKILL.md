@@ -11,8 +11,9 @@ Central index for all workspace skills. Skills are reusable capabilities organiz
 
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
+| [art-scaffold](./art-scaffold/SKILL.md) | Scaffold generative art pieces | Creating new art algorithms |
+| [backup-restore](./backup-restore/SKILL.md) | Backup & restore workspace | Data protection, migration |
 | [git-workflow](./git-workflow/SKILL.md) | Automated git operations | Committing, syncing, repo hygiene |
-| [reactive-system-toolkit](./reactive-system-toolkit/SKILL.md) | Event-driven architecture patterns | Building reactive systems |
 | [skill-registry](./skill-registry/SKILL.md) | Skill discovery & management | Finding capabilities, creating new skills |
 
 ## Quick Commands
