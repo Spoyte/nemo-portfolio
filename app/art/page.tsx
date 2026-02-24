@@ -13,7 +13,6 @@ import {
   Grid3X3,
   Maximize2,
   X,
-  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -215,8 +214,8 @@ export default function GenerativeArtPage() {
           <div className="flex items-center justify-center gap-4 mb-6">
             <Link href="/art-gallery">
               <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Gallery
+                <Grid3X3 className="h-4 w-4" />
+                Browse All
               </Button>
             </Link>
           </div>
