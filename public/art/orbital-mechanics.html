@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbital Mechanics — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #05050a;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 10px; font-size: 1.5rem; opacity: 0.9; }
+    .subtitle { font-size: 0.9rem; opacity: 0.6; margin-bottom: 20px; }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      max-width: 100%;
+      height: auto;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    label { font-size: 0.8rem; opacity: 0.7; }
+    input[type="range"] { width: 120px; }
+    .color-buttons {
+      display: flex;
+      gap: 5px;
+    }
+    button {
+      padding: 5px 12px;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+    button:hover { background: #444; }
+    button.active { background: #3b82f6; }
+  </style>
+</head>
+<body>
+  <h1>Orbital Mechanics</h1>
+  <p class="subtitle">Gravitational particle simulation with decaying trails</p>
+  
+  <canvas id="canvas" width="400" height="400"></canvas>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label>Particles</label>
+      <input type="range" id="particleCount" min="100" max="2000" step="100" value="800">
+    </div>
+    <div class="control-group">
+      <label>Gravity</label>
+      <input type="range" id="gravityStrength" min="10" max="150" step="10" value="50">
+    </div>
+    <div class="control-group">
+      <label>Trail Length</label>
+      <input type="range" id="trailLength" min="10" max="100" step="5" value="40">
+    </div>
+    <div class="control-group">
+      <label>Colors</label>
+      <div class="color-buttons">
+        <button class="active" data-color="cosmic">Cosmic</button>
+        <button data-color="solar">Solar</button>
+        <button data-color="nebula">Nebula</button>
+        <button data-color="monochrome">Mono</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let params = {
+      particleCount: 800,
+      gravityStrength: 50,
+      trailLength: 40,
+      colorScheme: 'cosmic'
+    };
+    
+    let particles = [];
+    
+    function createParticle(width, height, centerX, centerY) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 50 + Math.random() * 120;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      
+      const orbitalSpeed = Math.sqrt(2000 / distance);
+      const vx = -Math.sin(angle) * orbitalSpeed * (0.8 + Math.random() * 0.4);
+      const vy = Math.cos(angle) * orbitalSpeed * (0.8 + Math.random() * 0.4);
+      
+      return {
+        x, y, vx, vy,
+        mass: 0.5 + Math.random() * 1.5,
+        hue: Math.random() * 360,
+        trail: []
+      };
+    }
+    
+    function getColor(scheme, hue, brightness) {
+      const palettes = {
+        cosmic: (h, b) => {
+          const r = Math.floor(20 + b * 60 * (0.5 + 0.5 * Math.sin(h * 0.017)));
+          const g = Math.floor(10 + b * 40 * (0.3 + 0.7 * Math.cos(h * 0.013)));
+          const bl = Math.floor(40 + b * 100);
+          return [r, g, bl];
+        },
+        solar: (h, b) => {
+          const r = Math.floor(200 + b * 55);
+          const g = Math.floor(80 + b * 120 * (0.5 + 0.5 * Math.sin(h * 0.01)));
+          const bl = Math.floor(b * 40);
+          return [r, g, bl];
+        },
+        nebula: (h, b) => {
+          const r = Math.floor(30 + b * 80 * (0.7 + 0.3 * Math.sin(h * 0.015)));
+          const g = Math.floor(10 + b * 60 * (0.4 + 0.6 * Math.cos(h * 0.02)));
+          const bl = Math.floor(50 + b * 100 * (0.6 + 0.4 * Math.sin(h * 0.01)));
+          return [r, g, bl];
+        },
+        monochrome: (h, b) => {
+          const v = Math.floor(20 + b * 200);
+          return [v, v, v];
+        }
+      };
+      return (palettes[scheme] || palettes.cosmic)(hue, brightness);
+    }
+    
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < params.particleCount; i++) {
+        particles.push(createParticle(400, 400, 200, 200));
+      }
+    }
+    
+    function animate(time) {
+      const width = 400, height = 400;
+      const centerX = 200, centerY = 200;
+      const G = params.gravityStrength * 0.5;
+      const dt = 0.3;
+      
+      // Trail fade
+      ctx.fillStyle = 'rgba(5, 5, 10, 0.15)';
+      ctx.fillRect(0, 0, width, height);
+      
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        
+        const dx = centerX - p.x;
+        const dy = centerY - p.y;
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq);
+        
+        const minDist = 15;
+        const effectiveDist = Math.max(dist, minDist);
+        const accel = G * 50 / (effectiveDist * effectiveDist);
+        
+        const ax = (dx / effectiveDist) * accel;
+        const ay = (dy / effectiveDist) * accel;
+        
+        p.vx += ax * dt;
+        p.vy += ay * dt;
+        p.vx *= 0.9995;
+        p.vy *= 0.9995;
+        
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > params.trailLength) p.trail.shift();
+        
+        // Draw trail
+        if (p.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          
+          for (let j = 1; j < p.trail.length; j++) {
+            const prev = p.trail[j - 1];
+            const curr = p.trail[j];
+            const midX = (prev.x + curr.x) / 2;
+            const midY = (prev.y + curr.y) / 2;
+            ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+          }
+          
+          const last = p.trail[p.trail.length - 1];
+          ctx.lineTo(last.x, last.y);
+          
+          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+          const brightness = Math.min(1, speed / 8);
+          const [r, g, b] = getColor(params.colorScheme, p.hue + time * 0.02, brightness);
+          
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.6)`;
+          ctx.lineWidth = p.mass * 0.8;
+          ctx.stroke();
+        }
+        
+        // Draw particle
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        const brightness = Math.min(1, speed / 10);
+        const [r, g, b] = getColor(params.colorScheme, p.hue + time * 0.02, brightness);
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.mass * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.mass * 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.15)`;
+        ctx.fill();
+        
+        if (dist > 320 || dist < 8) {
+          particles[i] = createParticle(width, height, centerX, centerY);
+        }
+      }
+      
+      // Draw sun
+      const sunGlow = 20 + Math.sin(time * 0.002) * 5;
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunGlow * 2);
+      const [sr, sg, sb] = params.colorScheme === 'solar' ? [255, 200, 50] : 
+                           params.colorScheme === 'nebula' ? [200, 100, 255] :
+                           params.colorScheme === 'monochrome' ? [200, 200, 200] : [100, 150, 255];
+      
+      gradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 1)`);
+      gradient.addColorStop(0.3, `rgba(${sr}, ${sg}, ${sb}, 0.4)`);
+      gradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0)`);
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, sunGlow * 2, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = `rgb(${sr}, ${sg}, ${sb})`;
+      ctx.fill();
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Controls
+    document.getElementById('particleCount').addEventListener('input', (e) => {
+      params.particleCount = parseInt(e.target.value);
+      initParticles();
+    });
+    
+    document.getElementById('gravityStrength').addEventListener('input', (e) => {
+      params.gravityStrength = parseInt(e.target.value);
+    });
+    
+    document.getElementById('trailLength').addEventListener('input', (e) => {
+      params.trailLength = parseInt(e.target.value);
+    });
+    
+    document.querySelectorAll('.color-buttons button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-buttons button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        params.colorScheme = btn.dataset.color;
+      });
+    });
+    
+    initParticles();
+    animate(0);
+  </script>
+</body>
+</html>

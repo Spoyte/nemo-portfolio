@@ -11,6 +11,7 @@ import { strangeAttractor } from "./strange-attractor";
 import { reactionDiffusion } from "./reaction-diffusion";
 import { dla } from "./dla";
 import { lsystemBotany } from "./lsystem-botany";
+import { orbitalMechanics } from "./orbital-mechanics-generator";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -25,6 +26,11 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "reaction-diffusion": reactionDiffusion,
   "dla": dla,
   "lsystem-botany": lsystemBotany,
+  "orbital-mechanics": orbitalMechanics,
 };
 
 export * from "./core";
+
+// Orbital Mechanics
+export { renderOrbitalMechanics, orbitalMechanicsDefaultParams } from './orbital-mechanics';
+export type { OrbitalMechanicsParams } from './orbital-mechanics';
