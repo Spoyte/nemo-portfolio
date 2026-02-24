@@ -1,4 +1,4 @@
-import { ArtGenerator, ArtParams, fillCanvas } from "./core";
+import { ArtGenerator, ArtParams, fillCanvas, SeededRandom } from "./core";
 
 // L-System rules for different plant types
 const lsystemRules: Record<string, { axiom: string; rules: Record<string, string>; angle: number; length: number }> = {
@@ -83,7 +83,7 @@ const palettes: Record<string, Array<[number, number, number]>> = {
 
 export const lsystemBotany: ArtGenerator = {
   name: "L-System Botany",
-  description: "Procedural plant growth using Lindenmayer systems",
+  description: "Procedural plant growth using Lindenmayer systems (seeded)",
   params: {
     iterations: {
       name: "Iterations",
@@ -105,6 +105,14 @@ export const lsystemBotany: ArtGenerator = {
       options: ["forest", "autumn", "neon", "monochrome"],
       default: "forest",
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
   generate: (ctx: CanvasRenderingContext2D, params: ArtParams, time?: number) => {
     const width = ctx.canvas.width;
@@ -112,7 +120,11 @@ export const lsystemBotany: ArtGenerator = {
     const iterations = params.iterations as number;
     const plantType = params.plantType as string;
     const colorScheme = params.colorScheme as string;
+    const seed = params.seed as number;
     const t = (time || 0) * 0.0005;
+
+    // Initialize seeded RNG for deterministic variation
+    const rng = new SeededRandom(seed);
 
     fillCanvas(ctx, "#0a0a0a", width, height);
 
@@ -127,10 +139,11 @@ export const lsystemBotany: ArtGenerator = {
       angle: number;
     }
 
-    // Start at bottom center, growing upward
-    let x = width / 2;
+    // Start at bottom center with seed-based horizontal variation
+    const startX = width / 2 + (rng.random() - 0.5) * width * 0.3;
+    let x = startX;
     let y = height - 40;
-    let angle = -90;
+    let angle = -90 + (rng.random() - 0.5) * 20; // Slight angle variation based on seed
     const stack: TurtleState[] = [];
 
     // Calculate animated length based on time
@@ -164,12 +177,14 @@ export const lsystemBotany: ArtGenerator = {
           currentDepth++;
           break;
         case "]":
-          const state = stack.pop();
-          if (state) {
-            x = state.x;
-            y = state.y;
-            angle = state.angle;
-            currentDepth--;
+          {
+            const state = stack.pop();
+            if (state) {
+              x = state.x;
+              y = state.y;
+              angle = state.angle;
+              currentDepth--;
+            }
           }
           break;
       }
