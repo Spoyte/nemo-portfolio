@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Swarm - Interactive Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    h1 {
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+    }
+    
+    .subtitle {
+      color: #888;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    
+    canvas {
+      border-radius: 8px;
+      background: #000;
+      cursor: crosshair;
+      max-width: 100%;
+      height: auto;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      width: 100%;
+      max-width: 600px;
+    }
+    
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    label {
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+    }
+    
+    select {
+      padding: 5px;
+      background: #1a1a1a;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 4px;
+    }
+    
+    .attraction-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: #666;
+    }
+    
+    .hint {
+      margin-top: 15px;
+      color: #666;
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>Particle Swarm</h1>
+  <p class="subtitle">Interactive flocking simulation</p>
+  
+  <canvas id="canvas" width="400" height="400"></canvas>
+  
+  <div class="controls">
+    <div class="control">
+      <label>Particles: <span id="countVal">200</span></label>
+      <input type="range" id="particleCount" min="50" max="500" value="200">
+    </div>
+    
+    <div class="control">
+      <label>Speed: <span id="speedVal">50</span></label>
+      <input type="range" id="speed" min="10" max="150" value="50">
+    </div>
+    
+    <div class="control">
+      <label>Mouse Behavior: <span id="attractionLabel">Neutral</span></label>
+      <input type="range" id="attraction" min="0" max="100" value="50">
+      <div class="attraction-labels">
+        <span>Flee</span>
+        <span>Neutral</span>
+        <span>Follow</span>
+      </div>
+    </div>
+    
+    <div class="control">
+      <label>Cohesion: <span id="cohesionVal">30</span></label>
+      <input type="range" id="cohesion" min="0" max="100" value="30">
+    </div>
+    
+    <div class="control">
+      <label>Trail: <span id="trailVal">70</span></label>
+      <input type="range" id="trail" min="0" max="95" value="70">
+    </div>
+    
+    <div class="control">
+      <label>Color Scheme</label>
+      <select id="colorScheme">
+        <option value="fire">Fire (Red-Orange-Yellow)</option>
+        <option value="ocean" selected>Ocean (Cyan-Blue)</option>
+        <option value="neon">Neon (Purple-Pink-Green)</option>
+        <option value="monochrome">Monochrome (White/Gray)</option>
+      </select>
+    </div>
+  </div>
+  
+  <p class="hint">💡 Move your mouse over the canvas to interact with the particles!</p>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Parameters
+    let params = {
+      particleCount: 200,
+      speed: 50,
+      attraction: 50,
+      cohesion: 30,
+      trail: 70,
+      colorScheme: 'ocean'
+    };
+    
+    // Mouse tracking
+    let mouseX = null;
+    let mouseY = null;
+    
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+      mouseX = null;
+      mouseY = null;
+    });
+    
+    // Control handlers
+    document.getElementById('particleCount').addEventListener('input', (e) => {
+      params.particleCount = Number(e.target.value);
+      document.getElementById('countVal').textContent = params.particleCount;
+    });
+    
+    document.getElementById('speed').addEventListener('input', (e) => {
+      params.speed = Number(e.target.value);
+      document.getElementById('speedVal').textContent = params.speed;
+    });
+    
+    document.getElementById('attraction').addEventListener('input', (e) => {
+      params.attraction = Number(e.target.value);
+      const val = params.attraction;
+      let label = 'Neutral';
+      if (val < 30) label = 'Flee (Repel)';
+      else if (val > 70) label = 'Follow (Attract)';
+      document.getElementById('attractionLabel').textContent = label;
+    });
+    
+    document.getElementById('cohesion').addEventListener('input', (e) => {
+      params.cohesion = Number(e.target.value);
+      document.getElementById('cohesionVal').textContent = params.cohesion;
+    });
+    
+    document.getElementById('trail').addEventListener('input', (e) => {
+      params.trail = Number(e.target.value);
+      document.getElementById('trailVal').textContent = params.trail;
+    });
+    
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+    
+    // Color schemes
+    const colorSchemes = {
+      fire: [0, 20, 40, 60],
+      ocean: [180, 200, 220, 240],
+      neon: [280, 320, 160, 40],
+      monochrome: [0]
+    };
+    
+    // Particle system
+    const particles = [];
+    const width = 400;
+    const height = 400;
+    
+    function createParticle() {
+      const scheme = colorSchemes[params.colorScheme];
+      const hue = scheme[Math.floor(Math.random() * scheme.length)];
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        life: Math.random() * 100 + 50,
+        maxLife: 150,
+        hue: hue + (Math.random() - 0.5) * 20
+      };
+    }
+    
+    // Initialize
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    
+    function animate() {
+      // Trail effect
+      const trailAlpha = Math.floor((1 - params.trail / 100) * 50);
+      ctx.fillStyle = `rgba(0, 0, 0, ${trailAlpha / 255})`;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Ensure particle count
+      while (particles.length < params.particleCount) {
+        particles.push(createParticle());
+      }
+      if (particles.length > params.particleCount) {
+        particles.splice(params.particleCount);
+      }
+      
+      const speedFactor = params.speed / 50;
+      const attractionStrength = (params.attraction - 50) / 500;
+      const cohesionStrength = params.cohesion / 1000;
+      
+      // Update and draw particles
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        
+        // Mouse interaction
+        if (mouseX !== null && mouseY !== null) {
+          const dx = mouseX - p.x;
+          const dy = mouseY - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist > 0 && dist < 200) {
+            const force = (1 - dist / 200) * attractionStrength * 5;
+            p.vx += (dx / dist) * force * speedFactor;
+            p.vy += (dy / dist) * force * speedFactor;
+          }
+        }
+        
+        // Cohesion
+        if (cohesionStrength > 0) {
+          let avgX = 0, avgY = 0, count = 0;
+          const neighborDist = 60;
+          
+          for (let j = 0; j < particles.length; j++) {
+            if (i === j) continue;
+            const other = particles[j];
+            const dx = other.x - p.x;
+            const dy = other.y - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < neighborDist) {
+              avgX += other.x;
+              avgY += other.y;
+              count++;
+            }
+          }
+          
+          if (count > 0) {
+            avgX /= count;
+            avgY /= count;
+            p.vx += (avgX - p.x) * cohesionStrength * speedFactor;
+            p.vy += (avgY - p.y) * cohesionStrength * speedFactor;
+          }
+        }
+        
+        // Randomness
+        p.vx += (Math.random() - 0.5) * 0.1 * speedFactor;
+        p.vy += (Math.random() - 0.5) * 0.1 * speedFactor;
+        
+        // Speed limit
+        const maxSpeed = 3 * speedFactor;
+        const currentSpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        if (currentSpeed > maxSpeed) {
+          p.vx = (p.vx / currentSpeed) * maxSpeed;
+          p.vy = (p.vy / currentSpeed) * maxSpeed;
+        }
+        
+        // Update position
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        // Wrap edges
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+        
+        // Age
+        p.life--;
+        if (p.life <= 0) {
+          Object.assign(p, createParticle());
+        }
+        
+        // Draw
+        const lifeRatio = p.life / p.maxLife;
+        const alpha = lifeRatio * 0.8 + 0.2;
+        const size = (1 + lifeRatio) * 1.5;
+        
+        if (params.colorScheme === 'monochrome') {
+          const brightness = Math.floor(lifeRatio * 200 + 55);
+          ctx.fillStyle = `rgba(${brightness}, ${brightness}, ${brightness}, ${alpha})`;
+        } else {
+          ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${alpha})`;
+        }
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Connections
+        if (cohesionStrength > 0) {
+          const connectionDist = 50;
+          for (let j = i + 1; j < particles.length; j++) {
+            const other = particles[j];
+            const dx = other.x - p.x;
+            const dy = other.y - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < connectionDist) {
+              const connectionAlpha = (1 - dist / connectionDist) * 0.3 * alpha;
+              if (params.colorScheme === 'monochrome') {
+                ctx.strokeStyle = `rgba(255, 255, 255, ${connectionAlpha})`;
+              } else {
+                ctx.strokeStyle = `hsla(${p.hue}, 60%, 50%, ${connectionAlpha})`;
+              }
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(other.x, other.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

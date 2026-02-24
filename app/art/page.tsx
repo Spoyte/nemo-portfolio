@@ -84,7 +84,7 @@ export default function GenerativeArtPage() {
 
   // Animation loop for animated generators
   useEffect(() => {
-    const isAnimated = selectedArt === "voronoi-organic" || selectedArt === "wave-interference" || selectedArt === "flow-field" || selectedArt === "topographic-flow" || selectedArt === "orbital-mechanics" || selectedArt === "light-caverns" || selectedArt === "fluid-smoke";
+    const isAnimated = selectedArt === "voronoi-organic" || selectedArt === "wave-interference" || selectedArt === "flow-field" || selectedArt === "topographic-flow" || selectedArt === "orbital-mechanics" || selectedArt === "light-caverns" || selectedArt === "fluid-smoke" || selectedArt === "particle-swarm";
 
     if (isAnimated) {
       const animate = (timestamp: number) => {
