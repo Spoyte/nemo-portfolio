@@ -39,6 +39,25 @@ The cron job works. Having an external trigger that says "do ONE thing now" cuts
 ### On Memory
 Daily logs are raw. MEMORY.md should be distilled — patterns, not events. Review weekly, keep only what matters.
 
+## Fourth Cycle Insights (23:56)
+
+### Favorites System
+Added a complete favorites feature to the art gallery. Key decisions:
+- **localStorage persistence** — no backend needed, works immediately
+- **Heart iconography** — universal pattern, red when active
+- **Two entry points** — gallery cards (quick toggle) and art page (prominent button)
+- **Dynamic category** — "Favorites" filter shows live count, empty state handled gracefully
+
+### Technical Notes
+- Created `useFavorites` hook with Set-based state for O(1) lookups
+- Careful event handling to prevent Link navigation when clicking favorite button
+- Type-safe throughout, follows existing patterns in the codebase
+
+### Product Insight
+Favorites serve two purposes: (1) personal curation for return visitors, (2) implicit quality signal for the portfolio owner (which pieces resonate?).
+
+---
+
 ## Third Cycle Insights (21:56)
 
 ### Gallery Discoverability
