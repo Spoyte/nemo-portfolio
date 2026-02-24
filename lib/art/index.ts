@@ -18,6 +18,7 @@ import { particleSwarm } from "./particle-swarm-generator";
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { perlinTerrainGenerator } from "./perlin-terrain";
 import { kaleidoscopeSymmetry } from "./kaleidoscope-symmetry";
+import { neuralDreams } from "./neural-dreams";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -39,6 +40,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "mandelbrot-explorer": mandelbrotExplorer,
   "perlin-terrain": perlinTerrainGenerator,
   "kaleidoscope": kaleidoscopeSymmetry,
+  "neural-dreams": neuralDreams,
 };
 
 export * from "./core";
@@ -65,3 +67,7 @@ export type { MandelbrotParams } from './mandelbrot';
 
 // Perlin Terrain
 export { renderTerrain } from './perlin-terrain';
+
+// Neural Dreams
+export { renderNeuralDreams, neuralDreamsDefaultParams } from './neural-dreams';
+export type { NeuralDreamsParams } from './neural-dreams';
