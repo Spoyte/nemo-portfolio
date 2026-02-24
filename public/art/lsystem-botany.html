@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>L-System Botany — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    select, input[type="range"] {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="400" height="400"></canvas>
+  <div class="controls">
+    <div class="control-group">
+      <label>Plant:</label>
+      <select id="plantType">
+        <option value="fern" selected>Fern</option>
+        <option value="tree">Tree</option>
+        <option value="bush">Bush</option>
+        <option value="weed">Weed</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Iterations:</label>
+      <input type="range" id="iterations" min="3" max="6" value="5">
+      <span id="iterationsValue">5</span>
+    </div>
+    <div class="control-group">
+      <label>Colors:</label>
+      <select id="colorScheme">
+        <option value="forest" selected>Forest</option>
+        <option value="autumn">Autumn</option>
+        <option value="neon">Neon</option>
+        <option value="monochrome">Monochrome</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+
+    const params = {
+      iterations: 5,
+      plantType: 'fern',
+      colorScheme: 'forest'
+    };
+
+    // L-System rules
+    const lsystemRules = {
+      fern: {
+        axiom: 'X',
+        rules: { X: 'F+[[X]-X]-F[-FX]+X', F: 'FF' },
+        angle: 25,
+        length: 4,
+      },
+      tree: {
+        axiom: 'F',
+        rules: { F: 'F[+F]F[-F]F' },
+        angle: 25.7,
+        length: 3,
+      },
+      bush: {
+        axiom: 'F',
+        rules: { F: 'FF+[+F-F-F]-[-F+F+F]' },
+        angle: 22.5,
+        length: 3,
+      },
+      weed: {
+        axiom: 'F',
+        rules: { F: 'F[+F]F[-F]F' },
+        angle: 35,
+        length: 2.5,
+      },
+    };
+
+    const palettes = {
+      forest: [[20, 60, 20], [40, 120, 40], [80, 180, 60], [150, 220, 100]],
+      autumn: [[80, 30, 20], [180, 60, 20], [220, 140, 30], [255, 200, 80]],
+      neon: [[20, 0, 40], [100, 0, 150], [200, 50, 255], [150, 255, 200]],
+      monochrome: [[30, 30, 30], [80, 80, 80], [150, 150, 150], [220, 220, 220]],
+    };
+
+    function generateLsystem(type, iterations) {
+      const config = lsystemRules[type];
+      let result = config.axiom;
+      for (let i = 0; i < iterations; i++) {
+        let newResult = '';
+        for (const char of result) {
+          newResult += config.rules[char] || char;
+        }
+        result = newResult;
+      }
+      return result;
+    }
+
+    function render(time) {
+      const t = time * 0.0005;
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+
+      const config = lsystemRules[params.plantType];
+      const lsystemString = generateLsystem(params.plantType, params.iterations);
+      const palette = palettes[params.colorScheme];
+
+      let x = width / 2;
+      let y = height - 20;
+      let angle = -90;
+      const stack = [];
+      const segments = [];
+      let currentDepth = 0;
+      const maxDepth = params.iterations;
+
+      const animatedLength = config.length * (0.8 + Math.sin(t) * 0.2);
+
+      for (const char of lsystemString) {
+        switch (char) {
+          case 'F':
+            const rad = (angle * Math.PI) / 180;
+            const newX = x + Math.cos(rad) * animatedLength;
+            const newY = y + Math.sin(rad) * animatedLength;
+            segments.push({ x1: x, y1: y, x2: newX, y2: newY, depth: currentDepth });
+            x = newX;
+            y = newY;
+            break;
+          case '+':
+            angle += config.angle;
+            break;
+          case '-':
+            angle -= config.angle;
+            break;
+          case '[':
+            stack.push({ x, y, angle });
+            currentDepth++;
+            break;
+          case ']':
+            const state = stack.pop();
+            if (state) {
+              x = state.x;
+              y = state.y;
+              angle = state.angle;
+              currentDepth--;
+            }
+            break;
+        }
+      }
+
+      segments.forEach((seg, index) => {
+        const depthRatio = seg.depth / maxDepth;
+        const colorIndex = Math.min(Math.floor(depthRatio * palette.length), palette.length - 1);
+        const [r, g, b] = palette[colorIndex];
+        const lineWidth = Math.max(1, 4 - depthRatio * 3);
+        const opacity = 0.7 + Math.sin(t * 2 + index * 0.1) * 0.3;
+
+        ctx.beginPath();
+        ctx.moveTo(seg.x1, seg.y1);
+        ctx.lineTo(seg.x2, seg.y2);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      });
+
+      const leafSegments = segments.filter(s => s.depth >= maxDepth - 1);
+      leafSegments.forEach((seg, index) => {
+        const pulse = 0.5 + Math.sin(t * 3 + index * 0.2) * 0.5;
+        const [r, g, b] = palette[palette.length - 1];
+        ctx.beginPath();
+        ctx.arc(seg.x2, seg.y2, 2 + pulse * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.3 + pulse * 0.4})`;
+        ctx.fill();
+      });
+
+      requestAnimationFrame(render);
+    }
+
+    // Event listeners
+    document.getElementById('plantType').addEventListener('change', (e) => {
+      params.plantType = e.target.value;
+    });
+    document.getElementById('iterations').addEventListener('input', (e) => {
+      params.iterations = parseInt(e.target.value);
+      document.getElementById('iterationsValue').textContent = params.iterations;
+    });
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

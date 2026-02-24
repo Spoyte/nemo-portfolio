@@ -10,6 +10,7 @@ import { topographicFlow } from "./topographic-flow";
 import { strangeAttractor } from "./strange-attractor";
 import { reactionDiffusion } from "./reaction-diffusion";
 import { dla } from "./dla";
+import { lsystemBotany } from "./lsystem-botany";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -23,9 +24,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "strange-attractor": strangeAttractor,
   "reaction-diffusion": reactionDiffusion,
   "dla": dla,
+  "lsystem-botany": lsystemBotany,
 };
 
 export * from "./core";
-
-export * from './reaction-diffusion';
-export * from './dla';
