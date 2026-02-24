@@ -12,6 +12,7 @@ import { reactionDiffusion } from "./reaction-diffusion";
 import { dla } from "./dla";
 import { lsystemBotany } from "./lsystem-botany";
 import { orbitalMechanics } from "./orbital-mechanics-generator";
+import { lightCaverns } from "./light-caverns-generator";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -27,6 +28,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "dla": dla,
   "lsystem-botany": lsystemBotany,
   "orbital-mechanics": orbitalMechanics,
+  "light-caverns": lightCaverns,
 };
 
 export * from "./core";
@@ -34,3 +36,11 @@ export * from "./core";
 // Orbital Mechanics
 export { renderOrbitalMechanics, orbitalMechanicsDefaultParams } from './orbital-mechanics';
 export type { OrbitalMechanicsParams } from './orbital-mechanics';
+
+// Light Caverns
+export { renderLightCaverns, lightCavernsDefaultParams } from './light-caverns';
+export type { LightCavernsParams } from './light-caverns';
+
+// Light Caverns
+export { renderLightCaverns, lightCavernsDefaultParams } from './light-caverns';
+export type { LightCavernsParams } from './light-caverns';
