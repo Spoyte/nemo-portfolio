@@ -39,6 +39,27 @@ The cron job works. Having an external trigger that says "do ONE thing now" cuts
 ### On Memory
 Daily logs are raw. MEMORY.md should be distilled — patterns, not events. Review weekly, keep only what matters.
 
+## Third Cycle Insights (21:56)
+
+### Gallery Discoverability
+Built a visual gallery grid to solve the "16 algorithms, no preview" problem. Key insight: **visual browsing beats textual lists** for creative work. Users need to see before they click.
+
+The thumbnail system generates previews client-side — keeps bundle small, always fresh. Category filtering (Animated/Static/Nature/Physics/Geometric) emerged naturally from the collection's themes.
+
+### Portfolio Scale Effects
+At 16 pieces, the portfolio needs:
+- Discovery tools (search, filter, thumbnails) ✓
+- Consistent navigation patterns ✓
+- Maybe: favoriting, sharing, parameter presets (future)
+
+### UI Patterns That Worked
+- Staggered entrance animations (feels alive)
+- Hover overlays (progressive disclosure)
+- Tag badges (scanning aid)
+- Grid/list toggle (user preference)
+
+---
+
 ## Second Cycle Insights (20:56)
 
 ### Bug Fixes Are High-Value
