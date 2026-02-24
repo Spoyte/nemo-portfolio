@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Palette,
@@ -55,7 +55,7 @@ function randomizeParams(generatorKey: string): ArtParams {
   return params;
 }
 
-export default function GenerativeArtPage() {
+function GenerativeArtContent() {
   const searchParams = useSearchParams();
   const pieceParam = searchParams.get("piece");
   
@@ -425,5 +425,20 @@ export default function GenerativeArtPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function GenerativeArtPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <GenerativeArtContent />
+    </Suspense>
   );
 }

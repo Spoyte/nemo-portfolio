@@ -3,6 +3,9 @@ export interface ArtParams {
   [key: string]: number | string;
 }
 
+// Re-export seeded random utilities for convenience
+export { SeededRandom, generateSeed, createSeededNoise } from "./seeded-random";
+
 export interface ParamConfig {
   name: string;
   type: "range" | "select";

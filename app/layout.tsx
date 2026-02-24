@@ -10,7 +10,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { CursorFollower } from "@/components/cursor-follower";
 import { EasterEggTracker } from "@/components/easter-egg-tracker";
 import { Toaster } from "@/components/toaster";
-import { AIChatWidget } from "@/components/ai-chat";
+import { AIChatEnhanced } from "@/components/ai-chat-enhanced";
 import { MusicPlayerWidget } from "@/components/music-player";
 import { VoiceNavigation } from "@/components/voice-navigation";
 import { RealTimeCollaboration } from "@/components/real-time-collaboration";
@@ -60,7 +60,7 @@ export default function RootLayout({
             </div>
             <TerminalWidget />
             <MusicPlayerWidget />
-            <AIChatWidget />
+            <AIChatEnhanced />
             <CommandPalette />
             <EasterEggTracker />
             <VoiceNavigation />

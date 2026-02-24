@@ -633,7 +633,6 @@ import {
   SeedlingIcon,
   RecycleIcon,
   TrashIcon2,
-  DeleteIcon,
   EraserIcon,
   PenToolIcon,
   BrushIcon,
