@@ -15,6 +15,7 @@ import { orbitalMechanics } from "./orbital-mechanics-generator";
 import { lightCaverns } from "./light-caverns-generator";
 import { fluidSmoke } from "./fluid-smoke-generator";
 import { particleSwarm } from "./particle-swarm-generator";
+import { mandelbrotExplorer } from "./mandelbrot-explorer";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -33,6 +34,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "light-caverns": lightCaverns,
   "fluid-smoke": fluidSmoke,
   "particle-swarm": particleSwarm,
+  "mandelbrot-explorer": mandelbrotExplorer,
 };
 
 export * from "./core";
@@ -52,3 +54,7 @@ export type { FluidSmokeParams } from './fluid-smoke';
 // Particle Swarm
 export { renderParticleSwarm, particleSwarmDefaultParams } from './particle-swarm';
 export type { ParticleSwarmParams } from './particle-swarm';
+
+// Mandelbrot
+export { renderMandelbrot, mandelbrotDefaultParams, MANDELBROT_LOCATIONS } from './mandelbrot';
+export type { MandelbrotParams } from './mandelbrot';
