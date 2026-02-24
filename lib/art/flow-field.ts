@@ -1,14 +1,14 @@
 import {
   ArtGenerator,
   fillCanvas,
-  createNoise,
-  renderPixels,
-  hslToRgb,
+  SeededRandom,
+  generateSeed,
+  createSeededNoise,
 } from "./core";
 
 export const flowField: ArtGenerator = {
   name: "Flow Field",
-  description: "Organic flowing lines following Perlin noise vectors",
+  description: "Organic flowing lines following Perlin noise vectors (seeded)",
   params: {
     particleCount: {
       name: "Particle Count",
@@ -42,19 +42,30 @@ export const flowField: ArtGenerator = {
       step: 10,
       default: 200,
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
   generate: (ctx, params, time = 0) => {
     const canvas = ctx.canvas;
-    const { particleCount, noiseScale, speed, colorHue } = params;
+    const { particleCount, noiseScale, speed, colorHue, seed } = params;
 
     fillCanvas(ctx, "#0a0a0a", canvas.width, canvas.height);
 
-    const noise = createNoise();
+    // Initialize seeded RNG for deterministic output
+    const rng = new SeededRandom(seed as number);
+    const noise = createSeededNoise(seed as number);
     const t = time * 0.0005;
 
     for (let i = 0; i < particleCount; i++) {
-      let x = Math.random() * canvas.width;
-      let y = Math.random() * canvas.height;
+      // Use seeded RNG instead of Math.random()
+      let x = rng.random() * canvas.width;
+      let y = rng.random() * canvas.height;
 
       ctx.beginPath();
       ctx.moveTo(x, y);
