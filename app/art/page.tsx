@@ -285,6 +285,99 @@ const artGenerators = {
     },
     defaultParams: { cellSize: 4, generations: 200, rule: 90, colorScheme: 200 },
   },
+  "voronoi-organic": {
+    name: "Voronoi Organic",
+    description: "Animated Voronoi diagram with organic distortion",
+    generate: (canvas: HTMLCanvasElement, params: any) => {
+      const ctx = canvas.getContext("2d")!;
+      const { cellCount, distortion, palette } = params;
+      
+      const colorPalettes: Record<string, string[]> = {
+        ocean: ["#0066cc", "#0099ff", "#00ccff", "#66e0ff", "#b3f0ff", "#004080"],
+        sunset: ["#ff6b35", "#f7931e", "#ffd23f", "#ff6b9d", "#c44569", "#2c003e"],
+        forest: ["#2d5016", "#3a6b1f", "#4a8b2c", "#7cb342", "#aed581", "#1b3d0d"],
+        monochrome: ["#0a0a0a", "#2a2a2a", "#4a4a4a", "#6a6a6a", "#8a8a8a", "#aaaaaa"],
+        neon: ["#ff00ff", "#00ffff", "#ffff00", "#ff0080", "#80ff00", "#8000ff"],
+      };
+      
+      const colors = colorPalettes[palette] || colorPalettes.ocean;
+      const time = Date.now() * 0.001;
+      
+      // Generate cell centers
+      const cells: { x: number; y: number; color: string; growth: number; radius: number }[] = [];
+      for (let i = 0; i < cellCount; i++) {
+        cells.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          growth: 0.5 + Math.random() * 1.5,
+          radius: 30 + Math.random() * 50,
+        });
+      }
+      
+      const imageData = ctx.createImageData(canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      const getDistance = (x: number, y: number, cell: typeof cells[0]) => {
+        const dx = x - cell.x;
+        const dy = y - cell.y;
+        const euclidean = Math.sqrt(dx * dx + dy * dy);
+        const wobble = Math.sin(x * 0.01 + time * cell.growth) * 
+                       Math.cos(y * 0.01 + time * cell.growth * 0.7) * distortion;
+        return euclidean + wobble;
+      };
+      
+      const step = 2;
+      
+      for (let y = 0; y < canvas.height; y += step) {
+        for (let x = 0; x < canvas.width; x += step) {
+          let minDist = Infinity;
+          let nearestCell: typeof cells[0] | null = null;
+          let secondDist = Infinity;
+          
+          for (const cell of cells) {
+            const dist = getDistance(x, y, cell);
+            if (dist < minDist) {
+              secondDist = minDist;
+              minDist = dist;
+              nearestCell = cell;
+            } else if (dist < secondDist) {
+              secondDist = dist;
+            }
+          }
+          
+          if (nearestCell) {
+            const edgeFactor = Math.min(1, (secondDist - minDist) / 30);
+            
+            const hex = nearestCell.color;
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            
+            const depth = Math.max(0.3, 1 - minDist / nearestCell.radius);
+            const edgeHighlight = edgeFactor < 0.3 ? (0.3 - edgeFactor) * 3 : 0;
+            
+            const finalR = Math.min(255, r * depth + edgeHighlight * 100);
+            const finalG = Math.min(255, g * depth + edgeHighlight * 100);
+            const finalB = Math.min(255, b * depth + edgeHighlight * 100);
+            
+            for (let dy = 0; dy < step && y + dy < canvas.height; dy++) {
+              for (let dx = 0; dx < step && x + dx < canvas.width; dx++) {
+                const idx = ((y + dy) * canvas.width + (x + dx)) * 4;
+                data[idx] = finalR;
+                data[idx + 1] = finalG;
+                data[idx + 2] = finalB;
+                data[idx + 3] = 255;
+              }
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    },
+    defaultParams: { cellCount: 40, distortion: 10, palette: 0 },
+  },
 };
 
 export default function GenerativeArtPage() {
@@ -519,21 +612,48 @@ export default function GenerativeArtPage() {
                 <div className="space-y-6">
                   {Object.entries(params).map(([key, value]) => (
                     <div key={key}>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium capitalize">
-                          {key.replace(/([A-Z])/g, " $1").trim()}
-                        </label>
-                        <span className="text-sm text-muted-foreground">{value}</span>
-                      </div>
-                      <Slider
-                        value={[value as number]}
-                        onValueChange={([v]) => handleParamChange(key, v)}
-                        max={
-                          key.includes("count") || key.includes("generations")
-                            ? 1000
-                            : key.includes("distance") || key.includes("radius")
-                            ? 500
-                            : key.includes("Hue") || key.includes("Shift") || key.includes("Scheme")
+                      {key === "palette" ? (
+                        <div>
+                          <label className="text-sm font-medium capitalize mb-2 block">
+                            Color Palette
+                          </label>
+                          <div className="flex gap-2 flex-wrap">
+                            {["ocean", "sunset", "forest", "monochrome", "neon"].map((p) => (
+                              <button
+                                key={p}
+                                onClick={() => handleParamChange(key, p === "ocean" ? 0 : p === "sunset" ? 1 : p === "forest" ? 2 : p === "monochrome" ? 3 : 4)}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-colors ${
+                                  (value === 0 && p === "ocean") ||
+                                  (value === 1 && p === "sunset") ||
+                                  (value === 2 && p === "forest") ||
+                                  (value === 3 && p === "monochrome") ||
+                                  (value === 4 && p === "neon")
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between mb-2">
+                            <label className="text-sm font-medium capitalize">
+                              {key.replace(/([A-Z])/g, " $1").trim()}
+                            </label>
+                            <span className="text-sm text-muted-foreground">{value}</span>
+                          </div>
+                          <Slider
+                            value={[value as number]}
+                            onValueChange={([v]) => handleParamChange(key, v)}
+                            max={
+                              key.includes("count") || key.includes("generations")
+                                ? 1000
+                                : key.includes("distance") || key.includes("radius")
+                                ? 500
+                                : key.includes("Hue") || key.includes("Shift") || key.includes("Scheme")
                             ? 360
                             : key === "rule"
                             ? 255
@@ -546,6 +666,8 @@ export default function GenerativeArtPage() {
                         min={0}
                         step={key.includes("Hue") || key === "rule" ? 1 : 0.1}
                       />
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
