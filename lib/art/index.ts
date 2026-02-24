@@ -16,6 +16,7 @@ import { lightCaverns } from "./light-caverns-generator";
 import { fluidSmoke } from "./fluid-smoke-generator";
 import { particleSwarm } from "./particle-swarm-generator";
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
+import { perlinTerrainGenerator } from "./perlin-terrain";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -35,6 +36,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "fluid-smoke": fluidSmoke,
   "particle-swarm": particleSwarm,
   "mandelbrot-explorer": mandelbrotExplorer,
+  "perlin-terrain": perlinTerrainGenerator,
 };
 
 export * from "./core";
@@ -58,3 +60,6 @@ export type { ParticleSwarmParams } from './particle-swarm';
 // Mandelbrot
 export { renderMandelbrot, mandelbrotDefaultParams, MANDELBROT_LOCATIONS } from './mandelbrot';
 export type { MandelbrotParams } from './mandelbrot';
+
+// Perlin Terrain
+export { renderTerrain } from './perlin-terrain';
