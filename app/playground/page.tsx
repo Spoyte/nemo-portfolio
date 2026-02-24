@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, Layers, Zap, Trophy, Gamepad2, Keyboard, Palette, Code2 } from "lucide-react";
+import { Sparkles, Layers, Zap, Trophy, Gamepad2, Keyboard, Palette, Code2, BookOpen, Archive, Grid3X3, Feather } from "lucide-react";
 import { SkillsVisualization } from "@/components/skills-3d-visualization";
 import { AchievementSystem } from "@/components/achievement-system";
 import { ProjectDemoMode } from "@/components/project-demo-mode";
@@ -9,6 +9,10 @@ import { AIProjectGenerator } from "@/components/ai-project-generator";
 import { TypingSpeedTest } from "@/components/typing-speed-test";
 import { ColorPaletteGenerator } from "@/components/color-palette-generator";
 import { CodeSnippetsLibrary } from "@/components/code-snippets";
+import { DigitalGarden } from "@/components/digital-garden";
+import { TimeCapsuleFeature } from "@/components/time-capsule";
+import { MoodBoard } from "@/components/mood-board";
+import { CodePoetry } from "@/components/code-poetry-enhanced";
 
 export default function PlaygroundPage() {
   return (
@@ -170,6 +174,28 @@ export default function PlaygroundPage() {
           </motion.div>
 
           <ColorPaletteGenerator />
+        </section>
+
+        {/* Code Poetry */}
+        <section className="mb-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Feather className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold">Code Poetry</h2>
+            </div>
+            <p className="text-muted-foreground">
+              Where code becomes art. Watch as algorithms tell human stories through valid JavaScript poetry.
+            </p>
+          </motion.div>
+
+          <CodePoetry />
         </section>
 
         {/* Code Snippets Library */}

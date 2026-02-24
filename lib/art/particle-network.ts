@@ -1,4 +1,9 @@
-import { ArtGenerator, fillCanvas } from "./core";
+import {
+  ArtGenerator,
+  fillCanvas,
+  SeededRandom,
+  generateSeed,
+} from "./core";
 
 interface Particle {
   x: number;
@@ -9,7 +14,7 @@ interface Particle {
 
 export const particleNetwork: ArtGenerator = {
   name: "Particle Network",
-  description: "Connected particles forming dynamic networks",
+  description: "Connected particles forming dynamic networks (seeded)",
   params: {
     particleCount: {
       name: "Particle Count",
@@ -43,20 +48,31 @@ export const particleNetwork: ArtGenerator = {
       step: 10,
       default: 200,
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
   generate: (ctx, params) => {
     const canvas = ctx.canvas;
-    const { particleCount, connectionDistance, particleSize, baseHue } = params;
+    const { particleCount, connectionDistance, particleSize, baseHue, seed } = params;
 
     fillCanvas(ctx, "#0c0a09", canvas.width, canvas.height);
+
+    // Initialize seeded RNG for deterministic output
+    const rng = new SeededRandom(seed as number);
 
     const particles: Particle[] = [];
     for (let i = 0; i < (particleCount as number); i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
+        x: rng.random() * canvas.width,
+        y: rng.random() * canvas.height,
+        vx: (rng.random() - 0.5) * 2,
+        vy: (rng.random() - 0.5) * 2,
       });
     }
 
@@ -81,7 +97,7 @@ export const particleNetwork: ArtGenerator = {
 
     // Draw particles
     for (const p of particles) {
-      const hue = ((baseHue as number) + Math.random() * 60) % 360;
+      const hue = ((baseHue as number) + rng.random() * 60) % 360;
       ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.8)`;
       ctx.beginPath();
       ctx.arc(p.x, p.y, particleSize as number, 0, Math.PI * 2);

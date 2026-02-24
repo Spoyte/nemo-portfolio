@@ -15,6 +15,8 @@ const navItems = [
   { href: "/skills", label: "Skills" },
   { href: "/journey", label: "Journey" },
   { href: "/now", label: "Now" },
+  { href: "/art-gallery", label: "Art Gallery" },
+  { href: "/creative-space", label: "Creative Space" },
   { href: "/playground", label: "Playground" },
   { href: "/experiments", label: "Experiments" },
   { href: "/bookmarks", label: "Bookmarks" },

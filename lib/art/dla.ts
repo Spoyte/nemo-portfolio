@@ -1,4 +1,4 @@
-import { ArtGenerator, ArtParams, ParamConfig, renderPixels } from "./core";
+import { ArtGenerator, ArtParams, ParamConfig, renderPixels, SeededRandom } from "./core";
 
 // Diffusion Limited Aggregation - organic branching structures
 // Particles random walk until they hit the cluster, creating fractal growth
@@ -28,7 +28,7 @@ const COLOR_SCHEMES: Record<string, string[]> = {
 
 export const dla: ArtGenerator = {
   name: "Diffusion Limited Aggregation",
-  description: "Organic fractal growth through particle random walks",
+  description: "Organic fractal growth through particle random walks (seeded)",
   params: {
     particleCount: {
       name: "Particles",
@@ -68,6 +68,14 @@ export const dla: ArtGenerator = {
       step: 0.5,
       default: 2,
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
 
   generate: (ctx: CanvasRenderingContext2D, params: ArtParams, time: number = 0) => {
@@ -81,6 +89,10 @@ export const dla: ArtGenerator = {
     const branchFactor = params.branchFactor as number;
     const colorSchemeName = params.colorScheme as string;
     const animationSpeed = params.animationSpeed as number;
+    const seed = params.seed as number;
+
+    // Initialize seeded RNG
+    const rng = new SeededRandom(seed);
 
     const palette = COLOR_SCHEMES[colorSchemeName] || COLOR_SCHEMES.lightning;
     
@@ -92,36 +104,36 @@ export const dla: ArtGenerator = {
     const particles: Particle[] = [];
     const stuckParticles: ClusterPoint[] = [];
     
-    // Spawn particles from edges
+    // Spawn particles from edges using seeded RNG
     const spawnParticle = (): Particle => {
-      const side = Math.floor(Math.random() * 4);
+      const side = Math.floor(rng.random() * 4);
       let x, y, vx, vy;
       const margin = 10;
       
       switch (side) {
         case 0: // top
-          x = Math.random() * width;
+          x = rng.random() * width;
           y = margin;
-          vx = (Math.random() - 0.5) * 2;
-          vy = Math.random() * 2 + 0.5;
+          vx = (rng.random() - 0.5) * 2;
+          vy = rng.random() * 2 + 0.5;
           break;
         case 1: // right
           x = width - margin;
-          y = Math.random() * height;
-          vx = -(Math.random() * 2 + 0.5);
-          vy = (Math.random() - 0.5) * 2;
+          y = rng.random() * height;
+          vx = -(rng.random() * 2 + 0.5);
+          vy = (rng.random() - 0.5) * 2;
           break;
         case 2: // bottom
-          x = Math.random() * width;
+          x = rng.random() * width;
           y = height - margin;
-          vx = (Math.random() - 0.5) * 2;
-          vy = -(Math.random() * 2 + 0.5);
+          vx = (rng.random() - 0.5) * 2;
+          vy = -(rng.random() * 2 + 0.5);
           break;
         default: // left
           x = margin;
-          y = Math.random() * height;
-          vx = Math.random() * 2 + 0.5;
-          vy = (Math.random() - 0.5) * 2;
+          y = rng.random() * height;
+          vx = rng.random() * 2 + 0.5;
+          vy = (rng.random() - 0.5) * 2;
       }
       
       return { x, y, vx, vy };
@@ -140,9 +152,9 @@ export const dla: ArtGenerator = {
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         
-        // Random walk with momentum
-        p.vx += (Math.random() - 0.5) * 0.5;
-        p.vy += (Math.random() - 0.5) * 0.5;
+        // Random walk with momentum using seeded RNG
+        p.vx += (rng.random() - 0.5) * 0.5;
+        p.vy += (rng.random() - 0.5) * 0.5;
         
         // Limit velocity
         const maxSpeed = 3;
@@ -186,7 +198,7 @@ export const dla: ArtGenerator = {
             // Higher chance to stick near tips (further from center)
             const stickProbability = 0.3 + branchFactor * normalizedDist * 0.7;
             
-            if (Math.random() < stickProbability) {
+            if (rng.random() < stickProbability) {
               const generation = cp.generation + 1;
               const newPoint: ClusterPoint = {
                 x: Math.floor(p.x),
@@ -241,7 +253,7 @@ export const dla: ArtGenerator = {
         
         // Add glow effect for newer particles
         const age = point?.age || 0;
-        const glow = Math.max(0, 1 - (step - age) / 100);
+        const glow = Math.max(0, 1 - (steps - age) / 100);
         
         return {
           r: Math.min(255, r + glow * 50),

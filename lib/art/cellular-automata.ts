@@ -1,8 +1,8 @@
-import { ArtGenerator, fillCanvas, COLOR_PALETTES } from "./core";
+import { ArtGenerator, fillCanvas, SeededRandom } from "./core";
 
 export const cellularAutomata: ArtGenerator = {
   name: "Cellular Automata",
-  description: "Emergent patterns from simple rules",
+  description: "Emergent patterns from simple rules (seeded)",
   params: {
     cellSize: {
       name: "Cell Size",
@@ -36,10 +36,19 @@ export const cellularAutomata: ArtGenerator = {
       step: 30,
       default: 200,
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 42,
+    },
   },
   generate: (ctx, params) => {
     const canvas = ctx.canvas;
-    const { cellSize, generations, rule, colorScheme } = params;
+    const { cellSize, generations, rule, colorScheme, seed } = params;
+    const rng = new SeededRandom(seed as number);
 
     fillCanvas(ctx, "#0a0a0a", canvas.width, canvas.height);
 
@@ -47,7 +56,18 @@ export const cellularAutomata: ArtGenerator = {
     const rows = Math.min(generations as number, Math.floor(canvas.height / (cellSize as number)));
 
     let currentRow = new Array(cols).fill(0);
-    currentRow[Math.floor(cols / 2)] = 1;
+    
+    // Seed-controlled initial state: either center cell or random pattern
+    const useRandomInitial = rng.random() > 0.5;
+    if (useRandomInitial) {
+      // Random initial row based on seed
+      for (let x = 0; x < cols; x++) {
+        currentRow[x] = rng.random() > 0.7 ? 1 : 0;
+      }
+    } else {
+      // Classic single center cell
+      currentRow[Math.floor(cols / 2)] = 1;
+    }
 
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {

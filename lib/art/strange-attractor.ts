@@ -1,4 +1,4 @@
-import { ArtGenerator, PixelRenderer } from "./core";
+import { ArtGenerator, PixelRenderer, SeededRandom } from "./core";
 
 // Strange Attractor - Mathematical chaos as flowing particle trails
 // Implements multiple attractor systems: Lorenz, Rössler, Aizawa, Thomas
@@ -22,6 +22,7 @@ interface StrangeAttractorConfig {
   colorScheme: "fire" | "ocean" | "neon" | "gold";
   zoom: number;
   rotationSpeed: number;
+  seed: number;
 }
 
 const defaultConfig: StrangeAttractorConfig = {
@@ -32,6 +33,7 @@ const defaultConfig: StrangeAttractorConfig = {
   colorScheme: "fire",
   zoom: 12,
   rotationSpeed: 0.3,
+  seed: 1,
 };
 
 function getAttractorParams(type: AttractorType): Partial<AttractorParams> {
@@ -154,7 +156,7 @@ function getColorScheme(scheme: string): Array<[number, number, number]> {
 
 export const strangeAttractor: ArtGenerator = {
   name: "Strange Attractor",
-  description: "Chaotic particle trails from mathematical attractors (Lorenz, Rössler, Aizawa, Thomas)",
+  description: "Chaotic particle trails from mathematical attractors (Lorenz, Rössler, Aizawa, Thomas) (seeded)",
   config: {
     attractorType: {
       type: "select",
@@ -201,12 +203,22 @@ export const strangeAttractor: ArtGenerator = {
       max: 1,
       step: 0.1,
     },
+    seed: {
+      type: "range",
+      default: 1,
+      min: 1,
+      max: 10000,
+      step: 1,
+    },
   },
 
   generate: (width: number, height: number, time: number, config: Partial<StrangeAttractorConfig> = {}) => {
     const cfg = { ...defaultConfig, ...config } as StrangeAttractorConfig;
     const params = getAttractorParams(cfg.attractorType);
     const colors = getColorScheme(cfg.colorScheme);
+    
+    // Initialize seeded RNG
+    const rng = new SeededRandom(cfg.seed);
     
     // Initialize particles with slight random offsets
     const particles: Array<{ x: number; y: number; z: number; trail: Array<[number, number, number]> }> = [];
@@ -215,11 +227,11 @@ export const strangeAttractor: ArtGenerator = {
     const seedOffset = cfg.attractorType === "lorenz" ? 10 : 1;
     for (let i = 0; i < cfg.particleCount; i++) {
       const angle = (i / cfg.particleCount) * Math.PI * 2;
-      const radius = Math.random() * seedOffset;
+      const radius = rng.random() * seedOffset;
       particles.push({
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
-        z: Math.random() * seedOffset * 2 - seedOffset,
+        z: rng.random() * seedOffset * 2 - seedOffset,
         trail: [],
       });
     }
