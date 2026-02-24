@@ -13,6 +13,7 @@ import { dla } from "./dla";
 import { lsystemBotany } from "./lsystem-botany";
 import { orbitalMechanics } from "./orbital-mechanics-generator";
 import { lightCaverns } from "./light-caverns-generator";
+import { fluidSmoke } from "./fluid-smoke-generator";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -29,6 +30,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "lsystem-botany": lsystemBotany,
   "orbital-mechanics": orbitalMechanics,
   "light-caverns": lightCaverns,
+  "fluid-smoke": fluidSmoke,
 };
 
 export * from "./core";
@@ -41,6 +43,6 @@ export type { OrbitalMechanicsParams } from './orbital-mechanics';
 export { renderLightCaverns, lightCavernsDefaultParams } from './light-caverns';
 export type { LightCavernsParams } from './light-caverns';
 
-// Light Caverns
-export { renderLightCaverns, lightCavernsDefaultParams } from './light-caverns';
-export type { LightCavernsParams } from './light-caverns';
+// Fluid Smoke
+export { renderFluidSmoke, fluidSmokeDefaultParams } from './fluid-smoke';
+export type { FluidSmokeParams } from './fluid-smoke';
