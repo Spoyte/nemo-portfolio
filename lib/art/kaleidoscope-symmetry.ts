@@ -1,8 +1,8 @@
 import {
   ArtGenerator,
   fillCanvas,
-  createNoise,
-  hslToRgb,
+  createSeededNoise,
+  SeededRandom,
 } from "./core";
 
 // Kaleidoscope Symmetry - Recursive mirrored patterns with geometric precision
@@ -10,7 +10,7 @@ import {
 
 export const kaleidoscopeSymmetry: ArtGenerator = {
   name: "Kaleidoscope",
-  description: "Recursive mirrored patterns with rotational symmetry — like looking through a kaleidoscope",
+  description: "Recursive mirrored patterns with rotational symmetry — like looking through a kaleidoscope (seeded)",
   params: {
     segments: {
       name: "Symmetry Segments",
@@ -50,10 +50,21 @@ export const kaleidoscopeSymmetry: ArtGenerator = {
       options: ["reflect", "rotate", "both"],
       default: "both",
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
   generate: (ctx, params, time = 0) => {
     const canvas = ctx.canvas;
-    const { segments, layers, complexity, colorShift, mirrorMode } = params;
+    const { segments, layers, complexity, colorShift, mirrorMode, seed } = params;
+
+    // Initialize seeded RNG for deterministic output
+    const rng = new SeededRandom(seed as number);
 
     // Dark background with subtle gradient
     const gradient = ctx.createRadialGradient(
@@ -69,7 +80,7 @@ export const kaleidoscopeSymmetry: ArtGenerator = {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     const maxRadius = Math.min(cx, cy) * 0.9;
-    const noise = createNoise();
+    const noise = createSeededNoise(seed as number);
     const t = time * 0.0003;
 
     // Draw symmetry segments

@@ -1,8 +1,12 @@
-import { ArtGenerator, fillCanvas } from "./core";
+import {
+  ArtGenerator,
+  fillCanvas,
+  SeededRandom,
+} from "./core";
 
 export const recursiveTrees: ArtGenerator = {
   name: "Recursive Trees",
-  description: "Fractal tree structures with organic variation",
+  description: "Fractal tree structures with organic variation (seeded)",
   params: {
     branchLength: {
       name: "Branch Length",
@@ -36,12 +40,23 @@ export const recursiveTrees: ArtGenerator = {
       step: 0.1,
       default: 0.3,
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
   generate: (ctx, params) => {
     const canvas = ctx.canvas;
-    const { branchLength, angle, depth, randomness } = params;
+    const { branchLength, angle, depth, randomness, seed } = params;
 
     fillCanvas(ctx, "#0f172a", canvas.width, canvas.height);
+
+    // Initialize seeded RNG for deterministic output
+    const rng = new SeededRandom(seed as number);
 
     const drawBranch = (
       x: number,
@@ -64,7 +79,7 @@ export const recursiveTrees: ArtGenerator = {
       ctx.lineTo(endX, endY);
       ctx.stroke();
 
-      const angleVar = (Math.random() - 0.5) * (randomness as number);
+      const angleVar = (rng.random() - 0.5) * (randomness as number);
 
       drawBranch(
         endX,
@@ -82,7 +97,7 @@ export const recursiveTrees: ArtGenerator = {
       );
     };
 
-    // Draw multiple trees
+    // Draw multiple trees with seeded positions
     for (let i = 0; i < 5; i++) {
       const x = canvas.width * (0.2 + i * 0.15);
       drawBranch(x, canvas.height, branchLength as number, -Math.PI / 2, depth as number);
