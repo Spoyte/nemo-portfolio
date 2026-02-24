@@ -51,29 +51,34 @@ git push origin main
 
 ## Scripts
 
-### Auto-commit helper
+### auto-commit.sh
 
-Use `scripts/auto-commit.sh` to intelligently commit based on file patterns:
+Intelligent commit helper that suggests commit messages based on changes.
 
 ```bash
 ./scripts/auto-commit.sh
 ```
 
-This will:
-1. Check for changes
-2. Categorize files by type
-3. Generate appropriate commit message
-4. Commit and optionally push
+### multi-repo.sh
 
-## Multi-Repo Operations
-
-Check status across all git repos in a directory:
+Bulk git operations across all workspace repositories.
 
 ```bash
-for dir in */; do
-  if [ -d "$dir/.git" ]; then
-    echo "=== $dir ==="
-    (cd "$dir" && git status --short)
-  fi
-done
+# Show status overview of all repos
+./scripts/multi-repo.sh status
+
+# See only repos with uncommitted changes
+./scripts/multi-repo.sh dirty
+
+# Commit all changes across all repos with one message
+./scripts/multi-repo.sh commit "your message"
+
+# Push all repos with unpushed commits
+./scripts/multi-repo.sh push
+
+# Pull latest changes everywhere
+./scripts/multi-repo.sh pull
+
+# List all discovered repositories
+./scripts/multi-repo.sh list
 ```
