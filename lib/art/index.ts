@@ -8,6 +8,7 @@ import { cellularAutomata } from "./cellular-automata";
 import { voronoiOrganic } from "./voronoi-organic";
 import { topographicFlow } from "./topographic-flow";
 import { strangeAttractor } from "./strange-attractor";
+import { reactionDiffusion } from "./reaction-diffusion";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -19,6 +20,9 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "voronoi-organic": voronoiOrganic,
   "topographic-flow": topographicFlow,
   "strange-attractor": strangeAttractor,
+  "reaction-diffusion": reactionDiffusion,
 };
 
 export * from "./core";
+
+export * from './reaction-diffusion';

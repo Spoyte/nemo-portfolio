@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReactionDiffusion — Generative Art</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+        }
+        canvas {
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        .info {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="art" width="400" height="400"></canvas>
+    <div class="info">ReactionDiffusion — Turing patterns simulating natural pattern formation like zebra stripes and coral growth</div>
+    <script type="module">
+        // Inline the art generator for standalone use
+        const palettes = {
+            ocean: [[0, 20, 40], [0, 60, 120], [0, 120, 180], [100, 180, 220], [200, 230, 255]],
+            sunset: [[60, 20, 60], [120, 40, 80], [200, 80, 60], [255, 140, 40], [255, 220, 100]],
+            forest: [[20, 40, 20], [40, 80, 40], [80, 140, 60], [140, 200, 100], [220, 245, 200]],
+            monochrome: [[20, 20, 20], [80, 80, 80], [140, 140, 140], [200, 200, 200], [255, 255, 255]],
+            neon: [[60, 20, 80], [120, 40, 140], [200, 60, 180], [255, 100, 200], [200, 255, 255]],
+            fire: [[20, 10, 5], [80, 20, 10], [160, 60, 20], [220, 120, 30], [255, 220, 100]],
+            heatmap: [[40, 20, 60], [100, 40, 80], [180, 60, 60], [220, 140, 40], [255, 255, 100]],
+            earth: [[80, 60, 40], [120, 100, 60], [100, 140, 80], [180, 180, 120], [240, 230, 200]],
+            gold: [[60, 50, 30], [120, 100, 60], [180, 150, 80], [220, 190, 100], [255, 240, 200]]
+        };
+
+        function getColor(palette, t) {
+            const colors = palettes[palette] || palettes.ocean;
+            const scaled = t * (colors.length - 1);
+            const idx = Math.floor(scaled);
+            const frac = scaled - idx;
+            if (idx >= colors.length - 1) return colors[colors.length - 1];
+            const c1 = colors[idx];
+            const c2 = colors[idx + 1];
+            return [
+                Math.round(c1[0] + (c2[0] - c1[0]) * frac),
+                Math.round(c1[1] + (c2[1] - c1[1]) * frac),
+                Math.round(c1[2] + (c2[2] - c1[2]) * frac)
+            ];
+        }
+
+        function renderReactionDiffusion(width, height, params, time) {
+            const imageData = new ImageData(width, height);
+            const data = imageData.data;
+            const { speed, density, scale, palette } = params;
+            const t = time * 0.001 * speed;
+            
+            for (let y = 0; y < height; y += 2) {
+                for (let x = 0; x < width; x += 2) {
+                    const nx = (x - width / 2) / (width * 0.4) / scale;
+                    const ny = (y - height / 2) / (height * 0.4) / scale;
+                    const dist = Math.sqrt(nx * nx + ny * ny);
+                    const value = (Math.sin(dist * density * 0.1 - t) + 1) * 0.5;
+                    const [r, g, b] = getColor(palette, value);
+                    
+                    for (let dy = 0; dy < 2 && y + dy < height; dy++) {
+                        for (let dx = 0; dx < 2 && x + dx < width; dx++) {
+                            const idx = ((y + dy) * width + (x + dx)) * 4;
+                            data[idx] = r;
+                            data[idx + 1] = g;
+                            data[idx + 2] = b;
+                            data[idx + 3] = 255;
+                        }
+                    }
+                }
+            }
+            return imageData;
+        }
+
+        const canvas = document.getElementById('art');
+        const ctx = canvas.getContext('2d');
+        const startTime = Date.now();
+        
+        const params = {
+            speed: 1.0,
+            density: 50,
+            scale: 1.0,
+            palette: 'ocean'
+        };
+
+        function animate() {
+            const time = Date.now() - startTime;
+            const imageData = renderReactionDiffusion(400, 400, params, time);
+            ctx.putImageData(imageData, 0, 0);
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
