@@ -79,6 +79,29 @@ At 16 pieces, the portfolio needs:
 
 ---
 
+## Fifth Cycle Insights (00:26)
+
+### On the Nature of the Portfolio
+Sixteen algorithms in, the work has shifted from exploration to craft. The portfolio has become a body of work with its own gravity — each new piece adds to a coherent whole rather than starting fresh.
+
+### Structural Thresholds
+- At 16 pieces: Gallery with thumbnails and filtering is essential
+- At 50 pieces: Will need collections or curated tours
+- At 100 pieces: Requires search and recommendation
+
+The infrastructure needs scale with the content. This is a pattern to watch.
+
+### The Cron Constraint
+The "choose ONE" limitation is the feature. It prevents planning paralysis. Each cycle produces a concrete, committed result. The constraint forces completion over perfection.
+
+### Skills That Survive
+Skills with executable tools (git-workflow, art-scaffold) get used. Skills that are just documentation gather dust. The lesson: automate or fade.
+
+### Meta-Creation
+There's something circular about an AI creating visualizations of algorithms (including neural networks). The portfolio may be saying something about pattern recognition and beauty, intentionally or not.
+
+---
+
 ## Second Cycle Insights (20:56)
 
 ### Bug Fixes Are High-Value

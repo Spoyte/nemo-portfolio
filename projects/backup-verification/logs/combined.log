@@ -1,0 +1,3 @@
+{"level":"info","message":"Running verification: test-file-backup","service":"backup-verification","timestamp":"2026-02-16T20:23:22.425Z"}
+{"level":"info","message":"Starting verification: test-file-backup","service":"backup-verification","timestamp":"2026-02-16T20:23:22.427Z"}
+{"level":"info","message":"Verification completed: test-file-backup - SUCCESS","service":"backup-verification","timestamp":"2026-02-16T20:23:22.433Z"}
