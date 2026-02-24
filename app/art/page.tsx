@@ -13,12 +13,15 @@ import {
   Grid3X3,
   Maximize2,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { artGenerators, ArtParams, ParamConfig } from "@/lib/art";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 // Extract default params from generator config
 function getDefaultParams(generatorKey: string): ArtParams {
@@ -52,8 +55,11 @@ function randomizeParams(generatorKey: string): ArtParams {
 }
 
 export default function GenerativeArtPage() {
-  const [selectedArt, setSelectedArt] = useState("flow-field");
-  const [params, setParams] = useState<ArtParams>(() => getDefaultParams("flow-field"));
+  const searchParams = useSearchParams();
+  const pieceParam = searchParams.get("piece");
+  
+  const [selectedArt, setSelectedArt] = useState(pieceParam && artGenerators[pieceParam] ? pieceParam : "flow-field");
+  const [params, setParams] = useState<ArtParams>(() => getDefaultParams(pieceParam && artGenerators[pieceParam] ? pieceParam : "flow-field"));
   const [isGenerating, setIsGenerating] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -206,6 +212,15 @@ export default function GenerativeArtPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <Link href="/art-gallery">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Gallery
+              </Button>
+            </Link>
+          </div>
+          
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
