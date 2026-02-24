@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Grid3X3, List, Shuffle, Filter } from "lucide-react";
+import { Sparkles, Grid3X3, List, Shuffle, Filter, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { artGenerators } from "@/lib/art";
 import { generateAllThumbnails } from "@/lib/art/thumbnails";
+import { useFavorites } from "@/lib/art/favorites";
 
 // Categories for filtering
 const CATEGORIES: Record<string, string[]> = {
   "All": Object.keys(artGenerators),
+  "Favorites": [], // Populated dynamically based on favorites
   "Animated": ["voronoi-organic", "wave-interference", "flow-field", "topographic-flow", "orbital-mechanics", "light-caverns", "fluid-smoke", "particle-swarm", "mandelbrot-explorer"],
   "Static": ["geometric-mandala", "recursive-trees", "strange-attractor", "dla", "reaction-diffusion", "cellular-automata", "particle-network", "perlin-terrain"],
   "Nature": ["recursive-trees", "flow-field", "voronoi-organic", "dla", "reaction-diffusion", "particle-swarm", "perlin-terrain"],
@@ -27,6 +29,7 @@ export default function ArtGalleryPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(true);
+  const { favorites, toggleFavorite, isFavorite, count: favoriteCount } = useFavorites();
 
   // Generate thumbnails on mount
   useEffect(() => {
@@ -50,7 +53,13 @@ export default function ArtGalleryPage() {
 
   // Filter pieces based on category and search
   const filteredPieces = useMemo(() => {
-    let keys = CATEGORIES[activeCategory] || Object.keys(artGenerators);
+    let keys: string[];
+    
+    if (activeCategory === "Favorites") {
+      keys = favorites;
+    } else {
+      keys = CATEGORIES[activeCategory] || Object.keys(artGenerators);
+    }
     
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -64,7 +73,7 @@ export default function ArtGalleryPage() {
     }
     
     return keys;
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, favorites]);
 
   // Randomize category selection
   const handleRandomize = () => {
@@ -151,10 +160,14 @@ export default function ArtGalleryPage() {
                 variant={activeCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setActiveCategory(category)}
+                className={category === "Favorites" ? "gap-1" : ""}
               >
+                {category === "Favorites" && (
+                  <Heart className="h-3 w-3" />
+                )}
                 {category}
                 <span className="ml-1 text-xs opacity-60">
-                  ({CATEGORIES[category].length})
+                  ({category === "Favorites" ? favoriteCount : CATEGORIES[category].length})
                 </span>
               </Button>
             ))}
@@ -174,6 +187,7 @@ export default function ArtGalleryPage() {
           {filteredPieces.map((key, index) => {
             const generator = artGenerators[key];
             const thumbnail = thumbnails[key];
+            const isFav = isFavorite(key);
             
             return (
               <motion.div
@@ -182,37 +196,57 @@ export default function ArtGalleryPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Link href={`/art?piece=${key}`}>
-                  <Card className="group overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
-                    <CardContent className="p-0">
-                      {/* Thumbnail */}
-                      <div className={viewMode === "grid" 
-                        ? "aspect-[4/3] bg-black relative overflow-hidden"
-                        : "h-32 bg-black relative overflow-hidden"
-                      }>
+                <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
+                  <CardContent className="p-0">
+                    {/* Thumbnail */}
+                    <div className={viewMode === "grid" 
+                      ? "aspect-[4/3] bg-black relative overflow-hidden"
+                      : "h-32 bg-black relative overflow-hidden"
+                    }>
+                      <Link href={`/art?piece=${key}`}>
                         {thumbnail ? (
                           <img
                             src={thumbnail}
                             alt={generator.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-full h-full flex items-center justify-center cursor-pointer">
                             <div className="animate-pulse w-8 h-8 rounded-full bg-primary/20" />
                           </div>
                         )}
-                        
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      </Link>
+                      
+                      {/* Favorite button - positioned absolutely */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleFavorite(key);
+                        }}
+                        className={`absolute top-2 right-2 p-2 rounded-full transition-all ${
+                          isFav 
+                            ? "bg-red-500 text-white" 
+                            : "bg-black/50 text-white/70 hover:bg-black/70 hover:text-white"
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
+                      </button>
+                      
+                      {/* Hover overlay */}
+                      <Link href={`/art?piece=${key}`}>
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                           <Button variant="secondary" size="sm">
                             <Sparkles className="h-4 w-4 mr-1" />
                             Open
                           </Button>
                         </div>
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="p-4">
+                      </Link>
+                    </div>
+                    
+                    {/* Info */}
+                    <Link href={`/art?piece=${key}`}>
+                      <div className="p-4 cursor-pointer">
                         <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
                           {generator.name}
                         </h3>
@@ -240,9 +274,9 @@ export default function ArtGalleryPage() {
                             ))}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </Link>
+                  </CardContent>
+                </Card>
               </motion.div>
             );
           })}

@@ -13,6 +13,7 @@ import {
   Grid3X3,
   Maximize2,
   X,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { artGenerators, ArtParams, ParamConfig } from "@/lib/art";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useFavorites } from "@/lib/art/favorites";
 
 // Extract default params from generator config
 function getDefaultParams(generatorKey: string): ArtParams {
@@ -64,6 +66,7 @@ export default function GenerativeArtPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fullscreenCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   const currentGenerator = artGenerators[selectedArt];
 
@@ -291,6 +294,18 @@ export default function GenerativeArtPage() {
                     <p className="text-sm text-muted-foreground">{currentGenerator.description}</p>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant={isFavorite(selectedArt) ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => {
+                        toggleFavorite(selectedArt);
+                        toast.success(isFavorite(selectedArt) ? "Removed from favorites" : "Added to favorites");
+                      }}
+                      className={isFavorite(selectedArt) ? "bg-red-500 hover:bg-red-600" : ""}
+                    >
+                      <Heart className={`h-4 w-4 mr-1 ${isFavorite(selectedArt) ? "fill-current" : ""}`} />
+                      {isFavorite(selectedArt) ? "Favorited" : "Favorite"}
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleRandomize}>
                       <Shuffle className="h-4 w-4 mr-1" />
                       Randomize
