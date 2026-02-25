@@ -19,6 +19,7 @@ import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { perlinTerrainGenerator } from "./perlin-terrain";
 import { kaleidoscopeSymmetry } from "./kaleidoscope-symmetry";
 import { neuralDreams } from "./neural-dreams";
+import { lsystemFractals } from "./lsystem-fractals-generator";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -41,6 +42,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "perlin-terrain": perlinTerrainGenerator,
   "kaleidoscope": kaleidoscopeSymmetry,
   "neural-dreams": neuralDreams,
+  "lsystem-fractals": lsystemFractals,
 };
 
 export * from "./core";
@@ -71,3 +73,7 @@ export { renderTerrain } from './perlin-terrain';
 // Neural Dreams
 export { renderNeuralDreams, neuralDreamsDefaultParams } from './neural-dreams';
 export type { NeuralDreamsParams } from './neural-dreams';
+
+// L-System Fractal Flora
+export { renderLsystemFractals, lsystemFractalsDefaultParams } from './lsystem-fractals';
+export type { LsystemFractalsParams } from './lsystem-fractals';

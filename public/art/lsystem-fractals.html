@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>L-System Fractal Flora — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    select, input[type="range"] {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    input[type="range"] {
+      width: 80px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="400" height="400"></canvas>
+  <div class="controls">
+    <div class="control-group">
+      <label>Season:</label>
+      <select id="colorScheme">
+        <option value="spring">Spring</option>
+        <option value="autumn">Autumn</option>
+        <option value="winter">Winter</option>
+        <option value="neon">Neon</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Iterations:</label>
+      <input type="range" id="iterations" min="3" max="6" value="5">
+    </div>
+    <div class="control-group">
+      <label>Angle:</label>
+      <input type="range" id="angle" min="15" max="40" value="25">
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    const params = {
+      iterations: 5,
+      angle: 25,
+      colorScheme: 'spring'
+    };
+    
+    const palettes = {
+      spring: {
+        stem: ['#2d5016', '#3a6b1a', '#4a7c23', '#5a8f2a'],
+        leaf: ['#7cb342', '#9ccc65', '#aed581', '#c5e1a5']
+      },
+      autumn: {
+        stem: ['#4a3728', '#5d442f', '#6b5038', '#7a5c40'],
+        leaf: ['#d84315', '#ef6c00', '#f9a825', '#ff8f00']
+      },
+      winter: {
+        stem: ['#37474f', '#455a64', '#546e7a', '#607d8b'],
+        leaf: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6']
+      },
+      neon: {
+        stem: ['#1a0033', '#330066', '#4d0099', '#6600cc'],
+        leaf: ['#ff00ff', '#00ffff', '#ff0080', '#80ff00']
+      }
+    };
+    
+    // UI controls
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+    document.getElementById('iterations').addEventListener('input', (e) => {
+      params.iterations = parseInt(e.target.value);
+    });
+    document.getElementById('angle').addEventListener('input', (e) => {
+      params.angle = parseInt(e.target.value);
+    });
+    
+    function generateLSystem(axiom, rules, iterations) {
+      let current = axiom;
+      for (let i = 0; i < iterations; i++) {
+        let next = '';
+        for (const char of current) {
+          next += rules[char] || char;
+        }
+        current = next;
+      }
+      return current;
+    }
+    
+    function drawBranch(x1, y1, x2, y2, width, color, progress) {
+      const endX = x1 + (x2 - x1) * progress;
+      const endY = y1 + (y2 - y1) * progress;
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    }
+    
+    function render(time) {
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Clear with gradient
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+      bgGradient.addColorStop(0, '#0a0a0a');
+      bgGradient.addColorStop(1, '#1a1a2e');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      const palette = palettes[params.colorScheme];
+      
+      // L-System rules
+      const axiom = 'X';
+      const rules = {
+        'X': 'F[+X][-X]FX',
+        'F': 'FF'
+      };
+      
+      const lsystemString = generateLSystem(axiom, rules, Math.min(params.iterations, 6));
+      
+      // Animation
+      const growthCycle = (Math.sin(time * 0.0005) + 1) / 2;
+      const swayOffset = Math.sin(time * 0.001) * 0.02;
+      
+      // Starting position
+      const startX = width / 2;
+      const startY = height * 0.9;
+      const startAngle = -Math.PI / 2;
+      const baseLength = Math.min(width, height) * 0.015;
+      
+      const stack = [];
+      let current = {
+        x: startX,
+        y: startY,
+        angle: startAngle,
+        width: params.iterations * 1.5
+      };
+      
+      const stems = [];
+      const leaves = [];
+      
+      let segmentCount = 0;
+      const totalSegments = lsystemString.split('').filter(c => c === 'F').length;
+      
+      for (let i = 0; i < lsystemString.length; i++) {
+        const char = lsystemString[i];
+        const progress = Math.min(1, growthCycle * 2 - (segmentCount / totalSegments) * 0.5);
+        
+        if (progress <= 0) break;
+        
+        switch (char) {
+          case 'F': {
+            const length = baseLength * (1 + Math.random() * 0.1);
+            const sway = swayOffset * (stack.length + 1);
+            const newX = current.x + Math.cos(current.angle + sway) * length;
+            const newY = current.y + Math.sin(current.angle + sway) * length;
+            
+            stems.push({
+              x1: current.x,
+              y1: current.y,
+              x2: newX,
+              y2: newY,
+              width: Math.max(0.5, current.width),
+              depth: stack.length
+            });
+            
+            current.x = newX;
+            current.y = newY;
+            segmentCount++;
+            break;
+          }
+          case '+': {
+            current.angle += (params.angle * Math.PI / 180) + (Math.random() - 0.5) * 0.1;
+            break;
+          }
+          case '-': {
+            current.angle -= (params.angle * Math.PI / 180) + (Math.random() - 0.5) * 0.1;
+            break;
+          }
+          case '[': {
+            stack.push({ ...current });
+            current.width *= 0.7;
+            break;
+          }
+          case ']': {
+            if (stack.length > 0) {
+              leaves.push({
+                x: current.x,
+                y: current.y,
+                size: Math.max(3, (7 - stack.length) * 1.5),
+                depth: stack.length
+              });
+              current = stack.pop();
+            }
+            break;
+          }
+          case 'X': {
+            if (stack.length > 2 && Math.random() > 0.7) {
+              leaves.push({
+                x: current.x,
+                y: current.y,
+                size: 2,
+                depth: stack.length + 1
+              });
+            }
+            break;
+          }
+        }
+      }
+      
+      // Draw stems
+      stems.forEach((stem, i) => {
+        const colorIndex = Math.min(palette.stem.length - 1, Math.floor(stem.depth / 2));
+        const color = palette.stem[colorIndex];
+        const segmentProgress = Math.min(1, growthCycle * 3 - (i / stems.length) * 0.3);
+        
+        if (segmentProgress > 0) {
+          drawBranch(stem.x1, stem.y1, stem.x2, stem.y2, stem.width, color, segmentProgress);
+        }
+      });
+      
+      // Draw leaves
+      leaves.forEach((leaf, i) => {
+        const leafProgress = Math.min(1, growthCycle * 2 - (i / leaves.length) * 0.5);
+        if (leafProgress <= 0) return;
+        
+        const colorIndex = Math.min(palette.leaf.length - 1, Math.floor(leaf.depth / 2));
+        const color = palette.leaf[colorIndex];
+        const size = leaf.size * leafProgress;
+        
+        ctx.shadowBlur = size * 2;
+        ctx.shadowColor = color;
+        
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(leaf.x, leaf.y, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(leaf.x - size * 0.3, leaf.y - size * 0.3, size * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      ctx.shadowBlur = 0;
+      
+      // Ground
+      const groundGradient = ctx.createLinearGradient(0, height * 0.9, 0, height);
+      groundGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      groundGradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+      ctx.fillStyle = groundGradient;
+      ctx.fillRect(0, height * 0.9, width, height * 0.1);
+      
+      requestAnimationFrame(render);
+    }
+    
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
