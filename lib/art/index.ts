@@ -20,6 +20,7 @@ import { perlinTerrainGenerator } from "./perlin-terrain";
 import { kaleidoscopeSymmetry } from "./kaleidoscope-symmetry";
 import { neuralDreams } from "./neural-dreams";
 import { lsystemFractals } from "./lsystem-fractals-generator";
+import { quantumField } from "./quantum-field";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -43,6 +44,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "kaleidoscope": kaleidoscopeSymmetry,
   "neural-dreams": neuralDreams,
   "lsystem-fractals": lsystemFractals,
+  "quantum-field": quantumField,
 };
 
 export * from "./core";
@@ -77,3 +79,7 @@ export type { NeuralDreamsParams } from './neural-dreams';
 // L-System Fractal Flora
 export { renderLsystemFractals, lsystemFractalsDefaultParams } from './lsystem-fractals';
 export type { LsystemFractalsParams } from './lsystem-fractals';
+
+// Quantum Field
+export { renderQuantumField, quantumFieldDefaultParams } from './quantum-field';
+export type { QuantumFieldParams } from './quantum-field';

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Field - Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a1a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
+    
+    #canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 10, 30, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 15px 25px;
+      border-radius: 12px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      max-width: 90vw;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-items: center;
+    }
+    
+    .control-group label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #00ffff;
+      opacity: 0.8;
+    }
+    
+    .control-group input[type="range"] {
+      width: 100px;
+      accent-color: #00ffff;
+    }
+    
+    .control-group select {
+      background: rgba(0, 255, 255, 0.1);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .control-group select:focus {
+      outline: none;
+      border-color: #00ffff;
+    }
+    
+    .title {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #00ffff;
+      opacity: 0.7;
+    }
+    
+    .info {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <div class="title">Quantum Field</div>
+  
+  <div class="info">
+    Wave-particle duality visualization<br>
+    Probability interference patterns
+  </div>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label>Wave Sources</label>
+      <input type="range" id="waveCount" min="1" max="8" value="4">
+    </div>
+    <div class="control-group">
+      <label>Frequency</label>
+      <input type="range" id="frequency" min="0.5" max="3" step="0.1" value="1.2">
+    </div>
+    <div class="control-group">
+      <label>Amplitude</label>
+      <input type="range" id="amplitude" min="20" max="100" step="5" value="60">
+    </div>
+    <div class="control-group">
+      <label>Particles</label>
+      <input type="range" id="particleCount" min="50" max="500" step="50" value="200">
+    </div>
+    <div class="control-group">
+      <label>Coherence</label>
+      <input type="range" id="coherence" min="0" max="1" step="0.1" value="0.7">
+    </div>
+    <div class="control-group">
+      <label>Color Mode</label>
+      <select id="colorMode">
+        <option value="quantum">Quantum</option>
+        <option value="thermal">Thermal</option>
+        <option value="plasma">Plasma</option>
+        <option value="bioluminescence">Bio</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Parameters
+    const params = {
+      waveCount: 4,
+      frequency: 1.2,
+      amplitude: 60,
+      particleCount: 200,
+      coherence: 0.7,
+      colorMode: 'quantum',
+    };
+    
+    // Color schemes
+    const COLOR_SCHEMES = {
+      quantum: { bg: '#0a0a1a', low: '#1a1a3e', mid: '#4a4a8e', high: '#00ffff', particle: '#ffffff' },
+      thermal: { bg: '#1a0a0a', low: '#3e1a1a', mid: '#8e4a2a', high: '#ff6600', particle: '#ffcc00' },
+      plasma: { bg: '#0a001a', low: '#1a003e', mid: '#4a008e', high: '#ff00ff', particle: '#ff80ff' },
+      bioluminescence: { bg: '#001a0a', low: '#003e1a', mid: '#008e4a', high: '#00ff80', particle: '#80ffaa' },
+    };
+    
+    // HSL to RGB conversion
+    function hslToRgb(h, s, l) {
+      s /= 100;
+      l /= 100;
+      const k = n => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      return {
+        r: Math.round(f(0) * 255),
+        g: Math.round(f(8) * 255),
+        b: Math.round(f(4) * 255),
+      };
+    }
+    
+    // Wave sources
+    function getWaveSources(time, width, height) {
+      const sources = [];
+      for (let i = 0; i < params.waveCount; i++) {
+        const angle = (i / params.waveCount) * Math.PI * 2 + time * 0.1;
+        const radius = Math.min(width, height) * 0.35;
+        sources.push({
+          x: width / 2 + Math.cos(angle) * radius,
+          y: height / 2 + Math.sin(angle) * radius,
+          phase: i * (Math.PI * 2 / params.waveCount) * params.coherence,
+          frequency: params.frequency * (0.8 + Math.random() * 0.4),
+        });
+      }
+      return sources;
+    }
+    
+    // Calculate wave value at point
+    function getWaveValue(x, y, time, sources) {
+      let value = 0;
+      for (const source of sources) {
+        const dx = x - source.x;
+        const dy = y - source.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const wave = Math.sin(dist * 0.05 - time * source.frequency + source.phase);
+        const attenuation = 1 / (1 + dist * 0.005);
+        value += wave * attenuation;
+      }
+      return value / sources.length;
+    }
+    
+    // Animation loop
+    let time = 0;
+    const particles = [];
+    
+    // Initialize particles
+    for (let i = 0; i < 500; i++) {
+      particles.push({
+        x: Math.random(),
+        y: Math.random(),
+        vx: 0,
+        vy: 0,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+    
+    function animate() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const colors = COLOR_SCHEMES[params.colorMode];
+      
+      // Get wave sources
+      const sources = getWaveSources(time, width, height);
+      
+      // Render probability field
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+      const sampleSize = 2;
+      
+      for (let y = 0; y < height; y += sampleSize) {
+        for (let x = 0; x < width; x += sampleSize) {
+          const waveValue = getWaveValue(x, y, time, sources);
+          const probability = Math.abs(waveValue);
+          const phase = (waveValue + 1) * 0.5;
+          
+          let r, g, b;
+          
+          if (params.colorMode === 'quantum') {
+            const hue = 180 + phase * 120;
+            const sat = 50 + probability * 50;
+            const light = 10 + probability * 40;
+            const rgb = hslToRgb(hue, sat, light);
+            r = rgb.r; g = rgb.g; b = rgb.b;
+          } else if (params.colorMode === 'thermal') {
+            const hue = 240 - probability * 240;
+            const sat = 80;
+            const light = 20 + probability * 30;
+            const rgb = hslToRgb(hue, sat, light);
+            r = rgb.r; g = rgb.g; b = rgb.b;
+          } else if (params.colorMode === 'plasma') {
+            const hue = 270 + probability * 60;
+            const sat = 70 + probability * 30;
+            const light = 15 + probability * 35;
+            const rgb = hslToRgb(hue, sat, light);
+            r = rgb.r; g = rgb.g; b = rgb.b;
+          } else {
+            const hue = 120 + probability * 60;
+            const sat = 60 + probability * 40;
+            const light = 10 + probability * 40;
+            const rgb = hslToRgb(hue, sat, light);
+            r = rgb.r; g = rgb.g; b = rgb.b;
+          }
+          
+          const intensity = Math.min(1, probability * params.amplitude / 50);
+          r = Math.floor(r * intensity);
+          g = Math.floor(g * intensity);
+          b = Math.floor(b * intensity);
+          
+          for (let dy = 0; dy < sampleSize && y + dy < height; dy++) {
+            for (let dx = 0; dx < sampleSize && x + dx < width; dx++) {
+              const idx = ((y + dy) * width + (x + dx)) * 4;
+              data[idx] = r;
+              data[idx + 1] = g;
+              data[idx + 2] = b;
+              data[idx + 3] = 255;
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Draw wave sources
+      for (const source of sources) {
+        const pulse = Math.sin(time * 3 + source.phase) * 0.5 + 0.5;
+        const gradient = ctx.createRadialGradient(
+          source.x, source.y, 0,
+          source.x, source.y, 20 + pulse * 10
+        );
+        gradient.addColorStop(0, colors.high);
+        gradient.addColorStop(0.5, colors.mid);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(source.x, source.y, 30, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Draw particles
+      for (let i = 0; i < params.particleCount; i++) {
+        const p = particles[i];
+        const px = p.x * width;
+        const py = p.y * height;
+        
+        const waveValue = getWaveValue(px, py, time, sources);
+        const energy = Math.abs(waveValue);
+        
+        // Update particle velocity based on wave field
+        p.vx += Math.cos(waveValue * Math.PI) * 0.01;
+        p.vy += Math.sin(waveValue * Math.PI) * 0.01;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        
+        // Move particle
+        p.x += p.vx * 0.001;
+        p.y += p.vy * 0.001;
+        
+        // Wrap around
+        p.x = (p.x + 1) % 1;
+        p.y = (p.y + 1) % 1;
+        
+        // Draw particle
+        const size = 1 + energy * 3;
+        const alpha = 0.3 + energy * 0.7;
+        
+        ctx.fillStyle = colors.particle;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Trail
+        ctx.strokeStyle = colors.particle;
+        ctx.lineWidth = 0.5;
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px - p.vx * 0.5, py - p.vy * 0.5);
+        ctx.stroke();
+      }
+      
+      ctx.globalAlpha = 1;
+      
+      // Draw interference rings
+      ctx.strokeStyle = colors.high;
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 0.1;
+      
+      for (let i = 0; i < 20; i++) {
+        const t = time * 0.5 + i * 0.1;
+        ctx.beginPath();
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+          const r = 50 + Math.sin(t + angle * 3) * 30;
+          const x = width / 2 + Math.cos(angle) * r;
+          const y = height / 2 + Math.sin(angle) * r;
+          if (angle === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      
+      ctx.globalAlpha = 1;
+      
+      time += 0.016;
+      requestAnimationFrame(animate);
+    }
+    
+    // Control handlers
+    document.getElementById('waveCount').addEventListener('input', (e) => {
+      params.waveCount = parseInt(e.target.value);
+    });
+    document.getElementById('frequency').addEventListener('input', (e) => {
+      params.frequency = parseFloat(e.target.value);
+    });
+    document.getElementById('amplitude').addEventListener('input', (e) => {
+      params.amplitude = parseInt(e.target.value);
+    });
+    document.getElementById('particleCount').addEventListener('input', (e) => {
+      params.particleCount = parseInt(e.target.value);
+    });
+    document.getElementById('coherence').addEventListener('input', (e) => {
+      params.coherence = parseFloat(e.target.value);
+    });
+    document.getElementById('colorMode').addEventListener('change', (e) => {
+      params.colorMode = e.target.value;
+    });
+    
+    // Start animation
+    animate();
+  </script>
+</body>
+</html>
