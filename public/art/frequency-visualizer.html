@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frequency Visualizer - Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #05050a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+    }
+    #canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 16px 24px;
+      border-radius: 12px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .control-group label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+    }
+    input[type="range"] {
+      width: 100px;
+      accent-color: #8b5cf6;
+    }
+    select {
+      background: #1a1a2e;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .title {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="title">Frequency Visualizer — Audio-Reactive Generative Art</div>
+  <canvas id="canvas"></canvas>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label>Bar Count</label>
+      <input type="range" id="barCount" min="16" max="128" step="8" value="64">
+    </div>
+    <div class="control-group">
+      <label>Smoothing</label>
+      <input type="range" id="smoothing" min="0" max="100" value="60">
+    </div>
+    <div class="control-group">
+      <label>Bass Boost</label>
+      <input type="range" id="bassBoost" min="0" max="100" value="50">
+    </div>
+    <div class="control-group">
+      <label>Particles</label>
+      <input type="range" id="particles" min="0" max="100" value="40">
+    </div>
+    <div class="control-group">
+      <label>Wave Speed</label>
+      <input type="range" id="waveSpeed" min="10" max="100" value="50">
+    </div>
+    <div class="control-group">
+      <label>Color Scheme</label>
+      <select id="colorScheme">
+        <option value="spectrum">Spectrum</option>
+        <option value="fire">Fire</option>
+        <option value="ocean">Ocean</option>
+        <option value="neon">Neon</option>
+        <option value="monochrome">Mono</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Mirror</label>
+      <select id="mirrorMode">
+        <option value="off">Off</option>
+        <option value="horizontal" selected>Horizontal</option>
+        <option value="vertical">Vertical</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Bar Style</label>
+      <select id="barStyle">
+        <option value="solid">Solid</option>
+        <option value="gradient" selected>Gradient</option>
+        <option value="outline">Outline</option>
+        <option value="glow">Glow</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // State
+    let bars = [];
+    let particles = [];
+    let seed = 42;
+    
+    // Seeded random
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed;
+      }
+      random() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+      }
+    }
+    
+    // Get control values
+    function getParams() {
+      return {
+        barCount: parseInt(document.getElementById('barCount').value),
+        smoothing: parseInt(document.getElementById('smoothing').value) / 100,
+        bassBoost: parseInt(document.getElementById('bassBoost').value) / 100,
+        particleIntensity: parseInt(document.getElementById('particles').value) / 100,
+        waveSpeed: parseInt(document.getElementById('waveSpeed').value) / 50,
+        colorScheme: document.getElementById('colorScheme').value,
+        mirrorMode: document.getElementById('mirrorMode').value,
+        barStyle: document.getElementById('barStyle').value,
+      };
+    }
+    
+    const colorSchemes = {
+      spectrum: { base: 0, range: 360 },
+      fire: { base: 0, range: 60 },
+      ocean: { base: 180, range: 60 },
+      neon: { base: 280, range: 120 },
+      monochrome: { base: 200, range: 40 },
+    };
+    
+    function drawBar(x, y, w, h, hue, alpha = 1) {
+      const lightness = 50 + (h / canvas.height) * 30;
+      const saturation = 70 + (h / canvas.height) * 20;
+      const params = getParams();
+      
+      switch (params.barStyle) {
+        case 'solid':
+          ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+          ctx.fillRect(x, y, w, h);
+          break;
+          
+        case 'gradient':
+          const grad = ctx.createLinearGradient(x, y + h, x, y);
+          grad.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`);
+          grad.addColorStop(0.5, `hsla(${hue}, ${saturation}%, ${lightness + 20}%, ${alpha * 0.8})`);
+          grad.addColorStop(1, `hsla(${hue}, ${saturation}%, ${lightness + 40}%, ${alpha * 0.4})`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(x, y, w, h);
+          break;
+          
+        case 'outline':
+          ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x, y, w, h);
+          break;
+          
+        case 'glow':
+          ctx.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.8)`;
+          ctx.shadowBlur = 15;
+          ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+          ctx.fillRect(x, y, w, h);
+          ctx.shadowBlur = 0;
+          break;
+      }
+    }
+    
+    let time = 0;
+    const rng = new SeededRandom(seed);
+    
+    function animate() {
+      const params = getParams();
+      const scheme = colorSchemes[params.colorScheme];
+      
+      // Initialize bars
+      while (bars.length < params.barCount) {
+        const hue = scheme.base + (bars.length / params.barCount) * scheme.range;
+        bars.push({ height: 0, targetHeight: 0, velocity: 0, hue });
+      }
+      if (bars.length > params.barCount) {
+        bars.splice(params.barCount);
+      }
+      
+      // Clear with trail
+      ctx.fillStyle = 'rgba(5, 5, 10, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const barWidth = canvas.width / params.barCount;
+      
+      time += 0.016 * params.waveSpeed;
+      
+      // Update bars
+      for (let i = 0; i < bars.length; i++) {
+        const bar = bars[i];
+        const normalizedIndex = i / bars.length;
+        
+        const wave1 = Math.sin(time * 2 + normalizedIndex * Math.PI * 4) * 0.5 + 0.5;
+        const wave2 = Math.sin(time * 3.7 + normalizedIndex * Math.PI * 8) * 0.3 + 0.3;
+        const wave3 = Math.sin(time * 5.3 + normalizedIndex * Math.PI * 12) * 0.2 + 0.2;
+        const noise = rng.random() * 0.15;
+        
+        const bassMultiplier = 1 + (1 - normalizedIndex) * params.bassBoost;
+        let target = (wave1 * 0.5 + wave2 * 0.3 + wave3 * 0.15 + noise * 0.05) * bassMultiplier;
+        target = Math.min(1, Math.max(0.05, target));
+        
+        bar.targetHeight = target * canvas.height * 0.85;
+        bar.height += (bar.targetHeight - bar.height) * (1 - params.smoothing * 0.9);
+        
+        if (params.colorScheme === 'spectrum') {
+          bar.hue = (normalizedIndex * 360 + time * 30) % 360;
+        }
+      }
+      
+      // Spawn particles
+      for (let i = 0; i < bars.length; i++) {
+        if (rng.random() < params.particleIntensity * 0.1 && bars[i].height > canvas.height * 0.3) {
+          const x = i * barWidth + barWidth / 2;
+          const y = canvas.height - bars[i].height;
+          
+          particles.push({
+            x,
+            y,
+            vx: (rng.random() - 0.5) * 4,
+            vy: -rng.random() * 3 - 1,
+            life: 1,
+            maxLife: 30 + rng.random() * 30,
+            hue: bars[i].hue,
+            size: 2 + rng.random() * 3,
+          });
+        }
+      }
+      
+      // Update and draw particles
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.05;
+        p.life -= 1 / p.maxLife;
+        
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        
+        const alpha = p.life * 0.8;
+        const size = p.size * p.life;
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${alpha})`;
+        ctx.fill();
+        
+        ctx.shadowColor = `hsla(${p.hue}, 80%, 60%, ${alpha})`;
+        ctx.shadowBlur = size * 2;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      
+      // Draw bars
+      for (let i = 0; i < bars.length; i++) {
+        const bar = bars[i];
+        const x = i * barWidth;
+        const y = canvas.height - bar.height;
+        
+        drawBar(x + 1, y, barWidth - 2, bar.height, bar.hue);
+        
+        if (params.mirrorMode === 'horizontal' || params.mirrorMode === 'both') {
+          drawBar(x + 1, 0, barWidth - 2, bar.height, bar.hue, 0.5);
+        }
+        
+        if (params.mirrorMode === 'vertical' || params.mirrorMode === 'both') {
+          const mirrorX = canvas.width - x - barWidth;
+          drawBar(mirrorX + 1, y, barWidth - 2, bar.height, bar.hue, 0.7);
+          
+          if (params.mirrorMode === 'both') {
+            drawBar(mirrorX + 1, 0, barWidth - 2, bar.height, bar.hue, 0.35);
+          }
+        }
+      }
+      
+      // Center line
+      if (params.mirrorMode === 'horizontal' || params.mirrorMode === 'both') {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(canvas.width, centerY);
+        ctx.stroke();
+      }
+      
+      // Peak indicators
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      for (let i = 0; i < bars.length; i++) {
+        if (bars[i].height > canvas.height * 0.7) {
+          const x = i * barWidth + barWidth / 2;
+          const y = canvas.height - bars[i].height - 5;
+          ctx.beginPath();
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

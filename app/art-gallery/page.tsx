@@ -15,7 +15,7 @@ import { useFavorites } from "@/lib/art/favorites";
 const CATEGORIES: Record<string, string[]> = {
   "All": Object.keys(artGenerators),
   "Favorites": [], // Populated dynamically based on favorites
-  "Animated": ["voronoi-organic", "wave-interference", "flow-field", "topographic-flow", "orbital-mechanics", "light-caverns", "fluid-smoke", "particle-swarm", "mandelbrot-explorer", "neural-dreams", "boid-flocking"],
+  "Animated": ["voronoi-organic", "wave-interference", "flow-field", "topographic-flow", "orbital-mechanics", "light-caverns", "fluid-smoke", "particle-swarm", "mandelbrot-explorer", "neural-dreams", "boid-flocking", "frequency-visualizer"],
   "Static": ["geometric-mandala", "recursive-trees", "strange-attractor", "dla", "reaction-diffusion", "cellular-automata", "particle-network", "perlin-terrain"],
   "Nature": ["recursive-trees", "flow-field", "voronoi-organic", "dla", "reaction-diffusion", "particle-swarm", "perlin-terrain", "boid-flocking"],
   "Physics": ["orbital-mechanics", "wave-interference", "fluid-smoke", "strange-attractor"],

@@ -22,6 +22,7 @@ import { neuralDreams } from "./neural-dreams";
 import { lsystemFractals } from "./lsystem-fractals-generator";
 import { quantumField } from "./quantum-field";
 import { boidFlocking } from "./boid-flocking";
+import { frequencyVisualizer } from "./frequency-visualizer";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -47,6 +48,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "lsystem-fractals": lsystemFractals,
   "quantum-field": quantumField,
   "boid-flocking": boidFlocking,
+  "frequency-visualizer": frequencyVisualizer,
 };
 
 export * from "./core";
@@ -88,3 +90,6 @@ export type { QuantumFieldParams } from './quantum-field';
 
 // Boid Flocking
 export { boidFlocking } from './boid-flocking';
+
+// Frequency Visualizer
+export { frequencyVisualizer } from './frequency-visualizer';
