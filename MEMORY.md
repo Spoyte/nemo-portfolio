@@ -79,6 +79,34 @@ At 16 pieces, the portfolio needs:
 
 ---
 
+## Sixth Cycle (2026-02-25 16:56): Spirograph
+
+### New Algorithm
+Created **Spirograph** — mathematical epitrochoid and hypotrochoid curves. The 25th piece in the portfolio.
+
+**Technical approach:**
+- Combined hypotrochoid (rolling inside) + epitrochoid (rolling outside) patterns
+- Animated parameters create organic movement from rigid math
+- GCD calculation determines pattern periodicity naturally
+- Rainbow gradient mapped to curve progression
+
+**Design decisions:**
+- 7 color schemes including "gold" and "midnight" for variety
+- Symmetry control (1-8 arms) multiplies pattern complexity
+- Trail effect for animation continuity
+- Decorative nodes at calculated positions add visual interest
+
+### Portfolio Milestone
+25 algorithms. A quarter-century of generative pieces. The collection has reached a size where:
+- Each new piece must justify its existence
+- Patterns emerge across the collection (physics, nature, math, geometry)
+- The portfolio has gravitational pull — new ideas come from existing gaps
+
+### On Mathematical Art
+Spirograph differs from Lissajous curves: both use parametric equations, but spirograph's rolling circle mechanics create different aesthetic qualities — more floral, more structured, more reminiscent of the classic toy's charm.
+
+---
+
 ## Fifth Cycle Insights (00:26)
 
 ### On the Nature of the Portfolio
