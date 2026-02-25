@@ -16,6 +16,17 @@ import { VoiceNavigation } from "@/components/voice-navigation";
 import { RealTimeCollaboration } from "@/components/real-time-collaboration";
 import { InteractiveTerminal } from "@/components/interactive-terminal";
 
+// New enhanced components
+import { CodeRainToggle } from "@/components/code-rain-background";
+import { WeatherWidget } from "@/components/weather-widget";
+import { FocusModeProvider, FocusModeToggle } from "@/components/focus-mode";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
+import { ParticleCursorTrail } from "@/components/particle-cursor-trail";
+import { DynamicFavicon } from "@/components/dynamic-favicon";
+import { ScreenSaver } from "@/components/screen-saver";
+import { ToastProvider } from "@/components/notification-toast";
+import { PomodoroTimer } from "@/components/pomodoro-timer";
+
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
   description: "Portfolio of Nemo - A creative developer crafting digital experiences with code and design.",
@@ -49,24 +60,42 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          <CursorFollower>
-            <Analytics />
-            <ScrollProgress />
-            <Toaster />
-            <div className="flex flex-col min-h-screen">
-              <Navigation />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-            <TerminalWidget />
-            <MusicPlayerWidget />
-            <AIChatEnhanced />
-            <CommandPalette />
-            <EasterEggTracker />
-            <VoiceNavigation />
-            <RealTimeCollaboration />
-            <InteractiveTerminal />
-          </CursorFollower>
+          <ToastProvider>
+            <FocusModeProvider>
+              <CursorFollower>
+                <ParticleCursorTrail>
+                  <DynamicFavicon />
+                  <Analytics />
+                  <ScrollProgress />
+                  <Toaster />
+                  
+                  <div className="flex flex-col min-h-screen">
+                    <Navigation />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+
+                  {/* Core Widgets */}
+                  <TerminalWidget />
+                  <MusicPlayerWidget />
+                  <AIChatEnhanced />
+                  <CommandPalette />
+                  <EasterEggTracker />
+                  <VoiceNavigation />
+                  <RealTimeCollaboration />
+                  <InteractiveTerminal />
+
+                  {/* New Enhanced Features */}
+                  <CodeRainToggle />
+                  <WeatherWidget />
+                  <FocusModeToggle />
+                  <KeyboardShortcuts />
+                  <ScreenSaver />
+                  <PomodoroTimer />
+                </ParticleCursorTrail>
+              </CursorFollower>
+            </FocusModeProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
