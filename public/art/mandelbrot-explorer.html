@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mandelbrot Explorer — Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    
+    .subtitle {
+      color: #888;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    .canvas-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      background: #000;
+      cursor: crosshair;
+    }
+    
+    canvas {
+      display: block;
+      width: 400px;
+      height: 400px;
+    }
+    
+    .canvas-info {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.6);
+      padding: 4px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    
+    .controls {
+      margin-top: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    
+    .control-group.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    label {
+      font-size: 0.8rem;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      accent-color: #a855f7;
+    }
+    
+    select {
+      padding: 0.4rem;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .value {
+      font-size: 0.8rem;
+      color: #a855f7;
+      text-align: right;
+    }
+    
+    .buttons {
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    button {
+      padding: 0.6rem 1.2rem;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: #252525;
+      border-color: #a855f7;
+    }
+    
+    button.primary {
+      background: #a855f7;
+      color: white;
+      border-color: #a855f7;
+    }
+    
+    button.primary:hover {
+      background: #9333ea;
+    }
+    
+    .location-presets {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      max-width: 400px;
+    }
+    
+    .location-presets button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+    }
+    
+    .zoom-hint {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Mandelbrot Explorer</h1>
+  <p class="subtitle">Infinitely complex patterns from a simple formula: z² + c. Click to zoom, drag to pan.</p>
+  
+  <div class="canvas-container" id="canvasContainer">
+    <canvas id="canvas" width="400" height="400"></canvas>
+    <div class="canvas-info" id="canvasInfo">Zoom: 1x</div>
+  </div>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label>Zoom Level</label>
+      <input type="range" id="zoom" min="1" max="1000" step="1" value="1">
+      <span class="value" id="zoomValue">1x</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Detail Level</label>
+      <input type="range" id="maxIterations" min="50" max="500" step="10" value="100">
+      <span class="value" id="maxIterationsValue">100</span>
+    </div>
+    
+    <div class="control-group full-width">
+      <label>Color Scheme</label>
+      <select id="colorScheme">
+        <option value="smooth" selected>Smooth Spectrum</option>
+        <option value="fire">Fire</option>
+        <option value="electric">Electric</option>
+        <option value="grayscale">Grayscale</option>
+        <option value="neon">Neon</option>
+        <option value="ocean">Ocean</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="buttons">
+    <button id="reset" class="primary">🏠 Reset View</button>
+    <button id="download">💾 Download PNG</button>
+  </div>
+  
+  <div class="location-presets">
+    <button data-location="0">Full View</button>
+    <button data-location="1">Seahorse Valley</button>
+    <button data-location="2">Elephant Valley</button>
+    <button data-location="3">Triple Spiral</button>
+    <button data-location="4">Mini Mandelbrot</button>
+    <button data-location="5">Dendrite</button>
+    <button data-location="6">Scepter</button>
+    <button data-location="7">Lightning</button>
+  </div>
+  
+  <p class="zoom-hint">💡 Tip: Higher zoom needs higher detail level. Try 200+ iterations at 100x zoom.</p>
+
+  <script>
+    // Predefined interesting locations
+    const LOCATIONS = [
+      { name: "Full View", centerX: -0.5, centerY: 0, zoom: 1 },
+      { name: "Seahorse Valley", centerX: -0.75, centerY: 0.1, zoom: 10 },
+      { name: "Elephant Valley", centerX: 0.3, centerY: 0, zoom: 15 },
+      { name: "Triple Spiral", centerX: -0.088, centerY: 0.654, zoom: 50 },
+      { name: "Mini Mandelbrot", centerX: -1.75, centerY: 0, zoom: 30 },
+      { name: "Dendrite", centerX: 0, centerY: 1, zoom: 20 },
+      { name: "Scepter", centerX: -1.25, centerY: 0.38, zoom: 100 },
+      { name: "Lightning", centerX: -1.78, centerY: 0, zoom: 200 },
+    ];
+
+    // Color schemes
+    const COLOR_SCHEMES = {
+      smooth: (t) => {
+        const hue = t * 360;
+        return hslToRgb(hue, 80, 50);
+      },
+      fire: (t) => ({
+        r: Math.floor(255 * Math.min(1, t * 3)),
+        g: Math.floor(255 * Math.max(0, Math.min(1, (t - 0.33) * 3))),
+        b: Math.floor(255 * Math.max(0, Math.min(1, (t - 0.66) * 3))),
+      }),
+      electric: (t) => {
+        const r = Math.floor(255 * Math.pow(t, 0.5) * 0.3);
+        const g = Math.floor(255 * Math.pow(t, 2) * 0.5);
+        const b = Math.floor(255 * (0.5 + 0.5 * Math.sin(t * Math.PI)));
+        return { r, g, b };
+      },
+      grayscale: (t) => {
+        const v = Math.floor(255 * Math.pow(t, 0.5));
+        return { r: v, g: v, b: v };
+      },
+      neon: (t) => {
+        const r = Math.floor(255 * Math.pow(Math.sin(t * Math.PI * 2), 2));
+        const g = Math.floor(255 * Math.pow(Math.sin(t * Math.PI * 2 + 2), 2));
+        const b = Math.floor(255 * Math.pow(Math.sin(t * Math.PI * 2 + 4), 2));
+        return { r, g, b };
+      },
+      ocean: (t) => ({
+        r: Math.floor(20 + 40 * t),
+        g: Math.floor(60 + 100 * t),
+        b: Math.floor(120 + 135 * t),
+      }),
+    };
+
+    // HSL to RGB conversion
+    function hslToRgb(h, s, l) {
+      s /= 100;
+      l /= 100;
+      const k = (n) => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = (n) =>
+        l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      return {
+        r: Math.round(f(0) * 255),
+        g: Math.round(f(8) * 255),
+        b: Math.round(f(4) * 255),
+      };
+    }
+
+    // Compute smooth iteration count for a point
+    function computeSmoothIterations(cx, cy, maxIterations, escapeRadius) {
+      let zx = 0;
+      let zy = 0;
+      let zx2 = 0;
+      let zy2 = 0;
+      
+      for (let i = 0; i < maxIterations; i++) {
+        zy = 2 * zx * zy + cy;
+        zx = zx2 - zy2 + cx;
+        zx2 = zx * zx;
+        zy2 = zy * zy;
+        
+        if (zx2 + zy2 > escapeRadius * escapeRadius) {
+          const logZn = Math.log(zx2 + zy2) / 2;
+          const nu = Math.log(logZn / Math.log(escapeRadius)) / Math.log(2);
+          return i + 1 - nu;
+        }
+      }
+      
+      return maxIterations;
+    }
+
+    // Canvas setup
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const canvasContainer = document.getElementById('canvasContainer');
+    const canvasInfo = document.getElementById('canvasInfo');
+    
+    // Parameters
+    const params = {
+      zoom: 1,
+      centerX: -0.5,
+      centerY: 0,
+      maxIterations: 100,
+      colorScheme: 'smooth',
+      escapeRadius: 2.0,
+    };
+    
+    let time = 0;
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    let renderPending = false;
+    
+    // Controls
+    const zoomControl = document.getElementById('zoom');
+    const maxIterationsControl = document.getElementById('maxIterations');
+    const colorSchemeControl = document.getElementById('colorScheme');
+    
+    const zoomValue = document.getElementById('zoomValue');
+    const maxIterationsValue = document.getElementById('maxIterationsValue');
+    
+    // Update info display
+    function updateInfo() {
+      canvasInfo.textContent = `Zoom: ${params.zoom.toFixed(1)}x | (${params.centerX.toFixed(4)}, ${params.centerY.toFixed(4)})`;
+    }
+    
+    // Render the Mandelbrot set
+    function render() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+      
+      const { zoom, centerX, centerY, maxIterations, colorScheme, escapeRadius } = params;
+      const colorFn = COLOR_SCHEMES[colorScheme] || COLOR_SCHEMES.smooth;
+      
+      // Calculate view bounds
+      const aspectRatio = width / height;
+      const scale = 3.5 / zoom;
+      
+      const xMin = centerX - scale * aspectRatio / 2;
+      const xMax = centerX + scale * aspectRatio / 2;
+      const yMin = centerY - scale / 2;
+      const yMax = centerY + scale / 2;
+      
+      // Animated subtle color shift based on time
+      const timeOffset = time * 0.00005;
+      
+      // Adaptive sampling for performance
+      const sampleSize = zoom > 100 ? 1 : zoom > 10 ? 2 : 4;
+      
+      for (let py = 0; py < height; py += sampleSize) {
+        for (let px = 0; px < width; px += sampleSize) {
+          // Map pixel to complex plane
+          const cx = xMin + (px / width) * (xMax - xMin);
+          const cy = yMin + (py / height) * (yMax - yMin);
+          
+          // Compute iteration count
+          const iterations = computeSmoothIterations(cx, cy, maxIterations, escapeRadius);
+          
+          // Color based on iteration count
+          let r, g, b;
+          
+          if (iterations >= maxIterations) {
+            // Inside the set - black
+            r = g = b = 0;
+          } else {
+            // Normalize and apply color
+            const t = ((iterations / maxIterations) + timeOffset) % 1;
+            const color = colorFn(t);
+            r = color.r;
+            g = color.g;
+            b = color.b;
+          }
+          
+          // Fill sample block
+          for (let dy = 0; dy < sampleSize && py + dy < height; dy++) {
+            for (let dx = 0; dx < sampleSize && px + dx < width; dx++) {
+              const idx = ((py + dy) * width + (px + dx)) * 4;
+              data[idx] = r;
+              data[idx + 1] = g;
+              data[idx + 2] = b;
+              data[idx + 3] = 255;
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      updateInfo();
+    }
+    
+    // Animation loop for subtle color cycling
+    function animate() {
+      time += 16;
+      if (!isDragging) {
+        render();
+      }
+      requestAnimationFrame(animate);
+    }
+    
+    // Control event listeners
+    zoomControl.addEventListener('input', (e) => {
+      params.zoom = parseInt(e.target.value);
+      zoomValue.textContent = params.zoom + 'x';
+      render();
+    });
+    
+    maxIterationsControl.addEventListener('input', (e) => {
+      params.maxIterations = parseInt(e.target.value);
+      maxIterationsValue.textContent = params.maxIterations;
+      render();
+    });
+    
+    colorSchemeControl.addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+      render();
+    });
+    
+    // Click to zoom in
+    canvasContainer.addEventListener('click', (e) => {
+      if (isDragging) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Map click to complex coordinates
+      const aspectRatio = canvas.width / canvas.height;
+      const scale = 3.5 / params.zoom;
+      const xMin = params.centerX - scale * aspectRatio / 2;
+      const yMin = params.centerY - scale / 2;
+      const xMax = params.centerX + scale * aspectRatio / 2;
+      const yMax = params.centerY + scale / 2;
+      
+      const clickX = xMin + (x / canvas.width) * (xMax - xMin);
+      const clickY = yMin + (y / canvas.height) * (yMax - yMin);
+      
+      // Zoom in centered on click
+      params.centerX = clickX;
+      params.centerY = clickY;
+      params.zoom = Math.min(1000, params.zoom * 2);
+      
+      zoomControl.value = params.zoom;
+      zoomValue.textContent = params.zoom + 'x';
+      
+      // Auto-increase detail at high zoom
+      if (params.zoom > 100 && params.maxIterations < 200) {
+        params.maxIterations = 200;
+        maxIterationsControl.value = 200;
+        maxIterationsValue.textContent = '200';
+      }
+      
+      render();
+    });
+    
+    // Drag to pan
+    canvasContainer.addEventListener('mousedown', (e) => {
+      isDragging = false;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      
+      const onMouseMove = (e) => {
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          isDragging = true;
+        }
+        
+        const aspectRatio = canvas.width / canvas.height;
+        const scale = 3.5 / params.zoom;
+        const xRange = scale * aspectRatio;
+        const yRange = scale;
+        
+        params.centerX -= (dx / canvas.width) * xRange;
+        params.centerY -= (dy / canvas.height) * yRange;
+        
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        
+        render();
+      };
+      
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        setTimeout(() => { isDragging = false; }, 50);
+      };
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+    
+    // Reset button
+    document.getElementById('reset').addEventListener('click', () => {
+      params.zoom = 1;
+      params.centerX = -0.5;
+      params.centerY = 0;
+      params.maxIterations = 100;
+      params.colorScheme = 'smooth';
+      
+      zoomControl.value = 1;
+      maxIterationsControl.value = 100;
+      colorSchemeControl.value = 'smooth';
+      
+      zoomValue.textContent = '1x';
+      maxIterationsValue.textContent = '100';
+      
+      render();
+    });
+    
+    // Download button
+    document.getElementById('download').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `mandelbrot-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+    
+    // Location preset buttons
+    document.querySelectorAll('.location-presets button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.location);
+        const loc = LOCATIONS[idx];
+        
+        params.centerX = loc.centerX;
+        params.centerY = loc.centerY;
+        params.zoom = loc.zoom;
+        
+        // Adjust detail for zoom level
+        if (loc.zoom > 100) {
+          params.maxIterations = 300;
+        } else if (loc.zoom > 50) {
+          params.maxIterations = 200;
+        } else {
+          params.maxIterations = 150;
+        }
+        
+        zoomControl.value = params.zoom;
+        maxIterationsControl.value = params.maxIterations;
+        
+        zoomValue.textContent = params.zoom + 'x';
+        maxIterationsValue.textContent = params.maxIterations;
+        
+        render();
+      });
+    });
+    
+    // Start
+    render();
+    animate();
+  </script>
+</body>
+</html>
