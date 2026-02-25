@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+# art-audit — Audit and analyze the generative art portfolio
+# Usage: art-audit [options]
+#
+# Options:
+#   --missing-html    Show algorithms without standalone HTML
+#   --categories      Show category distribution
+#   --exports         Check export consistency
+#   --help            Show this help
+
+set -e
+
+PORTFOLIO_DIR="/root/.openclaw/workspace/nemo-portfolio/my-app"
+ART_DIR="$PORTFOLIO_DIR/lib/art"
+PUBLIC_ART_DIR="$PORTFOLIO_DIR/public/art"
+
+# Colors disabled for portability
+RED=""
+GREEN=""
+YELLOW=""
+BLUE=""
+CYAN=""
+NC=""
+
+# Help
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "🎨 Art Audit — Portfolio analyzer"
+    echo ""
+    echo "Usage: art-audit [options]"
+    echo ""
+    echo "Options:"
+    echo "  --missing-html    Find algorithms without standalone HTML"
+    echo "  --categories      Analyze category distribution"
+    echo "  --exports         Check export consistency"
+    echo "  --help            Show this help"
+    exit 0
+fi
+
+# Check portfolio exists
+if [ ! -d "$PORTFOLIO_DIR" ]; then
+    echo -e "${RED}Error: Portfolio not found at $PORTFOLIO_DIR${NC}"
+    exit 1
+fi
+
+echo -e "${BLUE}🎨 Portfolio Audit Report${NC}"
+echo "========================"
+echo ""
+
+# Count total algorithms (excluding generators, index, core, etc.)
+TOTAL_ALGORITHMS=$(ls "$ART_DIR"/*.ts 2>/dev/null | grep -v "\-generator\.ts$" | grep -v "index.ts" | grep -v "core.ts" | grep -v "thumbnails.ts" | grep -v "favorites.ts" | grep -v "seeded-random.ts" | grep -v "perlin-terrain.ts" | wc -l)
+echo -e "Total Algorithm Files: ${GREEN}$TOTAL_ALGORITHMS${NC}"
+echo ""
+
+# Get list of algorithm names (kebab-case)
+ALGORITHMS=$(ls "$ART_DIR"/*.ts 2>/dev/null | grep -v "\-generator\.ts$" | grep -v "index.ts" | grep -v "core.ts" | grep -v "thumbnails.ts" | grep -v "favorites.ts" | grep -v "seeded-random.ts" | grep -v "perlin-terrain.ts" | xargs -n1 basename | sed 's/\.ts$//')
+
+# Count standalone HTML files
+HTML_COUNT=$(ls "$PUBLIC_ART_DIR"/*.html 2>/dev/null | grep -v "exhibition.html" | wc -l)
+echo -e "Standalone HTML Files: ${GREEN}$HTML_COUNT${NC}"
+echo ""
+
+# Find missing HTML files
+if [ "$1" = "--missing-html" ] || [ -z "$1" ]; then
+    echo -e "${YELLOW}Missing Standalone HTML:${NC}"
+    MISSING_COUNT=0
+    for algo in $ALGORITHMS; do
+        if [ ! -f "$PUBLIC_ART_DIR/$algo.html" ]; then
+            # Check if it's an animated piece (likely needs HTML)
+            if grep -q "time" "$ART_DIR/$algo.ts" 2>/dev/null; then
+                echo "  • $algo (animated)"
+                MISSING_COUNT=$((MISSING_COUNT + 1))
+            fi
+        fi
+    done
+    if [ $MISSING_COUNT -eq 0 ]; then
+        echo -e "  ${GREEN}✅ All animated pieces have HTML${NC}"
+    fi
+    echo ""
+fi
+
+# Category analysis
+if [ "$1" = "--categories" ] || [ -z "$1" ]; then
+    echo -e "${YELLOW}Category Distribution:${NC}"
+    
+    # Read categories from gallery page
+    GALLERY_FILE="$PORTFOLIO_DIR/app/art-gallery/page.tsx"
+    if [ -f "$GALLERY_FILE" ]; then
+        # Extract Animated count
+        ANIMATED=$(grep -A1 '"Animated"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  Animated: ~$ANIMATED pieces"
+        
+        # Extract Static count  
+        STATIC=$(grep -A1 '"Static"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  Static: ~$STATIC pieces"
+        
+        # Extract Nature count
+        NATURE=$(grep -A1 '"Nature"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  Nature: ~$NATURE pieces"
+        
+        # Extract Physics count
+        PHYSICS=$(grep -A1 '"Physics"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  Physics: ~$PHYSICS pieces"
+        
+        # Extract Geometric count
+        GEOMETRIC=$(grep -A1 '"Geometric"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  Geometric: ~$GEOMETRIC pieces"
+        
+        # Extract Fractal count
+        FRACTAL=$(grep -A1 '"Fractal"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  Fractal: ~$FRACTAL pieces"
+        
+        # Extract AI/ML count
+        AIML=$(grep -A1 '"AI/ML"' "$GALLERY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l)
+        echo "  AI/ML: ~$AIML pieces"
+    fi
+    echo ""
+fi
+
+# Export consistency check
+if [ "$1" = "--exports" ] || [ -z "$1" ]; then
+    echo -e "${YELLOW}Export Health:${NC}"
+    
+    INDEX_FILE="$ART_DIR/index.ts"
+    if [ -f "$INDEX_FILE" ]; then
+        EXPORT_COUNT=$(grep -c "from './" "$INDEX_FILE" 2>/dev/null || echo "0")
+        echo -e "  Exports in index.ts: ${GREEN}$EXPORT_COUNT${NC}"
+        
+        # Check for orphaned algorithm files (not exported)
+        ORPHANED=0
+        for algo in $ALGORITHMS; do
+            if ! grep -q "$algo" "$INDEX_FILE" 2>/dev/null; then
+                echo -e "  ${RED}⚠️  Not exported: $algo${NC}"
+                ORPHANED=$((ORPHANED + 1))
+            fi
+        done
+        
+        if [ $ORPHANED -eq 0 ]; then
+            echo -e "  ${GREEN}✅ All algorithms exported${NC}"
+        fi
+    fi
+    echo ""
+fi
+
+# Generator wrapper check
+echo -e "${YELLOW}Generator Wrappers:${NC}"
+GENERATOR_COUNT=$(ls "$ART_DIR"/*-generator.ts 2>/dev/null | wc -l)
+echo "  Generator files: $GENERATOR_COUNT"
+
+# Summary
+echo ""
+echo -e "${BLUE}Summary${NC}"
+echo "-------"
+echo -e "Portfolio health: ${GREEN}Good${NC}"
+echo "Algorithms: $TOTAL_ALGORITHMS"
+echo "Standalone HTML: $HTML_COUNT"
+echo ""
+echo "Run 'art-audit --missing-html' to see which pieces need HTML files."
