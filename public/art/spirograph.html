@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spirograph - Mathematical Curves</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      padding: 1rem 2rem;
+      background: rgba(20, 20, 30, 0.8);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #ff00ff, #00ffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+    
+    .download-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      padding: 2rem;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    canvas {
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      max-width: 100%;
+      height: auto;
+    }
+    
+    .controls {
+      width: 320px;
+      background: rgba(20, 20, 30, 0.6);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      height: fit-content;
+    }
+    
+    .control-group {
+      margin-bottom: 1.25rem;
+    }
+    
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .value {
+      color: #fff;
+      font-family: monospace;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    
+    select {
+      width: 100%;
+      padding: 0.6rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #667eea;
+      cursor: pointer;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 0.6rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-color: transparent;
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    
+    @media (max-width: 900px) {
+      main {
+        flex-direction: column;
+        padding: 1rem;
+      }
+      
+      .controls {
+        width: 100%;
+      }
+      
+      canvas {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Spirograph</h1>
+      <div class="subtitle">Mathematical epitrochoid & hypotrochoid curves</div>
+    </div>
+    <button class="download-btn" onclick="downloadImage()">Download PNG</button>
+  </header>
+  
+  <main>
+    <div class="canvas-container">
+      <canvas id="canvas" width="600" height="600"></canvas>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label>Outer Radius <span class="value" id="outerRadius-val">120</span></label>
+        <input type="range" id="outerRadius" min="50" max="180" step="5" value="120">
+      </div>
+      
+      <div class="control-group">
+        <label>Inner Radius <span class="value" id="innerRadius-val">65</span></label>
+        <input type="range" id="innerRadius" min="10" max="100" step="5" value="65">
+      </div>
+      
+      <div class="control-group">
+        <label>Pen Distance <span class="value" id="penDistance-val">45</span></label>
+        <input type="range" id="penDistance" min="5" max="100" step="5" value="45">
+      </div>
+      
+      <div class="control-group">
+        <label>Rotations <span class="value" id="rotations-val">20</span></label>
+        <input type="range" id="rotations" min="5" max="50" step="5" value="20">
+      </div>
+      
+      <div class="control-group">
+        <label>Line Width <span class="value" id="lineWidth-val">1.5</span></label>
+        <input type="range" id="lineWidth" min="0.5" max="5" step="0.5" value="1.5">
+      </div>
+      
+      <div class="control-group">
+        <label>Symmetry <span class="value" id="symmetry-val">1</span></label>
+        <input type="range" id="symmetry" min="1" max="8" step="1" value="1">
+      </div>
+      
+      <div class="control-group">
+        <label>Speed <span class="value" id="speed-val">1</span></label>
+        <input type="range" id="speed" min="0" max="3" step="0.1" value="1">
+      </div>
+      
+      <div class="control-group">
+        <label>Color Scheme</label>
+        <select id="colorMode">
+          <option value="rainbow">Rainbow</option>
+          <option value="ocean">Ocean</option>
+          <option value="sunset">Sunset</option>
+          <option value="forest">Forest</option>
+          <option value="neon">Neon</option>
+          <option value="gold">Gold</option>
+          <option value="midnight">Midnight</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label class="checkbox-wrapper">
+          <input type="checkbox" id="rainbow" checked>
+          <span>Rainbow Gradient</span>
+        </label>
+      </div>
+      
+      <div class="button-group">
+        <button class="btn" onclick="randomize()">Randomize</button>
+        <button class="btn btn-primary" onclick="reset()">Reset</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Color schemes
+    const COLOR_SCHEMES = {
+      rainbow: ["#ff0000", "#ff8800", "#ffff00", "#00ff00", "#0088ff", "#8800ff", "#ff0088"],
+      ocean: ["#001a3a", "#004080", "#0066cc", "#0099ff", "#66ccff", "#b3e6ff"],
+      sunset: ["#2d0015", "#660033", "#cc4400", "#ff6600", "#ffaa44", "#ffdd88"],
+      forest: ["#0a1f0a", "#1a3d1a", "#2d5a2d", "#4a8b4a", "#7cb342", "#aed581"],
+      neon: ["#ff00ff", "#00ffff", "#ffff00", "#ff0080", "#80ff00", "#8000ff"],
+      gold: ["#1a1200", "#4a3a00", "#8b6914", "#daa520", "#ffd700", "#ffec8b"],
+      midnight: ["#0a0a1a", "#1a1a3e", "#2d2d5a", "#4a4a8e", "#6a6aaa", "#9a9aff"],
+    };
+    
+    // Parameters
+    let params = {
+      outerRadius: 120,
+      innerRadius: 65,
+      penDistance: 45,
+      rotations: 20,
+      lineWidth: 1.5,
+      colorMode: "rainbow",
+      speed: 1,
+      rainbow: true,
+      symmetry: 1,
+    };
+    
+    let time = 0;
+    let animationId = null;
+    
+    // Calculate GCD
+    function gcd(a, b) {
+      return b === 0 ? a : gcd(b, a % b);
+    }
+    
+    // Generate hypotrochoid points (rolling inside)
+    function generateHypotrochoidPoints(R, r, d, rotations, width, height, symmetry) {
+      const points = [];
+      const g = gcd(R, r);
+      const baseRotations = r / g;
+      const totalSteps = Math.max(rotations, baseRotations) * 100;
+      
+      for (let arm = 0; arm < symmetry; arm++) {
+        const armOffset = (arm / symmetry) * Math.PI * 2;
+        
+        for (let i = 0; i <= totalSteps; i++) {
+          const t = (i / totalSteps) * Math.PI * 2 * Math.max(rotations, baseRotations);
+          const ratio = (R - r) / r;
+          const x = (R - r) * Math.cos(t + armOffset) + d * Math.cos(ratio * (t + armOffset));
+          const y = (R - r) * Math.sin(t + armOffset) - d * Math.sin(ratio * (t + armOffset));
+          
+          points.push({
+            x: width / 2 + x,
+            y: height / 2 + y,
+            t: t / (Math.PI * 2),
+            arm,
+          });
+        }
+      }
+      
+      return points;
+    }
+    
+    // Generate epitrochoid points (rolling outside)
+    function generateEpitrochoidPoints(R, r, d, rotations, width, height, symmetry) {
+      const points = [];
+      const g = gcd(R, r);
+      const baseRotations = r / g;
+      const totalSteps = Math.max(rotations, baseRotations) * 100;
+      
+      for (let arm = 0; arm < symmetry; arm++) {
+        const armOffset = (arm / symmetry) * Math.PI * 2;
+        
+        for (let i = 0; i <= totalSteps; i++) {
+          const t = (i / totalSteps) * Math.PI * 2 * Math.max(rotations, baseRotations);
+          const ratio = (R + r) / r;
+          const x = (R + r) * Math.cos(t + armOffset) - d * Math.cos(ratio * (t + armOffset));
+          const y = (R + r) * Math.sin(t + armOffset) - d * Math.sin(ratio * (t + armOffset));
+          
+          points.push({
+            x: width / 2 + x,
+            y: height / 2 + y,
+            t: t / (Math.PI * 2),
+            arm,
+          });
+        }
+      }
+      
+      return points;
+    }
+    
+    // Render spirograph
+    function render() {
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Trail effect
+      ctx.fillStyle = "rgba(10, 10, 15, 0.15)";
+      ctx.fillRect(0, 0, width, height);
+      
+      const t = time * params.speed * 0.001;
+      const animatedRadius = params.outerRadius + Math.sin(t * 0.5) * 5;
+      const animatedInner = params.innerRadius + Math.cos(t * 0.3) * 3;
+      const animatedPen = params.penDistance + Math.sin(t * 0.7) * 8;
+      
+      // Generate points
+      const hypoPoints = generateHypotrochoidPoints(
+        animatedRadius,
+        animatedInner,
+        animatedPen,
+        params.rotations,
+        width,
+        height,
+        params.symmetry
+      );
+      
+      const epiPoints = generateEpitrochoidPoints(
+        animatedRadius * 0.7,
+        animatedInner * 0.5,
+        animatedPen * 0.6,
+        params.rotations * 0.5,
+        width,
+        height,
+        params.symmetry
+      );
+      
+      const colors = COLOR_SCHEMES[params.colorMode] || COLOR_SCHEMES.rainbow;
+      
+      // Draw hypotrochoid (main pattern)
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      
+      for (let arm = 0; arm < params.symmetry; arm++) {
+        const armPoints = hypoPoints.filter(p => p.arm === arm);
+        
+        ctx.beginPath();
+        for (let i = 0; i < armPoints.length - 1; i++) {
+          const p1 = armPoints[i];
+          const p2 = armPoints[i + 1];
+          
+          if (i === 0) {
+            ctx.moveTo(p1.x, p1.y);
+          }
+          
+          const colorIndex = params.rainbow 
+            ? Math.floor((p1.t * colors.length) % colors.length)
+            : arm % colors.length;
+          const color = colors[colorIndex];
+          
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const velocity = Math.sqrt(dx * dx + dy * dy);
+          const dynamicWidth = Math.max(0.5, params.lineWidth * (1 - velocity * 0.1));
+          
+          ctx.strokeStyle = color;
+          ctx.lineWidth = dynamicWidth;
+          ctx.globalAlpha = 0.6 + Math.sin(p1.t * Math.PI * 2 + t) * 0.3;
+          
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(p2.x, p2.y);
+        }
+      }
+      
+      // Draw epitrochoid overlay
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = params.lineWidth * 0.5;
+      
+      for (let arm = 0; arm < params.symmetry; arm++) {
+        const armPoints = epiPoints.filter(p => p.arm === arm);
+        
+        ctx.beginPath();
+        for (let i = 0; i < armPoints.length - 1; i++) {
+          const p1 = armPoints[i];
+          const p2 = armPoints[i + 1];
+          
+          if (i === 0) {
+            ctx.moveTo(p1.x, p1.y);
+          }
+          
+          const colorIndex = (arm + 3) % colors.length;
+          ctx.strokeStyle = colors[colorIndex];
+          ctx.lineTo(p2.x, p2.y);
+        }
+        ctx.stroke();
+      }
+      
+      // Draw decorative nodes
+      ctx.globalAlpha = 0.8;
+      const nodeCount = 12;
+      for (let i = 0; i < nodeCount; i++) {
+        const angle = (i / nodeCount) * Math.PI * 2 + t * 0.2;
+        const nodeR = animatedRadius * 0.3 + Math.sin(t + i) * 10;
+        const nx = width / 2 + Math.cos(angle) * nodeR;
+        const ny = height / 2 + Math.sin(angle) * nodeR;
+        
+        const gradient = ctx.createRadialGradient(nx, ny, 0, nx, ny, 4);
+        const color = colors[i % colors.length];
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, "transparent");
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.globalAlpha = 1;
+      
+      // Draw outer ring
+      ctx.strokeStyle = colors[0];
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, animatedRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      ctx.globalAlpha = 1;
+    }
+    
+    // Animation loop
+    function animate() {
+      time++;
+      render();
+      animationId = requestAnimationFrame(animate);
+    }
+    
+    // Update parameter
+    function updateParam(key, value) {
+      params[key] = value;
+      document.getElementById(`${key}-val`).textContent = value;
+    }
+    
+    // Event listeners
+    document.getElementById('outerRadius').addEventListener('input', (e) => {
+      updateParam('outerRadius', parseInt(e.target.value));
+    });
+    
+    document.getElementById('innerRadius').addEventListener('input', (e) => {
+      updateParam('innerRadius', parseInt(e.target.value));
+    });
+    
+    document.getElementById('penDistance').addEventListener('input', (e) => {
+      updateParam('penDistance', parseInt(e.target.value));
+    });
+    
+    document.getElementById('rotations').addEventListener('input', (e) => {
+      updateParam('rotations', parseInt(e.target.value));
+    });
+    
+    document.getElementById('lineWidth').addEventListener('input', (e) => {
+      updateParam('lineWidth', parseFloat(e.target.value));
+    });
+    
+    document.getElementById('symmetry').addEventListener('input', (e) => {
+      updateParam('symmetry', parseInt(e.target.value));
+    });
+    
+    document.getElementById('speed').addEventListener('input', (e) => {
+      updateParam('speed', parseFloat(e.target.value));
+    });
+    
+    document.getElementById('colorMode').addEventListener('change', (e) => {
+      params.colorMode = e.target.value;
+    });
+    
+    document.getElementById('rainbow').addEventListener('change', (e) => {
+      params.rainbow = e.target.checked;
+    });
+    
+    // Randomize parameters
+    function randomize() {
+      const randomInt = (min, max, step) => Math.floor(Math.random() * ((max - min) / step + 1)) * step + min;
+      const randomFloat = (min, max, step) => Math.round((Math.random() * (max - min) + min) / step) * step;
+      
+      params.outerRadius = randomInt(50, 180, 5);
+      params.innerRadius = randomInt(10, 100, 5);
+      params.penDistance = randomInt(5, 100, 5);
+      params.rotations = randomInt(5, 50, 5);
+      params.lineWidth = randomFloat(0.5, 5, 0.5);
+      params.symmetry = randomInt(1, 8, 1);
+      
+      const schemes = Object.keys(COLOR_SCHEMES);
+      params.colorMode = schemes[Math.floor(Math.random() * schemes.length)];
+      
+      // Update UI
+      document.getElementById('outerRadius').value = params.outerRadius;
+      document.getElementById('innerRadius').value = params.innerRadius;
+      document.getElementById('penDistance').value = params.penDistance;
+      document.getElementById('rotations').value = params.rotations;
+      document.getElementById('lineWidth').value = params.lineWidth;
+      document.getElementById('symmetry').value = params.symmetry;
+      document.getElementById('colorMode').value = params.colorMode;
+      
+      document.getElementById('outerRadius-val').textContent = params.outerRadius;
+      document.getElementById('innerRadius-val').textContent = params.innerRadius;
+      document.getElementById('penDistance-val').textContent = params.penDistance;
+      document.getElementById('rotations-val').textContent = params.rotations;
+      document.getElementById('lineWidth-val').textContent = params.lineWidth;
+      document.getElementById('symmetry-val').textContent = params.symmetry;
+      
+      // Clear canvas for new pattern
+      ctx.fillStyle = "#0a0a0f";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Reset to defaults
+    function reset() {
+      params = {
+        outerRadius: 120,
+        innerRadius: 65,
+        penDistance: 45,
+        rotations: 20,
+        lineWidth: 1.5,
+        colorMode: "rainbow",
+        speed: 1,
+        rainbow: true,
+        symmetry: 1,
+      };
+      
+      document.getElementById('outerRadius').value = 120;
+      document.getElementById('innerRadius').value = 65;
+      document.getElementById('penDistance').value = 45;
+      document.getElementById('rotations').value = 20;
+      document.getElementById('lineWidth').value = 1.5;
+      document.getElementById('symmetry').value = 1;
+      document.getElementById('speed').value = 1;
+      document.getElementById('colorMode').value = "rainbow";
+      document.getElementById('rainbow').checked = true;
+      
+      document.getElementById('outerRadius-val').textContent = 120;
+      document.getElementById('innerRadius-val').textContent = 65;
+      document.getElementById('penDistance-val').textContent = 45;
+      document.getElementById('rotations-val').textContent = 20;
+      document.getElementById('lineWidth-val').textContent = 1.5;
+      document.getElementById('symmetry-val').textContent = 1;
+      document.getElementById('speed-val').textContent = 1;
+      
+      ctx.fillStyle = "#0a0a0f";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Download image
+    function downloadImage() {
+      const link = document.createElement('a');
+      link.download = `spirograph-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    // Initialize
+    ctx.fillStyle = "#0a0a0f";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    animate();
+  </script>
+</body>
+</html>
