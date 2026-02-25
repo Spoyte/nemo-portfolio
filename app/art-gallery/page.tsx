@@ -15,11 +15,11 @@ import { useFavorites } from "@/lib/art/favorites";
 const CATEGORIES: Record<string, string[]> = {
   "All": Object.keys(artGenerators),
   "Favorites": [], // Populated dynamically based on favorites
-  "Animated": ["voronoi-organic", "wave-interference", "flow-field", "topographic-flow", "orbital-mechanics", "light-caverns", "fluid-smoke", "particle-swarm", "mandelbrot-explorer", "neural-dreams", "boid-flocking", "frequency-visualizer", "lissajous-curves"],
-  "Static": ["geometric-mandala", "recursive-trees", "strange-attractor", "dla", "reaction-diffusion", "cellular-automata", "particle-network", "perlin-terrain"],
+  "Animated": ["voronoi-organic", "wave-interference", "flow-field", "topographic-flow", "orbital-mechanics", "light-caverns", "fluid-smoke", "particle-swarm", "mandelbrot-explorer", "neural-dreams", "boid-flocking", "frequency-visualizer", "lissajous-curves", "spirograph", "digital-weave", "string-art", "harmonograph", "metaballs", "polar-rose", "particle-constellation", "wireframe-terrain", "raymarched-scene", "mandelbulb", "fourier-epicycles", "mobius-strip", "shader-bloom", "cymatics-flow", "kinetic-typography", "ascii-art", "moire", "stained-glass"],
+  "Static": ["geometric-mandala", "recursive-trees", "strange-attractor", "dla", "reaction-diffusion", "cellular-automata", "particle-network", "perlin-terrain", "phyllotaxis", "chladni-figures", "voxel-terrain", "cross-hatching"],
   "Nature": ["recursive-trees", "flow-field", "voronoi-organic", "dla", "reaction-diffusion", "particle-swarm", "perlin-terrain", "boid-flocking"],
   "Physics": ["orbital-mechanics", "wave-interference", "fluid-smoke", "strange-attractor"],
-  "Geometric": ["geometric-mandala", "recursive-trees", "cellular-automata", "topographic-flow"],
+  "Geometric": ["geometric-mandala", "recursive-trees", "cellular-automata", "topographic-flow", "phyllotaxis", "voxel-terrain", "stained-glass"],
   "Fractal": ["mandelbrot-explorer", "perlin-terrain"],
   "AI/ML": ["neural-dreams"],
 };

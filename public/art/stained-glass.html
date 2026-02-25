@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stained Glass | Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0a0a0a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 0.875rem;
+      margin-bottom: 30px;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      max-width: 100%;
+      height: auto;
+    }
+    .controls {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      max-width: 600px;
+    }
+    .control {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input[type="range"] {
+      width: 120px;
+    }
+    select {
+      background: #1a1a1a;
+      color: #fff;
+      border: 1px solid #333;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+    button {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Stained Glass</h1>
+    <p class="subtitle">Voronoi cathedral windows with light transmission</p>
+    
+    <canvas id="canvas" width="600" height="600"></canvas>
+    
+    <div class="controls">
+      <div class="control">
+        <label>Cells</label>
+        <input type="range" id="cellCount" min="10" max="100" value="40">
+      </div>
+      <div class="control">
+        <label>Scheme</label>
+        <select id="colorScheme">
+          <option value="cathedral" selected>Cathedral</option>
+          <option value="sunset">Sunset</option>
+          <option value="ocean">Ocean</option>
+          <option value="forest">Forest</option>
+          <option value="autumn">Autumn</option>
+          <option value="monochrome">Monochrome</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Lead Width</label>
+        <input type="range" id="leadWidth" min="1" max="8" value="3" step="0.5">
+      </div>
+      <div class="control">
+        <label>Light</label>
+        <input type="range" id="lightIntensity" min="0" max="1" value="0.7" step="0.05">
+      </div>
+      <div class="control">
+        <label>Irregularity</label>
+        <input type="range" id="irregularity" min="0" max="1" value="0.3" step="0.05">
+      </div>
+      <div class="control">
+        <label>&nbsp;</label>
+        <button id="regenerate">New Pattern</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const COLOR_SCHEMES = {
+      cathedral: [
+        '#1a237e', '#283593', '#3949ab', '#5e35b1', '#8e24aa',
+        '#d81b60', '#e53935', '#fb8c00', '#ffb300', '#fdd835',
+        '#c0ca33', '#7cb342', '#00897b', '#00acc1', '#1e88e5'
+      ],
+      sunset: [
+        '#2d1b4e', '#4a148c', '#6a1b9a', '#8e24aa', '#ad1457',
+        '#c62828', '#d84315', '#ef6c00', '#f9a825', '#ffeb3b'
+      ],
+      ocean: [
+        '#0d1642', '#1a237e', '#0d47a1', '#01579b', '#006064',
+        '#00796b', '#00838f', '#0097a7', '#00acc1', '#4dd0e1'
+      ],
+      forest: [
+        '#1b5e20', '#2e7d32', '#388e3c', '#43a047', '#66bb6a',
+        '#81c784', '#a5d6a7', '#558b2f', '#33691e', '#827717'
+      ],
+      autumn: [
+        '#3e2723', '#4e342e', '#5d4037', '#6d4c41', '#8d6e63',
+        '#bf360c', '#e65100', '#f57c00', '#ff8f00', '#ffb300',
+        '#f9a825', '#fdd835'
+      ],
+      monochrome: [
+        '#212121', '#424242', '#616161', '#757575', '#9e9e9e',
+        '#bdbdbd', '#e0e0e0', '#eeeeee', '#f5f5f5', '#fafafa'
+      ]
+    };
+    
+    let seed = Math.random() * 1000;
+    let time = 0;
+    let animationId;
+    
+    function seededRandom(s) {
+      let val = s;
+      return () => {
+        val = Math.sin(val * 12.9898 + 78.233) * 43758.5453;
+        return val - Math.floor(val);
+      };
+    }
+    
+    function adjustBrightness(hex, percent) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+      const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+      const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+      return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+    
+    function generateCells(width, height, count, irregularity, rand) {
+      const points = [];
+      
+      for (let i = 0; i < count; i++) {
+        const gridX = (i % Math.ceil(Math.sqrt(count))) / Math.ceil(Math.sqrt(count));
+        const gridY = Math.floor(i / Math.ceil(Math.sqrt(count))) / Math.ceil(Math.sqrt(count));
+        
+        const jitterX = (rand() - 0.5) * irregularity;
+        const jitterY = (rand() - 0.5) * irregularity;
+        
+        points.push({
+          x: (gridX + jitterX) * width * 0.9 + width * 0.05,
+          y: (gridY + jitterY) * height * 0.9 + height * 0.05
+        });
+      }
+      
+      const cells = [];
+      
+      for (let i = 0; i < points.length; i++) {
+        const center = points[i];
+        const vertices = [];
+        
+        const angleSteps = 24;
+        for (let a = 0; a < angleSteps; a++) {
+          const angle = (a / angleSteps) * Math.PI * 2;
+          const dirX = Math.cos(angle);
+          const dirY = Math.sin(angle);
+          
+          let t = 0;
+          
+          for (let iter = 0; iter < 10; iter++) {
+            const testX = center.x + dirX * t;
+            const testY = center.y + dirY * t;
+            
+            let minDist = Infinity;
+            for (let j = 0; j < points.length; j++) {
+              if (i === j) continue;
+              const dx = testX - points[j].x;
+              const dy = testY - points[j].y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              minDist = Math.min(minDist, dist);
+            }
+            
+            const boundDist = Math.min(testX, width - testX, testY, height - testY);
+            minDist = Math.min(minDist, boundDist * 2);
+            
+            if (Math.abs(minDist - t) < 1 || t > Math.max(width, height)) break;
+            t = minDist;
+          }
+          
+          vertices.push({
+            x: center.x + dirX * t,
+            y: center.y + dirY * t
+          });
+        }
+        
+        cells.push({
+          center,
+          vertices,
+          color: '',
+          brightness: 0.5 + rand() * 0.5
+        });
+      }
+      
+      return cells;
+    }
+    
+    function render() {
+      const cellCount = parseInt(document.getElementById('cellCount').value);
+      const colorScheme = document.getElementById('colorScheme').value;
+      const leadWidth = parseFloat(document.getElementById('leadWidth').value);
+      const lightIntensity = parseFloat(document.getElementById('lightIntensity').value);
+      const irregularity = parseFloat(document.getElementById('irregularity').value);
+      
+      const rand = seededRandom(seed);
+      const colors = COLOR_SCHEMES[colorScheme];
+      
+      const cells = generateCells(canvas.width, canvas.height, cellCount, irregularity, rand);
+      
+      for (const cell of cells) {
+        cell.color = colors[Math.floor(rand() * colors.length)];
+      }
+      
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const lightX = canvas.width * 0.5 + Math.sin(time * 0.0005) * canvas.width * 0.3;
+      const lightY = canvas.height * 0.3 + Math.cos(time * 0.0003) * canvas.height * 0.2;
+      
+      for (const cell of cells) {
+        if (cell.vertices.length < 3) continue;
+        
+        const dx = cell.center.x - lightX;
+        const dy = cell.center.y - lightY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
+        const lightFactor = 1 - (dist / maxDist) * (1 - lightIntensity);
+        
+        const brightness = cell.brightness * lightFactor;
+        
+        ctx.beginPath();
+        ctx.moveTo(cell.vertices[0].x, cell.vertices[0].y);
+        for (let i = 1; i < cell.vertices.length; i++) {
+          ctx.lineTo(cell.vertices[i].x, cell.vertices[i].y);
+        }
+        ctx.closePath();
+        
+        const gradient = ctx.createRadialGradient(
+          cell.center.x, cell.center.y, 0,
+          cell.center.x, cell.center.y, 50
+        );
+        
+        const litColor = adjustBrightness(cell.color, brightness * 40);
+        const shadowColor = adjustBrightness(cell.color, -20);
+        
+        gradient.addColorStop(0, litColor);
+        gradient.addColorStop(0.7, cell.color);
+        gradient.addColorStop(1, shadowColor);
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.save();
+        ctx.clip();
+        const innerGlow = ctx.createRadialGradient(
+          cell.center.x - 10, cell.center.y - 10, 0,
+          cell.center.x, cell.center.y, 40
+        );
+        innerGlow.addColorStop(0, 'rgba(255,255,255,0.3)');
+        innerGlow.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = innerGlow;
+        ctx.fill();
+        ctx.restore();
+        
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = leadWidth;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = leadWidth * 0.3;
+        ctx.stroke();
+      }
+      
+      ctx.globalCompositeOperation = 'overlay';
+      const textureGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      textureGradient.addColorStop(0, 'rgba(255,255,255,0.1)');
+      textureGradient.addColorStop(0.5, 'rgba(255,255,255,0)');
+      textureGradient.addColorStop(1, 'rgba(255,255,255,0.05)');
+      ctx.fillStyle = textureGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    
+    function animate() {
+      time += 16;
+      render();
+      animationId = requestAnimationFrame(animate);
+    }
+    
+    document.getElementById('regenerate').addEventListener('click', () => {
+      seed = Math.random() * 1000;
+    });
+    
+    ['cellCount', 'colorScheme', 'leadWidth', 'lightIntensity', 'irregularity'].forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+    });
+    
+    animate();
+  </script>
+</body>
+</html>

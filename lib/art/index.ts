@@ -45,6 +45,8 @@ import { kineticTypography } from "./kinetic-typography";
 import { asciiArt } from "./ascii-art";
 import { crossHatching } from "./cross-hatching";
 import { moire } from "./moire";
+import { stainedGlass } from "./stained-glass";
+import { fractalFlame } from "./fractal-flame";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -93,6 +95,8 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "ascii-art": asciiArt,
   "cross-hatching": crossHatching,
   "moire": moire,
+  "stained-glass": stainedGlass,
+  "fractal-flame": fractalFlame,
 };
 
 export * from "./core";
@@ -224,3 +228,11 @@ export type { CrossHatchingParams } from './cross-hatching';
 // Moiré Patterns
 export { renderMoire, moireDefaultParams } from './moire';
 export type { MoireParams } from './moire';
+
+// Stained Glass
+export { renderStainedGlass, stainedGlassDefaultParams } from './stained-glass';
+export type { StainedGlassParams } from './stained-glass';
+
+// Fractal Flame
+export { renderFractalFlame, fractalFlameDefaultParams } from './fractal-flame';
+export type { FractalFlameParams } from './fractal-flame';
