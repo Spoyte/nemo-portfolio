@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cellular Automata — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #05050a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+    }
+    .param-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .param-controls input[type="range"] {
+      width: 80px;
+    }
+    .param-controls span.value {
+      min-width: 30px;
+      text-align: center;
+      color: #aaa;
+    }
+    .buttons {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button:hover {
+      background: #2a2a2a;
+      color: #aaa;
+    }
+    .rule-info {
+      margin-top: 12px;
+      color: #555;
+      font-size: 11px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="600" height="600"></canvas>
+  <div class="controls">Cellular Automata — Emergent patterns from simple rules</div>
+  <div class="param-controls">
+    <label>
+      Cell Size:
+      <input type="range" id="cellSize" min="2" max="10" value="4" step="1">
+      <span class="value" id="cellSizeVal">4</span>
+    </label>
+    <label>
+      Generations:
+      <input type="range" id="generations" min="50" max="400" value="200" step="50">
+      <span class="value" id="generationsVal">200</span>
+    </label>
+    <label>
+      Rule:
+      <input type="range" id="rule" min="0" max="255" value="90" step="1">
+      <span class="value" id="ruleVal">90</span>
+    </label>
+    <label>
+      Color Hue:
+      <input type="range" id="colorScheme" min="0" max="360" value="200" step="30">
+      <span class="value" id="colorSchemeVal">200</span>
+    </label>
+  </div>
+  <div class="buttons">
+    <button id="regenerate">New Seed</button>
+    <button id="randomRule">Random Rule</button>
+    <button id="toggleMode">Toggle Init</button>
+  </div>
+  <div class="rule-info" id="ruleInfo">
+    Rule 90: Sierpinski triangle pattern
+  </div>
+
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    // Parameters
+    const params = {
+      cellSize: 4,
+      generations: 200,
+      rule: 90,
+      colorScheme: 200,
+      seed: 42,
+      useRandomInitial: false
+    };
+    
+    // Seeded random number generator
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed;
+      }
+      
+      random() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+      }
+    }
+    
+    // Rule descriptions for common rules
+    const ruleDescriptions = {
+      0: 'All cells die',
+      30: 'Chaotic, random-like patterns',
+      50: 'Nested triangles',
+      54: 'Alternating patterns',
+      60: 'Diagonal stripes',
+      62: 'Fractal structure',
+      90: 'Sierpinski triangle pattern',
+      94: 'Similar to rule 90',
+      102: 'Vertical stripes',
+      110: 'Complex, Turing complete',
+      122: 'Nested triangles variant',
+      126: 'Sierpinski-like',
+      150: 'XOR pattern',
+      158: 'Complex nested',
+      182: 'Triangular clusters',
+      188: 'Sparse triangles',
+      190: 'Dense triangles',
+      220: 'Solid triangles',
+      222: 'Filled regions',
+      250: 'Vertical lines'
+    };
+    
+    function getRuleDescription(rule) {
+      return ruleDescriptions[rule] || 'Custom pattern';
+    }
+    
+    function render() {
+      // Clear with dark background
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const rng = new SeededRandom(params.seed);
+      const cols = Math.floor(canvas.width / params.cellSize);
+      const rows = Math.min(params.generations, Math.floor(canvas.height / params.cellSize));
+      
+      let currentRow = new Array(cols).fill(0);
+      
+      // Seed-controlled initial state
+      params.useRandomInitial = rng.random() > 0.5;
+      if (params.useRandomInitial) {
+        // Random initial row based on seed
+        for (let x = 0; x < cols; x++) {
+          currentRow[x] = rng.random() > 0.7 ? 1 : 0;
+        }
+      } else {
+        // Classic single center cell
+        currentRow[Math.floor(cols / 2)] = 1;
+      }
+      
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (currentRow[x]) {
+            const hue = (params.colorScheme + y * 2) % 360;
+            ctx.fillStyle = `hsla(${hue}, 70%, 50%, 0.8)`;
+            ctx.fillRect(
+              x * params.cellSize,
+              y * params.cellSize,
+              params.cellSize - 1,
+              params.cellSize - 1
+            );
+          }
+        }
+        
+        // Generate next row based on rule
+        const nextRow = new Array(cols).fill(0);
+        for (let x = 1; x < cols - 1; x++) {
+          const left = currentRow[x - 1];
+          const center = currentRow[x];
+          const right = currentRow[x + 1];
+          const pattern = left * 4 + center * 2 + right;
+          nextRow[x] = (params.rule >> pattern) & 1;
+        }
+        currentRow = nextRow;
+      }
+    }
+    
+    // Update rule info text
+    function updateRuleInfo() {
+      const info = document.getElementById('ruleInfo');
+      const initMode = params.useRandomInitial ? 'Random initial row' : 'Single center cell';
+      info.textContent = `Rule ${params.rule}: ${getRuleDescription(params.rule)} (${initMode})`;
+    }
+    
+    // UI controls
+    document.getElementById('cellSize').addEventListener('input', (e) => {
+      params.cellSize = parseInt(e.target.value);
+      document.getElementById('cellSizeVal').textContent = params.cellSize;
+      render();
+    });
+    
+    document.getElementById('generations').addEventListener('input', (e) => {
+      params.generations = parseInt(e.target.value);
+      document.getElementById('generationsVal').textContent = params.generations;
+      render();
+    });
+    
+    document.getElementById('rule').addEventListener('input', (e) => {
+      params.rule = parseInt(e.target.value);
+      document.getElementById('ruleVal').textContent = params.rule;
+      updateRuleInfo();
+      render();
+    });
+    
+    document.getElementById('colorScheme').addEventListener('input', (e) => {
+      params.colorScheme = parseInt(e.target.value);
+      document.getElementById('colorSchemeVal').textContent = params.colorScheme;
+      render();
+    });
+    
+    document.getElementById('regenerate').addEventListener('click', () => {
+      params.seed = Math.floor(Math.random() * 10000);
+      render();
+      updateRuleInfo();
+    });
+    
+    document.getElementById('randomRule').addEventListener('click', () => {
+      // Pick from interesting rules or random
+      const interestingRules = [30, 54, 60, 90, 110, 126, 150, 182, 220];
+      const useInteresting = Math.random() > 0.3;
+      params.rule = useInteresting 
+        ? interestingRules[Math.floor(Math.random() * interestingRules.length)]
+        : Math.floor(Math.random() * 256);
+      document.getElementById('rule').value = params.rule;
+      document.getElementById('ruleVal').textContent = params.rule;
+      updateRuleInfo();
+      render();
+    });
+    
+    document.getElementById('toggleMode').addEventListener('click', () => {
+      params.useRandomInitial = !params.useRandomInitial;
+      render();
+      updateRuleInfo();
+    });
+    
+    // Initial render
+    render();
+    updateRuleInfo();
+  </script>
+</body>
+</html>
