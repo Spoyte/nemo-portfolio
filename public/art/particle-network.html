@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Network — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0c0a09;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+    }
+    .param-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .param-controls input[type="range"] {
+      width: 80px;
+    }
+    .buttons {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button:hover {
+      background: #2a2a2a;
+      color: #aaa;
+    }
+    .stats {
+      margin-top: 12px;
+      color: #444;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="600" height="600"></canvas>
+  <div class="controls">Particle Network — Connected particles forming dynamic networks</div>
+  <div class="param-controls">
+    <label>
+      Particles:
+      <input type="range" id="particleCount" min="20" max="200" value="80" step="10">
+    </label>
+    <label>
+      Connect Dist:
+      <input type="range" id="connectionDistance" min="50" max="300" value="150" step="25">
+    </label>
+    <label>
+      Particle Size:
+      <input type="range" id="particleSize" min="1" max="10" value="4" step="1">
+    </label>
+    <label>
+      Base Hue:
+      <input type="range" id="baseHue" min="0" max="360" value="200" step="10">
+    </label>
+    <label>
+      Speed:
+      <input type="range" id="speed" min="0.1" max="3" value="1" step="0.1">
+    </label>
+  </div>
+  <div class="buttons">
+    <button id="newSeed">New Seed</button>
+    <button id="toggleAnim">Pause</button>
+  </div>
+  <div class="stats" id="stats">Connections: 0 | Seed: 1</div>
+
+  <script>
+    // Seeded Random Number Generator
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed;
+      }
+      
+      random() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+      }
+    }
+
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    let seed = Math.floor(Math.random() * 10000) + 1;
+    let isAnimating = true;
+    let animationId = null;
+    let particles = [];
+    let connections = 0;
+    
+    // Parameters
+    const params = {
+      particleCount: 80,
+      connectionDistance: 150,
+      particleSize: 4,
+      baseHue: 200,
+      speed: 1
+    };
+
+    class Particle {
+      constructor(rng, width, height) {
+        this.x = rng.random() * width;
+        this.y = rng.random() * height;
+        this.vx = (rng.random() - 0.5) * 2;
+        this.vy = (rng.random() - 0.5) * 2;
+        this.hueOffset = rng.random() * 60;
+      }
+      
+      update(width, height, speed) {
+        this.x += this.vx * speed;
+        this.y += this.vy * speed;
+        
+        // Bounce off edges
+        if (this.x < 0 || this.x > width) this.vx *= -1;
+        if (this.y < 0 || this.y > height) this.vy *= -1;
+        
+        // Keep in bounds
+        this.x = Math.max(0, Math.min(width, this.x));
+        this.y = Math.max(0, Math.min(height, this.y));
+      }
+    }
+
+    function initParticles() {
+      const rng = new SeededRandom(seed);
+      particles = [];
+      for (let i = 0; i < params.particleCount; i++) {
+        particles.push(new Particle(rng, canvas.width, canvas.height));
+      }
+    }
+
+    function draw() {
+      // Clear with background
+      ctx.fillStyle = '#0c0a09';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      connections = 0;
+      
+      // Draw connections
+      ctx.lineWidth = 1;
+      
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < params.connectionDistance) {
+            const alpha = (1 - dist / params.connectionDistance) * 0.3;
+            ctx.strokeStyle = `hsla(${params.baseHue}, 70%, 60%, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+            connections++;
+          }
+        }
+      }
+      
+      // Draw particles
+      for (const p of particles) {
+        const hue = (params.baseHue + p.hueOffset) % 360;
+        ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.8)`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, params.particleSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Glow effect
+        ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.2)`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, params.particleSize * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Update stats
+      document.getElementById('stats').textContent = 
+        `Connections: ${connections} | Seed: ${seed}`;
+    }
+
+    function animate() {
+      if (!isAnimating) return;
+      
+      // Update particle positions
+      for (const p of particles) {
+        p.update(canvas.width, canvas.height, params.speed);
+      }
+      
+      draw();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function regenerate() {
+      initParticles();
+      draw();
+    }
+
+    // Event listeners
+    document.getElementById('particleCount').addEventListener('input', (e) => {
+      params.particleCount = parseInt(e.target.value);
+      regenerate();
+    });
+
+    document.getElementById('connectionDistance').addEventListener('input', (e) => {
+      params.connectionDistance = parseInt(e.target.value);
+      draw();
+    });
+
+    document.getElementById('particleSize').addEventListener('input', (e) => {
+      params.particleSize = parseInt(e.target.value);
+      draw();
+    });
+
+    document.getElementById('baseHue').addEventListener('input', (e) => {
+      params.baseHue = parseInt(e.target.value);
+      draw();
+    });
+
+    document.getElementById('speed').addEventListener('input', (e) => {
+      params.speed = parseFloat(e.target.value);
+    });
+
+    document.getElementById('newSeed').addEventListener('click', () => {
+      seed = Math.floor(Math.random() * 10000) + 1;
+      regenerate();
+    });
+
+    document.getElementById('toggleAnim').addEventListener('click', (e) => {
+      isAnimating = !isAnimating;
+      e.target.textContent = isAnimating ? 'Pause' : 'Play';
+      if (isAnimating) animate();
+    });
+
+    // Initialize
+    initParticles();
+    animate();
+  </script>
+</body>
+</html>
