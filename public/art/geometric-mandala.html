@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometric Mandala - Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: #888;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      align-items: flex-start;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .canvas-wrapper {
+      background: #0a0a0a;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    .controls {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 280px;
+      max-width: 320px;
+    }
+
+    .control-group {
+      margin-bottom: 16px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #ccc;
+      font-weight: 500;
+    }
+
+    .value {
+      font-size: 0.8rem;
+      color: #667eea;
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #ccc;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.15);
+    }
+
+    .info {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #aaa;
+      line-height: 1.5;
+    }
+
+    .info strong {
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <h1>Geometric Mandala</h1>
+  <p class="subtitle">Symmetrical patterns inspired by sacred geometry</p>
+
+  <div class="container">
+    <div class="canvas-wrapper">
+      <canvas id="mandalaCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-header">
+          <label>Layers</label>
+          <span class="value" id="layersValue">5</span>
+        </div>
+        <input type="range" id="layers" min="3" max="10" step="1" value="5">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Symmetry</label>
+          <span class="value" id="symmetryValue">12</span>
+        </div>
+        <input type="range" id="symmetry" min="6" max="24" step="2" value="12">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Radius</label>
+          <span class="value" id="radiusValue">300</span>
+        </div>
+        <input type="range" id="radius" min="100" max="400" step="50" value="300">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Color Shift</label>
+          <span class="value" id="colorShiftValue">0</span>
+        </div>
+        <input type="range" id="colorShift" min="0" max="360" step="30" value="0">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Organic Variation</label>
+          <span class="value" id="organicValue">30</span>
+        </div>
+        <input type="range" id="organic" min="0" max="100" step="5" value="30">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Seed</label>
+          <span class="value" id="seedValue">1</span>
+        </div>
+        <input type="range" id="seed" min="1" max="10000" step="1" value="1">
+      </div>
+
+      <div class="buttons">
+        <button class="btn-secondary" id="randomizeBtn">Randomize</button>
+        <button class="btn-primary" id="downloadBtn">Download</button>
+      </div>
+
+      <div class="info">
+        <strong>Tip:</strong> Higher organic variation adds natural imperfections to the geometric pattern. Try different symmetry values (6, 8, 12, 16) for different cultural mandala styles.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Seeded Random Number Generator
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed;
+      }
+
+      // Linear congruential generator
+      random() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+      }
+
+      range(min, max) {
+        return min + this.random() * (max - min);
+      }
+    }
+
+    const canvas = document.getElementById('mandalaCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Get control elements
+    const controls = {
+      layers: document.getElementById('layers'),
+      symmetry: document.getElementById('symmetry'),
+      radius: document.getElementById('radius'),
+      colorShift: document.getElementById('colorShift'),
+      organic: document.getElementById('organic'),
+      seed: document.getElementById('seed')
+    };
+
+    // Get value display elements
+    const valueDisplays = {
+      layers: document.getElementById('layersValue'),
+      symmetry: document.getElementById('symmetryValue'),
+      radius: document.getElementById('radiusValue'),
+      colorShift: document.getElementById('colorShiftValue'),
+      organic: document.getElementById('organicValue'),
+      seed: document.getElementById('seedValue')
+    };
+
+    // Generate mandala
+    function generateMandala() {
+      const layers = parseInt(controls.layers.value);
+      const symmetry = parseInt(controls.symmetry.value);
+      const radius = parseInt(controls.radius.value);
+      const colorShift = parseInt(controls.colorShift.value);
+      const organic = parseInt(controls.organic.value);
+      const seed = parseInt(controls.seed.value);
+
+      // Clear canvas with light background
+      ctx.fillStyle = '#fafafa';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Initialize seeded RNG
+      const rng = new SeededRandom(seed);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const orgFactor = organic / 100;
+
+      for (let l = 0; l < layers; l++) {
+        const layerRadius = radius * (l + 1) / layers;
+        const hue = (colorShift + l * 30) % 360;
+
+        ctx.strokeStyle = `hsla(${hue}, 60%, 50%, 0.6)`;
+        ctx.lineWidth = 2;
+
+        for (let i = 0; i < symmetry; i++) {
+          const baseAngle = (i / symmetry) * Math.PI * 2;
+          const angleOffset = rng.range(-0.1, 0.1) * orgFactor;
+          const angle = baseAngle + angleOffset;
+
+          const x = cx + Math.cos(angle) * layerRadius;
+          const y = cy + Math.sin(angle) * layerRadius;
+
+          const petalSize = layerRadius * 0.3 * (1 + rng.range(-0.3, 0.3) * orgFactor);
+
+          // Draw petal circle
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(5, petalSize), 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Connect to center
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          if (orgFactor > 0.1) {
+            const cpX = cx + Math.cos(angle + rng.range(-0.2, 0.2)) * layerRadius * 0.5;
+            const cpY = cy + Math.sin(angle + rng.range(-0.2, 0.2)) * layerRadius * 0.5;
+            ctx.quadraticCurveTo(cpX, cpY, x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+
+          // Connect to neighbors
+          const nextBaseAngle = ((i + 1) / symmetry) * Math.PI * 2;
+          const nextAngleOffset = rng.range(-0.1, 0.1) * orgFactor;
+          const nextAngle = nextBaseAngle + nextAngleOffset;
+          const nextX = cx + Math.cos(nextAngle) * layerRadius;
+          const nextY = cy + Math.sin(nextAngle) * layerRadius;
+
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          if (orgFactor > 0.1 && rng.random() < orgFactor) {
+            const midAngle = (angle + nextAngle) / 2;
+            const arcRadius = layerRadius * (0.7 + rng.range(-0.2, 0.2));
+            const arcX = cx + Math.cos(midAngle) * arcRadius;
+            const arcY = cy + Math.sin(midAngle) * arcRadius;
+            ctx.quadraticCurveTo(arcX, arcY, nextX, nextY);
+          } else {
+            ctx.lineTo(nextX, nextY);
+          }
+          ctx.stroke();
+
+          // Add inner decorative elements
+          if (rng.random() < 0.3 * orgFactor) {
+            const innerRadius = layerRadius * rng.range(0.4, 0.7);
+            const innerX = cx + Math.cos(angle) * innerRadius;
+            const innerY = cy + Math.sin(angle) * innerRadius;
+            ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.3)`;
+            ctx.beginPath();
+            ctx.arc(innerX, innerY, 3 + rng.range(0, 4), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      // Add seed-based decorative center
+      const centerDecorations = Math.floor(rng.range(3, 8));
+      for (let d = 0; d < centerDecorations; d++) {
+        const angle = (d / centerDecorations) * Math.PI * 2 + rng.range(-0.2, 0.2);
+        const dist = rng.range(10, 30);
+        const x = cx + Math.cos(angle) * dist;
+        const y = cy + Math.sin(angle) * dist;
+        const hue = (colorShift + d * 20) % 360;
+
+        ctx.fillStyle = `hsla(${hue}, 70%, 50%, 0.4)`;
+        ctx.beginPath();
+        ctx.arc(x, y, rng.range(2, 6), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Update value displays
+    function updateDisplays() {
+      Object.keys(controls).forEach(key => {
+        valueDisplays[key].textContent = controls[key].value;
+      });
+    }
+
+    // Randomize parameters
+    function randomize() {
+      controls.layers.value = Math.floor(Math.random() * 8) + 3;
+      controls.symmetry.value = [6, 8, 12, 16, 20, 24][Math.floor(Math.random() * 6)];
+      controls.radius.value = Math.floor(Math.random() * 7) * 50 + 100;
+      controls.colorShift.value = Math.floor(Math.random() * 13) * 30;
+      controls.organic.value = Math.floor(Math.random() * 21) * 5;
+      controls.seed.value = Math.floor(Math.random() * 10000) + 1;
+      updateDisplays();
+      generateMandala();
+    }
+
+    // Download image
+    function download() {
+      const link = document.createElement('a');
+      link.download = `geometric-mandala-${Date.now()}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+
+    // Event listeners
+    Object.values(controls).forEach(control => {
+      control.addEventListener('input', () => {
+        updateDisplays();
+        generateMandala();
+      });
+    });
+
+    document.getElementById('randomizeBtn').addEventListener('click', randomize);
+    document.getElementById('downloadBtn').addEventListener('click', download);
+
+    // Initial generation
+    generateMandala();
+  </script>
+</body>
+</html>
