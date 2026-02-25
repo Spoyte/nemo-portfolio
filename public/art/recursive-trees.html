@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursive Trees - Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+        .subtitle {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        canvas {
+            background: #0f172a;
+            border-radius: 8px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        #controls {
+            width: 280px;
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: fit-content;
+        }
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #94a3b8;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #22c55e;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #22c55e;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 0.5rem;
+            font-family: monospace;
+            color: #22c55e;
+        }
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #22c55e;
+            color: #0f172a;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #16a34a;
+        }
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+            margin-top: 0.5rem;
+        }
+        .btn-secondary:hover {
+            background: #475569;
+        }
+        .stats {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .stats span {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Recursive Trees</h1>
+            <p class="subtitle">Fractal tree structures with organic variation</p>
+        </div>
+    </header>
+    <main>
+        <div id="canvas-container">
+            <canvas id="art-canvas" width="400" height="400"></canvas>
+        </div>
+        <aside id="controls">
+            <div class="control-group">
+                <label>Branch Length <span class="value-display" id="length-val">120</span></label>
+                <input type="range" id="branchLength" min="50" max="200" step="10" value="120">
+            </div>
+            <div class="control-group">
+                <label>Branch Angle <span class="value-display" id="angle-val">0.5</span></label>
+                <input type="range" id="angle" min="0.2" max="1.0" step="0.1" value="0.5">
+            </div>
+            <div class="control-group">
+                <label>Recursion Depth <span class="value-display" id="depth-val">10</span></label>
+                <input type="range" id="depth" min="5" max="15" step="1" value="10">
+            </div>
+            <div class="control-group">
+                <label>Randomness <span class="value-display" id="randomness-val">0.3</span></label>
+                <input type="range" id="randomness" min="0" max="1" step="0.1" value="0.3">
+            </div>
+            <div class="control-group">
+                <label>Seed <span class="value-display" id="seed-val">1</span></label>
+                <input type="range" id="seed" min="1" max="10000" step="1" value="1">
+            </div>
+            <button class="btn" id="regenerate">Regenerate</button>
+            <button class="btn btn-secondary" id="random-seed">Random Seed</button>
+            <div class="stats">
+                Branches drawn: <span id="branch-count">0</span>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // Seeded Random Number Generator
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed;
+            }
+            
+            random() {
+                this.seed = (this.seed * 9301 + 49297) % 233280;
+                return this.seed / 233280;
+            }
+        }
+
+        const canvas = document.getElementById('art-canvas');
+        const ctx = canvas.getContext('2d');
+        let branchCount = 0;
+
+        // Get control elements
+        const controls = {
+            branchLength: document.getElementById('branchLength'),
+            angle: document.getElementById('angle'),
+            depth: document.getElementById('depth'),
+            randomness: document.getElementById('randomness'),
+            seed: document.getElementById('seed')
+        };
+
+        // Get value display elements
+        const valueDisplays = {
+            branchLength: document.getElementById('length-val'),
+            angle: document.getElementById('angle-val'),
+            depth: document.getElementById('depth-val'),
+            randomness: document.getElementById('randomness-val'),
+            seed: document.getElementById('seed-val')
+        };
+
+        // Update value displays on slider change
+        Object.keys(controls).forEach(key => {
+            controls[key].addEventListener('input', (e) => {
+                valueDisplays[key].textContent = e.target.value;
+                draw();
+            });
+        });
+
+        function drawBranch(x, y, len, angle, depth, maxDepth, rng, randomness, branchAngle) {
+            if (depth === 0) return;
+
+            const endX = x + Math.cos(angle) * len;
+            const endY = y + Math.sin(angle) * len;
+
+            // Color gradient from brown trunk to green leaves
+            const depthRatio = depth / maxDepth;
+            const hue = 30 + depthRatio * 90; // 30 (brown) to 120 (green)
+            const saturation = 40 + depthRatio * 40;
+            const lightness = 20 + depthRatio * 40;
+            const alpha = 0.3 + depthRatio * 0.7;
+            
+            ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+            ctx.lineWidth = depth * 0.8;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            
+            branchCount++;
+
+            // Add subtle glow effect for deeper branches
+            if (depth > maxDepth * 0.6) {
+                ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness + 20}%, ${alpha * 0.3})`;
+                ctx.lineWidth = depth * 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
+
+            const angleVar = (rng.random() - 0.5) * randomness;
+
+            drawBranch(
+                endX, endY,
+                len * 0.7,
+                angle - branchAngle + angleVar,
+                depth - 1,
+                maxDepth,
+                rng,
+                randomness,
+                branchAngle
+            );
+            drawBranch(
+                endX, endY,
+                len * 0.7,
+                angle + branchAngle + angleVar,
+                depth - 1,
+                maxDepth,
+                rng,
+                randomness,
+                branchAngle
+            );
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const params = {
+                branchLength: parseInt(controls.branchLength.value),
+                angle: parseFloat(controls.angle.value),
+                depth: parseInt(controls.depth.value),
+                randomness: parseFloat(controls.randomness.value),
+                seed: parseInt(controls.seed.value)
+            };
+
+            const rng = new SeededRandom(params.seed);
+            branchCount = 0;
+
+            // Draw multiple trees across the canvas
+            const numTrees = 5;
+            for (let i = 0; i < numTrees; i++) {
+                const x = canvas.width * (0.15 + i * 0.175);
+                drawBranch(
+                    x, canvas.height,
+                    params.branchLength,
+                    -Math.PI / 2,
+                    params.depth,
+                    params.depth,
+                    rng,
+                    params.randomness,
+                    params.angle
+                );
+            }
+
+            document.getElementById('branch-count').textContent = branchCount.toLocaleString();
+        }
+
+        // Regenerate button
+        document.getElementById('regenerate').addEventListener('click', draw);
+
+        // Random seed button
+        document.getElementById('random-seed').addEventListener('click', () => {
+            const newSeed = Math.floor(Math.random() * 10000) + 1;
+            controls.seed.value = newSeed;
+            valueDisplays.seed.textContent = newSeed;
+            draw();
+        });
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
