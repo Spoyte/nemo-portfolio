@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boid Flocking — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #05050a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+    }
+    .param-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .param-controls input[type="range"] {
+      width: 80px;
+    }
+    .param-controls select {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="600" height="600"></canvas>
+  <div class="controls">Boid Flocking — Emergent behavior through separation, alignment, and cohesion</div>
+  <div class="param-controls">
+    <label>
+      Boids:
+      <input type="range" id="boidCount" min="20" max="150" value="80">
+    </label>
+    <label>
+      Speed:
+      <input type="range" id="speed" min="10" max="100" value="50">
+    </label>
+    <label>
+      Separation:
+      <input type="range" id="separation" min="0" max="100" value="60">
+    </label>
+    <label>
+      Alignment:
+      <input type="range" id="alignment" min="0" max="100" value="50">
+    </label>
+    <label>
+      Cohesion:
+      <input type="range" id="cohesion" min="0" max="100" value="40">
+    </label>
+    <label>
+      Theme:
+      <select id="colorScheme">
+        <option value="aurora">Aurora</option>
+        <option value="sunset">Sunset</option>
+        <option value="ocean">Ocean</option>
+        <option value="neon">Neon</option>
+        <option value="fire">Fire</option>
+      </select>
+    </label>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    // Boid class
+    class Boid {
+      constructor(x, y, hue) {
+        this.x = x;
+        this.y = y;
+        this.vx = Math.random() * 2 - 1;
+        this.vy = Math.random() * 2 - 1;
+        this.ax = 0;
+        this.ay = 0;
+        this.hue = hue;
+      }
+    }
+    
+    // Parameters
+    const params = {
+      boidCount: 80,
+      speed: 50,
+      separation: 60,
+      alignment: 50,
+      cohesion: 40,
+      visualRange: 50,
+      trail: 60,
+      colorScheme: 'aurora'
+    };
+    
+    // Color schemes
+    const colorSchemes = {
+      aurora: [120, 150, 180, 210, 240],
+      sunset: [300, 320, 340, 20, 40],
+      ocean: [170, 190, 210, 230, 250],
+      neon: [280, 320, 40, 160, 200],
+      fire: [0, 20, 40, 60, 80]
+    };
+    
+    // Boids array
+    let boids = [];
+    
+    function initBoids() {
+      boids = [];
+      const scheme = colorSchemes[params.colorScheme];
+      for (let i = 0; i < params.boidCount; i++) {
+        const hue = scheme[Math.floor(Math.random() * scheme.length)] + (Math.random() - 0.5) * 30;
+        boids.push(new Boid(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          hue
+        ));
+      }
+    }
+    
+    function limit(vx, vy, max) {
+      const mag = Math.sqrt(vx * vx + vy * vy);
+      if (mag > max && mag > 0) {
+        return { x: (vx / mag) * max, y: (vy / mag) * max };
+      }
+      return { x: vx, y: vy };
+    }
+    
+    function updateBoids() {
+      const maxSpeed = 2 + params.speed / 20;
+      const maxForce = 0.05 + params.speed / 2000;
+      const perceptionRadius = params.visualRange;
+      const sepWeight = params.separation / 100;
+      const aliWeight = params.alignment / 100;
+      const cohWeight = params.cohesion / 100;
+      
+      for (let i = 0; i < boids.length; i++) {
+        const boid = boids[i];
+        let sepX = 0, sepY = 0;
+        let aliX = 0, aliY = 0;
+        let cohX = 0, cohY = 0;
+        let neighborCount = 0;
+        
+        for (let j = 0; j < boids.length; j++) {
+          if (i === j) continue;
+          const other = boids[j];
+          const dx = other.x - boid.x;
+          const dy = other.y - boid.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < perceptionRadius && dist > 0) {
+            sepX -= dx / dist;
+            sepY -= dy / dist;
+            aliX += other.vx;
+            aliY += other.vy;
+            cohX += other.x;
+            cohY += other.y;
+            neighborCount++;
+          }
+        }
+        
+        boid.ax = 0;
+        boid.ay = 0;
+        
+        if (neighborCount > 0) {
+          if (sepWeight > 0) {
+            const sep = limit(sepX * sepWeight, sepY * sepWeight, maxForce);
+            boid.ax += sep.x;
+            boid.ay += sep.y;
+          }
+          
+          if (aliWeight > 0) {
+            aliX /= neighborCount;
+            aliY /= neighborCount;
+            const ali = limit((aliX - boid.vx) * aliWeight, (aliY - boid.vy) * aliWeight, maxForce);
+            boid.ax += ali.x;
+            boid.ay += ali.y;
+          }
+          
+          if (cohWeight > 0) {
+            cohX /= neighborCount;
+            cohY /= neighborCount;
+            const desiredX = cohX - boid.x;
+            const desiredY = cohY - boid.y;
+            const coh = limit(desiredX * cohWeight, desiredY * cohWeight, maxForce);
+            boid.ax += coh.x;
+            boid.ay += coh.y;
+          }
+        }
+        
+        // Add wander
+        boid.ax += (Math.random() - 0.5) * 0.02;
+        boid.ay += (Math.random() - 0.5) * 0.02;
+        
+        // Update velocity
+        boid.vx += boid.ax;
+        boid.vy += boid.ay;
+        
+        // Limit speed
+        const vel = limit(boid.vx, boid.vy, maxSpeed);
+        boid.vx = vel.x;
+        boid.vy = vel.y;
+        
+        // Update position
+        boid.x += boid.vx;
+        boid.y += boid.vy;
+        
+        // Wrap edges
+        if (boid.x < 0) boid.x = canvas.width;
+        if (boid.x > canvas.width) boid.x = 0;
+        if (boid.y < 0) boid.y = canvas.height;
+        if (boid.y > canvas.height) boid.y = 0;
+      }
+    }
+    
+    function drawBoids() {
+      for (const boid of boids) {
+        const angle = Math.atan2(boid.vy, boid.vx);
+        const speedMag = Math.sqrt(boid.vx * boid.vx + boid.vy * boid.vy);
+        const size = 3 + speedMag * 0.5;
+        
+        ctx.save();
+        ctx.translate(boid.x, boid.y);
+        ctx.rotate(angle);
+        
+        const speedRatio = speedMag / (2 + params.speed / 20);
+        const lightness = 50 + speedRatio * 30;
+        const saturation = 70 + speedRatio * 20;
+        
+        ctx.fillStyle = `hsla(${boid.hue}, ${saturation}%, ${lightness}%, 0.9)`;
+        ctx.beginPath();
+        ctx.moveTo(size * 1.5, 0);
+        ctx.lineTo(-size * 0.5, -size * 0.6);
+        ctx.lineTo(-size * 0.5, size * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        
+        if (speedRatio > 0.7) {
+          ctx.shadowColor = `hsla(${boid.hue}, 80%, 60%, 0.5)`;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        
+        ctx.restore();
+      }
+    }
+    
+    function drawConnections() {
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < boids.length; i++) {
+        for (let j = i + 1; j < boids.length; j++) {
+          const b1 = boids[i];
+          const b2 = boids[j];
+          const dx = b2.x - b1.x;
+          const dy = b2.y - b1.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < params.visualRange * 0.6) {
+            const alpha = (1 - dist / (params.visualRange * 0.6)) * 0.15;
+            const avgHue = (b1.hue + b2.hue) / 2;
+            ctx.strokeStyle = `hsla(${avgHue}, 60%, 50%, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(b1.x, b1.y);
+            ctx.lineTo(b2.x, b2.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+    
+    function render() {
+      // Trail effect
+      const trailAlpha = Math.floor((1 - params.trail / 100) * 40);
+      ctx.fillStyle = `rgba(5, 5, 10, ${trailAlpha / 255})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      updateBoids();
+      drawConnections();
+      drawBoids();
+      
+      requestAnimationFrame(render);
+    }
+    
+    // UI controls
+    document.getElementById('boidCount').addEventListener('input', (e) => {
+      params.boidCount = parseInt(e.target.value);
+      initBoids();
+    });
+    document.getElementById('speed').addEventListener('input', (e) => {
+      params.speed = parseInt(e.target.value);
+    });
+    document.getElementById('separation').addEventListener('input', (e) => {
+      params.separation = parseInt(e.target.value);
+    });
+    document.getElementById('alignment').addEventListener('input', (e) => {
+      params.alignment = parseInt(e.target.value);
+    });
+    document.getElementById('cohesion').addEventListener('input', (e) => {
+      params.cohesion = parseInt(e.target.value);
+    });
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+      initBoids();
+    });
+    
+    // Initialize and start
+    initBoids();
+    render();
+  </script>
+</body>
+</html>

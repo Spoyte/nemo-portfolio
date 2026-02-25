@@ -21,6 +21,7 @@ import { kaleidoscopeSymmetry } from "./kaleidoscope-symmetry";
 import { neuralDreams } from "./neural-dreams";
 import { lsystemFractals } from "./lsystem-fractals-generator";
 import { quantumField } from "./quantum-field";
+import { boidFlocking } from "./boid-flocking";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -45,6 +46,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "neural-dreams": neuralDreams,
   "lsystem-fractals": lsystemFractals,
   "quantum-field": quantumField,
+  "boid-flocking": boidFlocking,
 };
 
 export * from "./core";
@@ -83,3 +85,6 @@ export type { LsystemFractalsParams } from './lsystem-fractals';
 // Quantum Field
 export { renderQuantumField, quantumFieldDefaultParams } from './quantum-field';
 export type { QuantumFieldParams } from './quantum-field';
+
+// Boid Flocking
+export { boidFlocking } from './boid-flocking';
