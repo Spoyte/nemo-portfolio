@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wave Interference — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #05050a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      image-rendering: pixelated;
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+    }
+    .param-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .param-controls input[type="range"] {
+      width: 80px;
+    }
+    .param-controls select {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="600" height="600"></canvas>
+  <div class="controls">Wave Interference — Overlapping sine waves creating mesmerizing patterns</div>
+  <div class="param-controls">
+    <label>
+      Waves:
+      <input type="range" id="waveCount" min="1" max="8" value="3" step="1">
+    </label>
+    <label>
+      Frequency:
+      <input type="range" id="frequency" min="0.005" max="0.05" value="0.02" step="0.005">
+    </label>
+    <label>
+      Amplitude:
+      <input type="range" id="amplitude" min="0.5" max="2" value="1" step="0.25">
+    </label>
+    <label>
+      Phase Shift:
+      <input type="range" id="phaseShift" min="0" max="360" value="0" step="45">
+    </label>
+    <label>
+      Animation:
+      <input type="range" id="animSpeed" min="0" max="100" value="50" step="10">
+    </label>
+    <label>
+      Theme:
+      <select id="colorTheme">
+        <option value="ocean">Ocean</option>
+        <option value="fire">Fire</option>
+        <option value="neon">Neon</option>
+        <option value="aurora">Aurora</option>
+        <option value="grayscale">Grayscale</option>
+      </select>
+    </label>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    // Parameters
+    const params = {
+      waveCount: 3,
+      frequency: 0.02,
+      amplitude: 1,
+      phaseShift: 0,
+      animSpeed: 50,
+      colorTheme: 'ocean'
+    };
+    
+    // Color themes - each returns [r, g, b] for a given intensity (0-255)
+    const colorThemes = {
+      ocean: (intensity) => {
+        const r = intensity;
+        const g = Math.floor(intensity * 0.5);
+        const b = 255 - intensity;
+        return [r, g, b];
+      },
+      fire: (intensity) => {
+        const r = 255;
+        const g = Math.floor(intensity * 0.8);
+        const b = Math.floor(intensity * 0.2);
+        return [r, g, b];
+      },
+      neon: (intensity) => {
+        const r = Math.floor(intensity * 0.8);
+        const g = Math.floor(100 + intensity * 0.6);
+        const b = 255;
+        return [r, g, b];
+      },
+      aurora: (intensity) => {
+        const r = Math.floor(intensity * 0.3);
+        const g = Math.floor(100 + intensity * 0.6);
+        const b = Math.floor(150 + intensity * 0.4);
+        return [r, g, b];
+      },
+      grayscale: (intensity) => {
+        return [intensity, intensity, intensity];
+      }
+    };
+    
+    // Offscreen canvas for pixel manipulation
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = canvas.width;
+    offCanvas.height = canvas.height;
+    const offCtx = offCanvas.getContext('2d');
+    
+    let time = 0;
+    let animationId = null;
+    
+    function render() {
+      const width = offCanvas.width;
+      const height = offCanvas.height;
+      const imageData = offCtx.createImageData(width, height);
+      const data = imageData.data;
+      
+      const t = time * 0.001 * (params.animSpeed / 50);
+      const phase = (params.phaseShift * Math.PI) / 180;
+      const colorFn = colorThemes[params.colorTheme];
+      
+      // Calculate wave source positions (arranged in a circle)
+      const sources = [];
+      for (let w = 0; w < params.waveCount; w++) {
+        const angle = (w / params.waveCount) * Math.PI * 2;
+        sources.push({
+          x: width / 2 + Math.cos(angle) * 200,
+          y: height / 2 + Math.sin(angle) * 200
+        });
+      }
+      
+      // Render pixels
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let value = 0;
+          
+          // Sum waves from all sources
+          for (let w = 0; w < params.waveCount; w++) {
+            const source = sources[w];
+            const dist = Math.sqrt((x - source.x) ** 2 + (y - source.y) ** 2);
+            // Each wave has a slight phase offset based on its index for visual variety
+            value += Math.sin(dist * params.frequency + phase + w * 0.5 + t) * params.amplitude;
+          }
+          
+          // Normalize to 0-255 range
+          const intensity = Math.floor((value / params.waveCount + 1) * 127.5);
+          const [r, g, b] = colorFn(intensity);
+          
+          const idx = (y * width + x) * 4;
+          data[idx] = r;
+          data[idx + 1] = g;
+          data[idx + 2] = b;
+          data[idx + 3] = 255;
+        }
+      }
+      
+      offCtx.putImageData(imageData, 0, 0);
+      
+      // Draw to main canvas (scaled up for pixelated look)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+      
+      time += 16;
+      animationId = requestAnimationFrame(render);
+    }
+    
+    // UI controls
+    document.getElementById('waveCount').addEventListener('input', (e) => {
+      params.waveCount = parseInt(e.target.value);
+    });
+    document.getElementById('frequency').addEventListener('input', (e) => {
+      params.frequency = parseFloat(e.target.value);
+    });
+    document.getElementById('amplitude').addEventListener('input', (e) => {
+      params.amplitude = parseFloat(e.target.value);
+    });
+    document.getElementById('phaseShift').addEventListener('input', (e) => {
+      params.phaseShift = parseInt(e.target.value);
+    });
+    document.getElementById('animSpeed').addEventListener('input', (e) => {
+      params.animSpeed = parseInt(e.target.value);
+    });
+    document.getElementById('colorTheme').addEventListener('change', (e) => {
+      params.colorTheme = e.target.value;
+    });
+    
+    // Start animation
+    render();
+  </script>
+</body>
+</html>
