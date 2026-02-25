@@ -24,6 +24,7 @@ import { quantumField } from "./quantum-field";
 import { boidFlocking } from "./boid-flocking";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { lissajousCurves } from "./lissajous-curves-generator";
+import { spirograph } from "./spirograph";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -51,6 +52,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "boid-flocking": boidFlocking,
   "frequency-visualizer": frequencyVisualizer,
   "lissajous-curves": lissajousCurves,
+  "spirograph": spirograph,
 };
 
 export * from "./core";
@@ -99,3 +101,7 @@ export { frequencyVisualizer } from './frequency-visualizer';
 // Lissajous Curves
 export { renderLissajousCurves, lissajousCurvesDefaultParams } from './lissajous-curves';
 export type { LissajousCurvesParams } from './lissajous-curves';
+
+// Spirograph
+export { renderSpirograph, spirographDefaultParams } from './spirograph';
+export type { SpirographParams } from './spirograph';
