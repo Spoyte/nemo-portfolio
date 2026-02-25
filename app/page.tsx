@@ -15,7 +15,10 @@ import {
   Gamepad2,
   Wand2,
   Layers,
-  Lightbulb
+  Lightbulb,
+  Wind,
+  Keyboard,
+  FileTerminal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VisitorCounter } from "@/components/visitor-counter";

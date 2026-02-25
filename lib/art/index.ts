@@ -25,6 +25,8 @@ import { boidFlocking } from "./boid-flocking";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { lissajousCurves } from "./lissajous-curves-generator";
 import { spirograph } from "./spirograph";
+import { digitalWeave } from "./digital-weave";
+import { stringArt } from "./string-art";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -53,6 +55,8 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "frequency-visualizer": frequencyVisualizer,
   "lissajous-curves": lissajousCurves,
   "spirograph": spirograph,
+  "digital-weave": digitalWeave,
+  "string-art": stringArt,
 };
 
 export * from "./core";
@@ -105,3 +109,11 @@ export type { LissajousCurvesParams } from './lissajous-curves';
 // Spirograph
 export { renderSpirograph, spirographDefaultParams } from './spirograph';
 export type { SpirographParams } from './spirograph';
+
+// Digital Weave
+export { renderDigitalWeave, digitalWeaveDefaultParams } from './digital-weave';
+export type { DigitalWeaveParams } from './digital-weave';
+
+// String Art
+export { renderStringArt, stringArtDefaultParams } from './string-art';
+export type { StringArtParams } from './string-art';
