@@ -23,6 +23,7 @@ import { lsystemFractals } from "./lsystem-fractals-generator";
 import { quantumField } from "./quantum-field";
 import { boidFlocking } from "./boid-flocking";
 import { frequencyVisualizer } from "./frequency-visualizer";
+import { lissajousCurves } from "./lissajous-curves-generator";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -49,6 +50,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "quantum-field": quantumField,
   "boid-flocking": boidFlocking,
   "frequency-visualizer": frequencyVisualizer,
+  "lissajous-curves": lissajousCurves,
 };
 
 export * from "./core";
@@ -93,3 +95,7 @@ export { boidFlocking } from './boid-flocking';
 
 // Frequency Visualizer
 export { frequencyVisualizer } from './frequency-visualizer';
+
+// Lissajous Curves
+export { renderLissajousCurves, lissajousCurvesDefaultParams } from './lissajous-curves';
+export type { LissajousCurvesParams } from './lissajous-curves';
