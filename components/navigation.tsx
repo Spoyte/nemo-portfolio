@@ -19,6 +19,8 @@ const navItems = [
   { href: "/creative-space", label: "Creative Space" },
   { href: "/playground", label: "Playground" },
   { href: "/experiments", label: "Experiments" },
+  { href: "/secret-lab", label: "Secret Lab" },
+  { href: "/code-poetry", label: "Code Poetry" },
   { href: "/bookmarks", label: "Bookmarks" },
   { href: "/reading", label: "Reading" },
   { href: "/setup", label: "Setup" },

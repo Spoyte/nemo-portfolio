@@ -1,18 +1,19 @@
 import {
   ArtGenerator,
   renderPixels,
+  SeededRandom,
 } from "./core";
 
-// Simplex-like noise implementation
+// Simplex-like noise implementation with seed support
 class NoiseGenerator {
   private perm: number[];
   
-  constructor() {
+  constructor(rng?: SeededRandom) {
     this.perm = new Array(512);
     const p = new Array(256).fill(0).map((_, i) => i);
-    // Shuffle
+    // Shuffle with seeded RNG if provided
     for (let i = 255; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor((rng ? rng.random() : Math.random()) * (i + 1));
       [p[i], p[j]] = [p[j], p[i]];
     }
     for (let i = 0; i < 512; i++) {
@@ -103,7 +104,7 @@ function lerp(a: number, b: number, t: number): number {
 
 export const topographicFlow: ArtGenerator = {
   name: "Topographic Flow",
-  description: "Animated topographic maps with flowing contour lines",
+  description: "Animated topographic maps with flowing contour lines (seeded)",
   params: {
     noiseScale: {
       name: "Terrain Scale",
@@ -135,6 +136,14 @@ export const topographicFlow: ArtGenerator = {
       options: ["ocean", "earth", "heatmap", "monochrome"],
       default: "ocean",
     },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
+    },
   },
   generate: (ctx, params, time = 0) => {
     const canvas = ctx.canvas;
@@ -142,12 +151,14 @@ export const topographicFlow: ArtGenerator = {
     const contourInterval = params.contourInterval as number;
     const animationSpeed = (params.animationSpeed as number) * 0.0001;
     const colorScheme = params.colorScheme as keyof typeof colorSchemes;
+    const seed = params.seed as number;
     
     const scheme = colorSchemes[colorScheme] || colorSchemes.ocean;
     const t = time * animationSpeed;
     
-    // Create noise generator (recreated each frame for simplicity, could be cached)
-    const noise = new NoiseGenerator();
+    // Create seeded RNG and noise generator
+    const rng = new SeededRandom(seed);
+    const noise = new NoiseGenerator(rng);
     
     const offsetX = t * 50;
     const offsetY = t * 30;
