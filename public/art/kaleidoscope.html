@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaleidoscope - Symmetry Patterns</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      padding: 1rem 2rem;
+      background: rgba(20, 20, 30, 0.8);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #ff00cc, #00ffcc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+    
+    .download-btn {
+      background: linear-gradient(135deg, #ff00cc 0%, #00ffcc 100%);
+      color: #0a0a0f;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 0, 204, 0.4);
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      padding: 2rem;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 60px rgba(255, 0, 204, 0.1);
+      max-width: 100%;
+      height: auto;
+    }
+    
+    .controls {
+      width: 320px;
+      background: rgba(20, 20, 30, 0.6);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      height: fit-content;
+    }
+    
+    .control-group {
+      margin-bottom: 1.25rem;
+    }
+    
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+    }
+    
+    .value {
+      color: #00ffcc;
+      font-family: monospace;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, #ff00cc, #00ffcc);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    
+    select:focus {
+      outline: none;
+      border-color: #00ffcc;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 0.6rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #ff00cc, #cc00ff);
+      border: none;
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #ff33dd, #dd33ff);
+    }
+    
+    @media (max-width: 900px) {
+      main {
+        flex-direction: column;
+        padding: 1rem;
+      }
+      
+      .controls {
+        width: 100%;
+      }
+      
+      canvas {
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Kaleidoscope</h1>
+      <div class="subtitle">Recursive mirrored patterns with rotational symmetry</div>
+    </div>
+    <button class="download-btn" onclick="downloadImage()">Download PNG</button>
+  </header>
+  
+  <main>
+    <div class="canvas-container">
+      <canvas id="canvas" width="600" height="600"></canvas>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label>Symmetry Segments <span class="value" id="segmentsValue">8</span></label>
+        <input type="range" id="segments" min="3" max="16" step="1" value="8">
+      </div>
+      
+      <div class="control-group">
+        <label>Pattern Layers <span class="value" id="layersValue">4</span></label>
+        <input type="range" id="layers" min="1" max="8" step="1" value="4">
+      </div>
+      
+      <div class="control-group">
+        <label>Complexity <span class="value" id="complexityValue">40</span></label>
+        <input type="range" id="complexity" min="10" max="100" step="10" value="40">
+      </div>
+      
+      <div class="control-group">
+        <label>Color Shift <span class="value" id="colorShiftValue">0°</span></label>
+        <input type="range" id="colorShift" min="0" max="360" step="15" value="0">
+      </div>
+      
+      <div class="control-group">
+        <label>Mirror Mode</label>
+        <select id="mirrorMode">
+          <option value="reflect">Reflect</option>
+          <option value="rotate">Rotate</option>
+          <option value="both" selected>Both</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label>Seed <span class="value" id="seedValue">1</span></label>
+        <input type="range" id="seed" min="1" max="10000" step="1" value="1">
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn" onclick="randomize()">Randomize</button>
+        <button class="btn btn-primary" onclick="animatePattern()">Animate</button>
+      </div>
+    </div>
+  </main>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Seeded random number generator
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed;
+      }
+      
+      next() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+      }
+    }
+    
+    // Seeded noise function
+    function createSeededNoise(seed) {
+      const rng = new SeededRandom(seed);
+      const perm = new Array(512);
+      for (let i = 0; i < 256; i++) perm[i] = i;
+      for (let i = 255; i > 0; i--) {
+        const j = Math.floor(rng.next() * (i + 1));
+        [perm[i], perm[j]] = [perm[j], perm[i]];
+      }
+      for (let i = 0; i < 256; i++) perm[i + 256] = perm[i];
+      
+      return function(x, y) {
+        const X = Math.floor(x) & 255;
+        const Y = Math.floor(y) & 255;
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        const u = fade(x);
+        const v = fade(y);
+        const A = perm[X] + Y, B = perm[X + 1] + Y;
+        return lerp(v, lerp(u, grad(perm[A], x, y), grad(perm[B], x - 1, y)),
+                       lerp(u, grad(perm[A + 1], x, y - 1), grad(perm[B + 1], x - 1, y - 1)));
+      };
+    }
+    
+    function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+    function lerp(t, a, b) { return a + t * (b - a); }
+    function grad(hash, x, y) {
+      const h = hash & 15;
+      const u = h < 8 ? x : y;
+      const v = h < 4 ? y : h === 12 || h === 14 ? x : 0;
+      return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+    }
+    
+    let animationId = null;
+    let time = 0;
+    let isAnimating = false;
+    
+    function getParams() {
+      return {
+        segments: parseInt(document.getElementById('segments').value),
+        layers: parseInt(document.getElementById('layers').value),
+        complexity: parseInt(document.getElementById('complexity').value),
+        colorShift: parseInt(document.getElementById('colorShift').value),
+        mirrorMode: document.getElementById('mirrorMode').value,
+        seed: parseInt(document.getElementById('seed').value)
+      };
+    }
+    
+    function draw() {
+      const params = getParams();
+      const rng = new SeededRandom(params.seed);
+      const noise = createSeededNoise(params.seed);
+      const t = isAnimating ? time * 0.0003 : 0;
+      
+      // Dark background with subtle gradient
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 2
+      );
+      gradient.addColorStop(0, '#1a0a2e');
+      gradient.addColorStop(0.5, '#0a0a1a');
+      gradient.addColorStop(1, '#000000');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const maxRadius = Math.min(cx, cy) * 0.9;
+      const segmentAngle = (Math.PI * 2) / params.segments;
+      
+      // Draw symmetry segments
+      for (let layer = 0; layer < params.layers; layer++) {
+        const layerRadius = (maxRadius * (layer + 1)) / params.layers;
+        const layerOffset = layer * 0.5;
+        
+        for (let i = 0; i < params.complexity; i++) {
+          const progress = i / params.complexity;
+          const radius = layerRadius * (0.2 + progress * 0.8);
+          
+          // Generate organic shape points
+          const points = [];
+          for (let a = 0; a <= segmentAngle; a += 0.05) {
+            const noiseVal = noise(
+              Math.cos(a) * 2 + layerOffset + t,
+              Math.sin(a) * 2 + layer * 0.3
+            );
+            const r = radius * (0.8 + noiseVal * 0.4);
+            const x = Math.cos(a) * r;
+            const y = Math.sin(a) * r;
+            points.push({
+              x, y,
+              size: 2 + Math.abs(noiseVal) * 4,
+              alpha: 0.3 + Math.abs(noiseVal) * 0.5
+            });
+          }
+          
+          // Draw for each symmetry segment
+          for (let seg = 0; seg < params.segments; seg++) {
+            const rotation = seg * segmentAngle + t * (layer % 2 === 0 ? 1 : -1);
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rotation);
+            
+            // Color based on segment and layer
+            const hue = (params.colorShift + seg * (360 / params.segments) + layer * 30) % 360;
+            const saturation = 60 + (layer / params.layers) * 30;
+            const lightness = 40 + (i / params.complexity) * 30;
+            
+            // Draw the shape
+            ctx.beginPath();
+            ctx.moveTo(points[0]?.x || 0, points[0]?.y || 0);
+            for (let p = 1; p < points.length; p++) {
+              ctx.lineTo(points[p].x, points[p].y);
+            }
+            ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.6)`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // Fill with gradient
+            const fillGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, layerRadius);
+            fillGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, 0.1)`);
+            fillGradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${lightness}%, 0)`);
+            ctx.fillStyle = fillGradient;
+            ctx.fill();
+            
+            // Mirror reflection if enabled
+            if (params.mirrorMode === 'reflect' || params.mirrorMode === 'both') {
+              ctx.save();
+              ctx.scale(1, -1);
+              ctx.beginPath();
+              ctx.moveTo(points[0]?.x || 0, points[0]?.y || 0);
+              for (let p = 1; p < points.length; p++) {
+                ctx.lineTo(points[p].x, points[p].y);
+              }
+              ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness + 10}%, 0.4)`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              ctx.restore();
+            }
+            
+            // Draw decorative dots at key points
+            for (let p = 0; p < points.length; p += 3) {
+              const point = points[p];
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, point.size * 0.5, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${hue}, 80%, 70%, ${point.alpha * 0.8})`;
+              ctx.fill();
+            }
+            
+            ctx.restore();
+          }
+        }
+      }
+      
+      // Add central glow
+      const glowGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius * 0.3);
+      glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      glowGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.02)');
+      glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = glowGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Outer decorative ring
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      for (let r = maxRadius * 0.8; r <= maxRadius; r += 10) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    
+    function animate() {
+      if (!isAnimating) return;
+      time += 16;
+      draw();
+      animationId = requestAnimationFrame(animate);
+    }
+    
+    function animatePattern() {
+      isAnimating = !isAnimating;
+      const btn = document.querySelector('.btn-primary');
+      btn.textContent = isAnimating ? 'Stop' : 'Animate';
+      if (isAnimating) {
+        animate();
+      } else {
+        cancelAnimationFrame(animationId);
+        draw();
+      }
+    }
+    
+    function randomize() {
+      document.getElementById('segments').value = Math.floor(Math.random() * 14) + 3;
+      document.getElementById('layers').value = Math.floor(Math.random() * 8) + 1;
+      document.getElementById('complexity').value = Math.floor(Math.random() * 10) * 10 + 10;
+      document.getElementById('colorShift').value = Math.floor(Math.random() * 25) * 15;
+      document.getElementById('seed').value = Math.floor(Math.random() * 10000) + 1;
+      
+      const modes = ['reflect', 'rotate', 'both'];
+      document.getElementById('mirrorMode').value = modes[Math.floor(Math.random() * modes.length)];
+      
+      updateLabels();
+      draw();
+    }
+    
+    function downloadImage() {
+      const link = document.createElement('a');
+      link.download = `kaleidoscope-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    function updateLabels() {
+      document.getElementById('segmentsValue').textContent = document.getElementById('segments').value;
+      document.getElementById('layersValue').textContent = document.getElementById('layers').value;
+      document.getElementById('complexityValue').textContent = document.getElementById('complexity').value;
+      document.getElementById('colorShiftValue').textContent = document.getElementById('colorShift').value + '°';
+      document.getElementById('seedValue').textContent = document.getElementById('seed').value;
+    }
+    
+    // Event listeners
+    document.querySelectorAll('input[type="range"]').forEach(input => {
+      input.addEventListener('input', () => {
+        updateLabels();
+        if (!isAnimating) draw();
+      });
+    });
+    
+    document.getElementById('mirrorMode').addEventListener('change', () => {
+      if (!isAnimating) draw();
+    });
+    
+    // Initial draw
+    draw();
+  </script>
+</body>
+</html>
