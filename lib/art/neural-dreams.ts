@@ -1,4 +1,4 @@
-import { ArtGenerator, ArtParams, ParamConfig } from "./core";
+import { ArtGenerator, ArtParams, ParamConfig, SeededRandom } from "./core";
 
 // Neural Dreams - Visualization of neural network activation patterns
 // Fully connected feed-forward network with signal propagation
@@ -8,6 +8,7 @@ export interface NeuralDreamsParams {
   neuronsPerLayer: number;
   signalSpeed: number;
   colorMode: string;
+  seed: number;
 }
 
 interface Neuron {
@@ -41,6 +42,7 @@ interface NeuralDreamsState {
   signals: Signal[];
   pulseTimer: number;
   totalProcessed: number;
+  rng: SeededRandom;
 }
 
 // Color palettes
@@ -54,7 +56,7 @@ const PALETTES: Record<string, { bg: string; neuron: string; active: string; sig
 // Module-level state for animation persistence
 const stateMap = new Map<string, NeuralDreamsState>();
 
-function getState(canvasId: string): NeuralDreamsState {
+function getState(canvasId: string, seed: number): NeuralDreamsState {
   if (!stateMap.has(canvasId)) {
     stateMap.set(canvasId, {
       neurons: [],
@@ -62,12 +64,23 @@ function getState(canvasId: string): NeuralDreamsState {
       signals: [],
       pulseTimer: 0,
       totalProcessed: 0,
+      rng: new SeededRandom(seed),
     });
   }
   return stateMap.get(canvasId)!;
 }
 
-function buildNetwork(state: NeuralDreamsState, layers: number, neuronsPerLayer: number, width: number, height: number): void {
+function buildNetwork(
+  state: NeuralDreamsState,
+  layers: number,
+  neuronsPerLayer: number,
+  width: number,
+  height: number,
+  seed: number
+): void {
+  // Re-initialize RNG with seed for deterministic network structure
+  state.rng = new SeededRandom(seed);
+  
   state.neurons = [];
   state.connections = [];
   state.signals = [];
@@ -92,7 +105,7 @@ function buildNetwork(state: NeuralDreamsState, layers: number, neuronsPerLayer:
         index: n,
         activation: 0,
         targetActivation: 0,
-        pulsePhase: Math.random() * Math.PI * 2,
+        pulsePhase: state.rng.random() * Math.PI * 2,
       });
     }
     state.neurons.push(layerNeurons);
@@ -105,7 +118,7 @@ function buildNetwork(state: NeuralDreamsState, layers: number, neuronsPerLayer:
         state.connections.push({
           from,
           to,
-          weight: Math.random() * 2 - 1,
+          weight: state.rng.random() * 2 - 1,
           activity: 0,
         });
       }
@@ -116,7 +129,7 @@ function buildNetwork(state: NeuralDreamsState, layers: number, neuronsPerLayer:
 function propagateFrom(state: NeuralDreamsState, neuron: Neuron, strength: number): void {
   const outgoing = state.connections.filter((c) => c.from === neuron);
   for (const conn of outgoing) {
-    if (Math.random() < 0.7) {
+    if (state.rng.random() < 0.7) {
       // 70% propagation chance
       state.signals.push({
         connection: conn,
@@ -133,10 +146,10 @@ function injectInput(state: NeuralDreamsState, layers: number): void {
   const inputLayer = state.neurons[0];
   if (!inputLayer) return;
 
-  const numActive = Math.floor(Math.random() * 3) + 1;
+  const numActive = Math.floor(state.rng.random() * 3) + 1;
 
   for (let i = 0; i < numActive; i++) {
-    const neuron = inputLayer[Math.floor(Math.random() * inputLayer.length)];
+    const neuron = inputLayer[Math.floor(state.rng.random() * inputLayer.length)];
     if (neuron) {
       neuron.targetActivation = Math.min(1, neuron.targetActivation + 1);
       propagateFrom(state, neuron, 1);
@@ -159,13 +172,14 @@ export function renderNeuralDreams(
   const neuronsPerLayer = (params.neuronsPerLayer as number) || 8;
   const signalSpeed = (params.signalSpeed as number) || 4;
   const colorMode = (params.colorMode as string) || "neural";
+  const seed = (params.seed as number) || 1;
 
   const palette = PALETTES[colorMode] || PALETTES.neural;
-  const state = getState(canvasId);
+  const state = getState(canvasId, seed);
 
-  // Initialize network if needed
+  // Initialize network if needed or if seed changed
   if (state.neurons.length === 0 || state.neurons.length !== layers) {
-    buildNetwork(state, layers, neuronsPerLayer, width, height);
+    buildNetwork(state, layers, neuronsPerLayer, width, height, seed);
   }
 
   // Clear canvas
@@ -278,11 +292,12 @@ export const neuralDreamsDefaultParams: Record<string, number | string> = {
   neuronsPerLayer: 8,
   signalSpeed: 4,
   colorMode: "neural",
+  seed: 1,
 };
 
 export const neuralDreams: ArtGenerator = {
   name: "Neural Dreams",
-  description: "Visualization of neural network activation patterns with signal propagation through fully-connected layers. Watch as signals flow from input to output, creating organic activation waves.",
+  description: "Visualization of neural network activation patterns with signal propagation through fully-connected layers. Watch as signals flow from input to output, creating organic activation waves. (seeded)",
   params: {
     layers: {
       name: "Layers",
@@ -313,6 +328,14 @@ export const neuralDreams: ArtGenerator = {
       type: "select",
       options: ["neural", "fire", "ocean", "aurora"],
       default: "neural",
+    },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 1,
     },
   },
   generate: (ctx, params, time) => {
