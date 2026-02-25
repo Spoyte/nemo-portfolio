@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crystal Refraction - Light Through Facets</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #050508;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      padding: 1rem 2rem;
+      background: rgba(15, 15, 25, 0.9);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #00d4ff, #ff00aa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+    
+    .download-btn {
+      background: linear-gradient(135deg, #00d4ff 0%, #ff00aa 100%);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      gap: 1.5rem;
+    }
+    
+    #canvas-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0, 212, 255, 0.15);
+    }
+    
+    canvas {
+      display: block;
+      background: #000;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 800px;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    
+    label {
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    input[type="range"] {
+      width: 140px;
+      accent-color: #00d4ff;
+    }
+    
+    select {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e0e0e0;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .info {
+      max-width: 600px;
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    
+    .info p {
+      margin-bottom: 0.5rem;
+    }
+    
+    footer {
+      padding: 1.5rem;
+      text-align: center;
+      color: #666;
+      font-size: 0.85rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    footer a {
+      color: #00d4ff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Crystal Refraction</h1>
+      <div class="subtitle">Light bending through faceted geometry</div>
+    </div>
+    <button class="download-btn" onclick="downloadImage()">Download Image</button>
+  </header>
+  
+  <main>
+    <div id="canvas-container">
+      <canvas id="crystalCanvas" width="800" height="600"></canvas>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="facets">Facets</label>
+        <input type="range" id="facets" min="3" max="12" value="6">
+      </div>
+      <div class="control-group">
+        <label for="layers">Layers</label>
+        <input type="range" id="layers" min="1" max="8" value="4">
+      </div>
+      <div class="control-group">
+        <label for="dispersion">Dispersion</label>
+        <input type="range" id="dispersion" min="0" max="100" value="60">
+      </div>
+      <div class="control-group">
+        <label for="rotation">Rotation</label>
+        <input type="range" id="rotation" min="0" max="100" value="30">
+      </div>
+      <div class="control-group">
+        <label for="crystalType">Crystal Type</label>
+        <select id="crystalType">
+          <option value="diamond">Diamond</option>
+          <option value="emerald">Emerald</option>
+          <option value="ruby">Ruby</option>
+          <option value="sapphire">Sapphire</option>
+          <option value="amethyst">Amethyst</option>
+          <option value="prism">Prism</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="info">
+      <p>Light refracts through crystalline structures, splitting into spectral colors. 
+      Each facet bends light differently, creating caustic patterns and rainbow dispersion.</p>
+      <p>Adjust facets to change geometry, dispersion for color separation, and layers for depth complexity.</p>
+    </div>
+  </main>
+  
+  <footer>
+    <p>Part of the <a href="../gallery">Generative Art Portfolio</a></p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById('crystalCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Crystal configurations
+    const crystalConfigs = {
+      diamond: { hue: 200, saturation: 20, lightness: 95, refraction: 2.42 },
+      emerald: { hue: 150, saturation: 80, lightness: 40, refraction: 1.58 },
+      ruby: { hue: 350, saturation: 85, lightness: 45, refraction: 1.77 },
+      sapphire: { hue: 220, saturation: 75, lightness: 45, refraction: 1.77 },
+      amethyst: { hue: 280, saturation: 70, lightness: 50, refraction: 1.54 },
+      prism: { hue: 0, saturation: 0, lightness: 90, refraction: 1.5 }
+    };
+    
+    let time = 0;
+    let animationId = null;
+    
+    // Light source position
+    let lightSource = { x: 200, y: 150 };
+    
+    function getControls() {
+      return {
+        facets: parseInt(document.getElementById('facets').value),
+        layers: parseInt(document.getElementById('layers').value),
+        dispersion: parseInt(document.getElementById('dispersion').value) / 100,
+        rotation: parseInt(document.getElementById('rotation').value) / 1000,
+        crystalType: document.getElementById('crystalType').value
+      };
+    }
+    
+    // Generate polygon vertices
+    function generatePolygon(cx, cy, radius, sides, rotation) {
+      const vertices = [];
+      for (let i = 0; i < sides; i++) {
+        const angle = (i / sides) * Math.PI * 2 + rotation;
+        vertices.push({
+          x: cx + Math.cos(angle) * radius,
+          y: cy + Math.sin(angle) * radius
+        });
+      }
+      return vertices;
+    }
+    
+    // Calculate centroid of polygon
+    function calculateCentroid(vertices) {
+      let cx = 0, cy = 0;
+      for (const v of vertices) {
+        cx += v.x;
+        cy += v.y;
+      }
+      return { x: cx / vertices.length, y: cy / vertices.length };
+    }
+    
+    // Triangulate polygon (simple fan triangulation for convex polygons)
+    function triangulate(vertices) {
+      const triangles = [];
+      const center = calculateCentroid(vertices);
+      
+      for (let i = 0; i < vertices.length; i++) {
+        const next = (i + 1) % vertices.length;
+        triangles.push([center, vertices[i], vertices[next]]);
+      }
+      return triangles;
+    }
+    
+    // Calculate light intensity at a point based on light source
+    function calculateLighting(x, y, lightX, lightY) {
+      const dx = x - lightX;
+      const dy = y - lightY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = 500;
+      return Math.max(0, 1 - dist / maxDist);
+    }
+    
+    // Draw a single crystal layer
+    function drawCrystalLayer(cx, cy, radius, sides, rotation, layer, totalLayers, config, dispersion) {
+      const vertices = generatePolygon(cx, cy, radius, sides, rotation);
+      const triangles = triangulate(vertices);
+      
+      // Draw each triangular facet
+      triangles.forEach((tri, i) => {
+        const facetCenter = calculateCentroid(tri);
+        const lighting = calculateLighting(facetCenter.x, facetCenter.y, lightSource.x, lightSource.y);
+        
+        // Calculate facet normal for refraction effect
+        const angleFromLight = Math.atan2(facetCenter.y - lightSource.y, facetCenter.x - lightSource.x);
+        const hueShift = Math.sin(angleFromLight * 3 + time * 0.5) * 30 * dispersion;
+        
+        // Layer opacity decreases with depth
+        const layerOpacity = 1 - (layer / totalLayers) * 0.6;
+        
+        // Create gradient for this facet
+        const gradient = ctx.createLinearGradient(
+          tri[0].x, tri[0].y,
+          tri[2].x, tri[2].y
+        );
+        
+        const baseHue = config.hue + hueShift;
+        const saturation = config.crystalType === 'prism' ? 0 : config.saturation;
+        
+        // Prism creates rainbow effect
+        if (config.crystalType === 'prism') {
+          const rainbowHue = (i / triangles.length * 360 + time * 20) % 360;
+          gradient.addColorStop(0, `hsla(${rainbowHue}, 80%, 60%, ${0.3 * layerOpacity})`);
+          gradient.addColorStop(0.5, `hsla(${(rainbowHue + 30) % 360}, 70%, 70%, ${0.5 * layerOpacity})`);
+          gradient.addColorStop(1, `hsla(${(rainbowHue + 60) % 360}, 60%, 50%, ${0.3 * layerOpacity})`);
+        } else {
+          // Regular crystal with lighting
+          const lightBoost = lighting * 40;
+          gradient.addColorStop(0, `hsla(${baseHue}, ${saturation}%, ${config.lightness - 10 + lightBoost}%, ${0.4 * layerOpacity})`);
+          gradient.addColorStop(0.5, `hsla(${baseHue}, ${saturation}%, ${config.lightness + lightBoost}%, ${0.6 * layerOpacity})`);
+          gradient.addColorStop(1, `hsla(${baseHue}, ${saturation}%, ${config.lightness - 20 + lightBoost}%, ${0.4 * layerOpacity})`);
+        }
+        
+        // Draw facet
+        ctx.beginPath();
+        ctx.moveTo(tri[0].x, tri[0].y);
+        ctx.lineTo(tri[1].x, tri[1].y);
+        ctx.lineTo(tri[2].x, tri[2].y);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Draw facet edge with glow
+        ctx.strokeStyle = `hsla(${baseHue}, ${saturation}%, 80%, ${0.3 * layerOpacity})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      });
+      
+      // Draw outer rim
+      ctx.beginPath();
+      for (let i = 0; i < vertices.length; i++) {
+        if (i === 0) ctx.moveTo(vertices[i].x, vertices[i].y);
+        else ctx.lineTo(vertices[i].x, vertices[i].y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = `hsla(${config.hue}, ${config.saturation}%, 70%, ${0.5 * (1 - layer / totalLayers)})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    
+    // Draw caustic light rays
+    function drawCaustics(cx, cy, radius, sides, rotation, config) {
+      const vertices = generatePolygon(cx, cy, radius * 1.2, sides, rotation);
+      
+      for (let i = 0; i < vertices.length; i++) {
+        const v = vertices[i];
+        const nextV = vertices[(i + 1) % vertices.length];
+        
+        // Calculate refracted ray direction
+        const midX = (v.x + nextV.x) / 2;
+        const midY = (v.y + nextV.y) / 2;
+        const angleToLight = Math.atan2(midY - lightSource.y, midX - lightSource.x);
+        
+        // Draw caustic ray
+        const rayLength = 150 + Math.sin(time * 2 + i) * 50;
+        const endX = midX + Math.cos(angleToLight) * rayLength;
+        const endY = midY + Math.sin(angleToLight) * rayLength;
+        
+        const gradient = ctx.createLinearGradient(midX, midY, endX, endY);
+        const causticHue = config.crystalType === 'prism' ? (i * 60 + time * 30) % 360 : config.hue;
+        gradient.addColorStop(0, `hsla(${causticHue}, 70%, 70%, 0.4)`);
+        gradient.addColorStop(0.5, `hsla(${causticHue}, 60%, 60%, 0.2)`);
+        gradient.addColorStop(1, `hsla(${causticHue}, 50%, 50%, 0)`);
+        
+        ctx.beginPath();
+        ctx.moveTo(midX, midY);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 3 + Math.sin(time * 3 + i) * 1;
+        ctx.stroke();
+      }
+    }
+    
+    // Draw internal reflections
+    function drawInternalReflections(cx, cy, radius, sides, rotation, config) {
+      const innerRadius = radius * 0.3;
+      const vertices = generatePolygon(cx, cy, innerRadius, sides, rotation + Math.PI);
+      
+      ctx.beginPath();
+      for (let i = 0; i < vertices.length; i++) {
+        if (i === 0) ctx.moveTo(vertices[i].x, vertices[i].y);
+        else ctx.lineTo(vertices[i].x, vertices[i].y);
+      }
+      ctx.closePath();
+      
+      const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, innerRadius);
+      gradient.addColorStop(0, `hsla(${config.hue}, ${config.saturation}%, 90%, 0.8)`);
+      gradient.addColorStop(0.5, `hsla(${config.hue}, ${config.saturation}%, 70%, 0.4)`);
+      gradient.addColorStop(1, `hsla(${config.hue}, ${config.saturation}%, 50%, 0.1)`);
+      
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+    
+    // Draw sparkle effects
+    function drawSparkles(cx, cy, radius, config) {
+      const sparkleCount = 8;
+      for (let i = 0; i < sparkleCount; i++) {
+        const angle = (i / sparkleCount) * Math.PI * 2 + time * 0.3;
+        const dist = radius * (0.6 + Math.sin(time * 2 + i * 0.7) * 0.2);
+        const sx = cx + Math.cos(angle) * dist;
+        const sy = cy + Math.sin(angle) * dist;
+        const size = 2 + Math.sin(time * 4 + i) * 1.5;
+        
+        const sparkleGradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, size * 3);
+        const sparkleHue = config.crystalType === 'prism' ? (i * 45 + time * 50) % 360 : config.hue;
+        sparkleGradient.addColorStop(0, `hsla(${sparkleHue}, 100%, 90%, 1)`);
+        sparkleGradient.addColorStop(0.3, `hsla(${sparkleHue}, 80%, 70%, 0.5)`);
+        sparkleGradient.addColorStop(1, `hsla(${sparkleHue}, 60%, 50%, 0)`);
+        
+        ctx.beginPath();
+        ctx.arc(sx, sy, size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = sparkleGradient;
+        ctx.fill();
+      }
+    }
+    
+    // Main draw function
+    function draw() {
+      const controls = getControls();
+      const config = crystalConfigs[controls.crystalType];
+      
+      // Clear with dark background
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw background glow
+      const bgGradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, 400
+      );
+      bgGradient.addColorStop(0, `hsla(${config.hue}, 30%, 15%, 0.3)`);
+      bgGradient.addColorStop(0.5, `hsla(${config.hue}, 20%, 8%, 0.1)`);
+      bgGradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const baseRadius = 120;
+      
+      // Animate light source
+      lightSource.x = 200 + Math.sin(time * 0.5) * 100;
+      lightSource.y = 150 + Math.cos(time * 0.3) * 80;
+      
+      // Draw caustics first (behind crystal)
+      drawCaustics(cx, cy, baseRadius, controls.facets, time * controls.rotation, config);
+      
+      // Draw crystal layers from back to front
+      for (let layer = controls.layers - 1; layer >= 0; layer--) {
+        const layerRadius = baseRadius * (1 - layer * 0.12);
+        const layerRotation = time * controls.rotation * (layer % 2 === 0 ? 1 : -1) + layer * 0.3;
+        drawCrystalLayer(cx, cy, layerRadius, controls.facets, layerRotation, layer, controls.layers, config, controls.dispersion);
+      }
+      
+      // Draw internal reflections
+      drawInternalReflections(cx, cy, baseRadius, controls.facets, time * controls.rotation, config);
+      
+      // Draw sparkles
+      drawSparkles(cx, cy, baseRadius, config);
+      
+      // Draw light source indicator (subtle)
+      const lightGradient = ctx.createRadialGradient(
+        lightSource.x, lightSource.y, 0,
+        lightSource.x, lightSource.y, 30
+      );
+      lightGradient.addColorStop(0, 'hsla(60, 100%, 90%, 0.8)');
+      lightGradient.addColorStop(0.5, 'hsla(60, 80%, 70%, 0.3)');
+      lightGradient.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(lightSource.x, lightSource.y, 30, 0, Math.PI * 2);
+      ctx.fillStyle = lightGradient;
+      ctx.fill();
+    }
+    
+    // Animation loop
+    function animate() {
+      time += 0.016;
+      draw();
+      animationId = requestAnimationFrame(animate);
+    }
+    
+    // Download image
+    function downloadImage() {
+      const link = document.createElement('a');
+      link.download = `crystal-refraction-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    // Event listeners
+    document.querySelectorAll('input, select').forEach(input => {
+      input.addEventListener('input', draw);
+    });
+    
+    // Handle canvas click to move light source
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      lightSource.x = e.clientX - rect.left;
+      lightSource.y = e.clientY - rect.top;
+    });
+    
+    // Start
+    animate();
+  </script>
+</body>
+</html>
