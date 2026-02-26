@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metaballs — Organic Implicit Surfaces</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+      max-width: 100%;
+    }
+    .title {
+      margin-top: 20px;
+      color: #aaa;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 12px;
+      margin-top: 4px;
+      max-width: 600px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .controls {
+      margin-top: 24px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #888;
+      font-size: 12px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .control-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .control-group input[type="range"] {
+      width: 100px;
+    }
+    .control-group select {
+      background: #1a1a24;
+      color: #aaa;
+      border: 1px solid #333;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .value-display {
+      color: #00e5ff;
+      font-family: monospace;
+      min-width: 30px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="700" height="700"></canvas>
+  <div class="title">Metaballs</div>
+  <div class="subtitle">
+    Organic implicit surfaces created by blending field functions. 
+    Blobby shapes that merge and separate fluidly, a classic computer graphics technique.
+  </div>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label>Balls: <input type="range" id="ballCount" min="2" max="8" value="4" step="1"></label>
+      <span class="value-display" id="ballCountVal">4</span>
+    </div>
+    <div class="control-group">
+      <label>Radius: <input type="range" id="ballRadius" min="30" max="100" value="60" step="5"></label>
+      <span class="value-display" id="ballRadiusVal">60</span>
+    </div>
+    <div class="control-group">
+      <label>Threshold: <input type="range" id="threshold" min="0.5" max="2.0" value="1.0" step="0.1"></label>
+      <span class="value-display" id="thresholdVal">1.0</span>
+    </div>
+    <div class="control-group">
+      <label>Speed: <input type="range" id="speed" min="0.2" max="2.0" value="0.8" step="0.1"></label>
+      <span class="value-display" id="speedVal">0.8</span>
+    </div>
+    <div class="control-group">
+      <label>Trails: <input type="range" id="trails" min="0" max="0.95" value="0.3" step="0.05"></label>
+      <span class="value-display" id="trailsVal">0.3</span>
+    </div>
+    <div class="control-group">
+      <label>Resolution:
+        <select id="resolution">
+          <option value="2">High</option>
+          <option value="4" selected>Medium</option>
+          <option value="8">Low</option>
+        </select>
+      </label>
+    </div>
+    <div class="control-group">
+      <label>Colors:
+        <select id="colorScheme">
+          <option value="neon" selected>Neon</option>
+          <option value="ocean">Ocean</option>
+          <option value="sunset">Sunset</option>
+          <option value="forest">Forest</option>
+          <option value="magma">Magma</option>
+          <option value="ice">Ice</option>
+          <option value="gold">Gold</option>
+          <option value="midnight">Midnight</option>
+        </select>
+      </label>
+    </div>
+    <div class="control-group">
+      <label>Wireframe: <input type="checkbox" id="wireframe"></label>
+      <label>Glow: <input type="checkbox" id="glow" checked></label>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    // Parameters
+    let params = {
+      ballCount: 4,
+      ballRadius: 60,
+      threshold: 1.0,
+      speed: 0.8,
+      colorScheme: 'neon',
+      wireframe: false,
+      glow: true,
+      trails: 0.3,
+      resolution: 4
+    };
+    
+    // Color schemes
+    const colorSchemes = {
+      neon: ["#ff00ff", "#00ffff", "#ffff00", "#ff0080", "#80ff00", "#8000ff", "#ff8000", "#00ff80"],
+      ocean: ["#001f3f", "#0074d9", "#39cccc", "#2ecc40", "#01ff70", "#7fdbff", "#39cccc", "#0055a4"],
+      sunset: ["#ff6b35", "#f7931e", "#ffd23f", "#ff6b9d", "#c44569", "#2c003e", "#ff4757", "#ffa502"],
+      forest: ["#2d5016", "#3a6b1f", "#4a8b2c", "#7cb342", "#aed581", "#1b3d0d", "#5d8c3a", "#8bc34a"],
+      magma: ["#1a0000", "#4a0000", "#7a0000", "#b30000", "#ff4500", "#ff8c00", "#ffa500", "#ff6347"],
+      ice: ["#e0f7fa", "#b2ebf2", "#80deea", "#4dd0e1", "#26c6da", "#00bcd4", "#00acc1", "#0097a7"],
+      gold: ["#fff8e1", "#ffecb3", "#ffe082", "#ffd54f", "#ffca28", "#ffc107", "#ffb300", "#ffa000"],
+      midnight: ["#0a0a0a", "#1a1a2e", "#16213e", "#0f3460", "#533483", "#e94560", "#4a4e69", "#22223b"]
+    };
+    
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 255, g: 255, b: 255 };
+    }
+    
+    // Field function: f(r) = R²/d²
+    function fieldFunction(dx, dy, radius) {
+      const distSq = dx * dx + dy * dy;
+      if (distSq < 0.01) return 100;
+      return (radius * radius) / distSq;
+    }
+    
+    function render(timestamp) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const colors = colorSchemes[params.colorScheme];
+      
+      // Initialize metaballs
+      const balls = [];
+      for (let i = 0; i < params.ballCount; i++) {
+        const angle = (i / params.ballCount) * Math.PI * 2 + timestamp * 0.0005 * params.speed;
+        const orbitRadius = Math.min(width, height) * 0.25 + Math.sin(timestamp * 0.001 + i) * 50;
+        const centerX = width / 2 + Math.cos(angle) * orbitRadius;
+        const centerY = height / 2 + Math.sin(angle) * orbitRadius;
+        
+        const wobbleX = Math.sin(timestamp * 0.002 + i * 1.5) * 30;
+        const wobbleY = Math.cos(timestamp * 0.0018 + i * 1.3) * 30;
+        
+        const colorHex = colors[i % colors.length];
+        const rgb = hexToRgb(colorHex);
+        
+        balls.push({
+          x: centerX + wobbleX,
+          y: centerY + wobbleY,
+          radius: params.ballRadius * (0.8 + Math.sin(timestamp * 0.001 + i) * 0.2),
+          color: rgb
+        });
+      }
+      
+      // Apply trails
+      if (params.trails > 0) {
+        ctx.fillStyle = `rgba(0, 0, 0, ${params.trails})`;
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, width, height);
+      }
+      
+      if (params.wireframe) {
+        // Marching squares wireframe
+        const step = params.resolution * 2;
+        ctx.strokeStyle = colors[0];
+        ctx.lineWidth = 1;
+        
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            let fieldSum = 0;
+            for (const ball of balls) {
+              const dx = x + step/2 - ball.x;
+              const dy = y + step/2 - ball.y;
+              fieldSum += fieldFunction(dx, dy, ball.radius);
+            }
+            
+            if (fieldSum > params.threshold) {
+              ctx.strokeRect(x, y, step, step);
+            }
+          }
+        }
+      } else {
+        // Pixel rendering
+        const step = params.resolution;
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            let fieldSum = 0;
+            let r = 0, g = 0, b = 0;
+            
+            for (const ball of balls) {
+              const dx = x - ball.x;
+              const dy = y - ball.y;
+              const field = fieldFunction(dx, dy, ball.radius);
+              fieldSum += field;
+              
+              r += ball.color.r * field;
+              g += ball.color.g * field;
+              b += ball.color.b * field;
+            }
+            
+            if (fieldSum > 0) {
+              r /= fieldSum;
+              g /= fieldSum;
+              b /= fieldSum;
+            }
+            
+            if (fieldSum > params.threshold) {
+              const normalizedField = Math.min(fieldSum / (params.threshold * 3), 1);
+              const alpha = normalizedField;
+              
+              // Glow effect
+              if (params.glow && fieldSum < params.threshold * 1.5) {
+                const glowIntensity = (params.threshold * 1.5 - fieldSum) / (params.threshold * 0.5);
+                r = Math.min(255, r + glowIntensity * 100);
+                g = Math.min(255, g + glowIntensity * 100);
+                b = Math.min(255, b + glowIntensity * 100);
+              }
+              
+              // Fill pixel block
+              for (let py = y; py < Math.min(y + step, height); py++) {
+                for (let px = x; px < Math.min(x + step, width); px++) {
+                  const idx = (py * width + px) * 4;
+                  data[idx] = Math.floor(r);
+                  data[idx + 1] = Math.floor(g);
+                  data[idx + 2] = Math.floor(b);
+                  data[idx + 3] = Math.floor(alpha * 255);
+                }
+              }
+            } else if (params.glow && fieldSum > params.threshold * 0.3) {
+              // Background glow
+              const bgIntensity = (fieldSum - params.threshold * 0.3) / (params.threshold * 0.7) * 30;
+              for (let py = y; py < Math.min(y + step, height); py++) {
+                for (let px = x; px < Math.min(x + step, width); px++) {
+                  const idx = (py * width + px) * 4;
+                  data[idx] = Math.floor(bgIntensity);
+                  data[idx + 1] = Math.floor(bgIntensity);
+                  data[idx + 2] = Math.floor(bgIntensity * 1.5);
+                  data[idx + 3] = 255;
+                }
+              }
+            }
+          }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+      }
+      
+      // Draw ball centers
+      if (!params.wireframe) {
+        for (const ball of balls) {
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = `rgb(${ball.color.r}, ${ball.color.g}, ${ball.color.b})`;
+          ctx.fill();
+        }
+      }
+      
+      requestAnimationFrame(render);
+    }
+    
+    // Controls
+    document.getElementById('ballCount').addEventListener('input', (e) => {
+      params.ballCount = parseInt(e.target.value);
+      document.getElementById('ballCountVal').textContent = params.ballCount;
+    });
+    document.getElementById('ballRadius').addEventListener('input', (e) => {
+      params.ballRadius = parseInt(e.target.value);
+      document.getElementById('ballRadiusVal').textContent = params.ballRadius;
+    });
+    document.getElementById('threshold').addEventListener('input', (e) => {
+      params.threshold = parseFloat(e.target.value);
+      document.getElementById('thresholdVal').textContent = params.threshold;
+    });
+    document.getElementById('speed').addEventListener('input', (e) => {
+      params.speed = parseFloat(e.target.value);
+      document.getElementById('speedVal').textContent = params.speed;
+    });
+    document.getElementById('trails').addEventListener('input', (e) => {
+      params.trails = parseFloat(e.target.value);
+      document.getElementById('trailsVal').textContent = params.trails;
+    });
+    document.getElementById('resolution').addEventListener('change', (e) => {
+      params.resolution = parseInt(e.target.value);
+    });
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+    document.getElementById('wireframe').addEventListener('change', (e) => {
+      params.wireframe = e.target.checked;
+    });
+    document.getElementById('glow').addEventListener('change', (e) => {
+      params.glow = e.target.checked;
+    });
+    
+    // Start
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
