@@ -140,6 +140,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "organic", "nature", "colorful"],
     created: "2024-02-25",
   },
+  "harmonograph": {
+    category: "mathematical",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "ordered", "colorful", "detailed"],
+    created: "2024-02-26",
+  },
 
   // === ABSTRACT ===
   "impossible-geometry": {

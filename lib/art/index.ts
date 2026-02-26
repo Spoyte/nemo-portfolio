@@ -37,6 +37,7 @@ import { islamicPatterns } from "./islamic-patterns";
 import { impossibleGeometry } from "./impossible-geometry";
 import { metaballs } from "./metaballs";
 import { phyllotaxis } from "./phyllotaxis";
+import { harmonograph } from "./harmonograph";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -75,6 +76,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "impossible-geometry": impossibleGeometry,
   "metaballs": metaballs,
   "phyllotaxis": phyllotaxis,
+  "harmonograph": harmonograph,
 };
 
 // Apply metadata to generators
@@ -139,3 +141,7 @@ export type { MetaballsParams } from './metaballs';
 // Phyllotaxis
 export { renderPhyllotaxis, phyllotaxisDefaultParams } from './phyllotaxis';
 export type { PhyllotaxisParams } from './phyllotaxis';
+
+// Harmonograph
+export { renderHarmonograph, harmonographDefaultParams } from './harmonograph';
+export type { HarmonographParams } from './harmonograph';
