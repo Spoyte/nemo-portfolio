@@ -42,6 +42,7 @@ import { watercolorDreams } from "./watercolor-dreams";
 import { asciiArtGenerator } from "./ascii-art";
 import { crossHatchingSketch } from "./cross-hatching";
 import { moirePattern } from "./moire-pattern";
+import { chladniFigures } from "./chladni-figures";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -85,6 +86,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "ascii-art": asciiArtGenerator,
   "cross-hatching": crossHatchingSketch,
   "moire-pattern": moirePattern,
+  "chladni-figures": chladniFigures,
 };
 
 // Apply metadata to generators
@@ -169,3 +171,7 @@ export type { CrossHatchingParams } from './cross-hatching';
 // Moiré Pattern
 export { renderMoirePattern, moirePatternDefaultParams } from './moire-pattern';
 export type { MoirePatternParams } from './moire-pattern';
+
+// Chladni Figures
+export { renderChladniFigures, chladniFiguresDefaultParams } from './chladni-figures';
+export type { ChladniFiguresParams } from './chladni-figures';

@@ -234,6 +234,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "minimal", "abstract"],
     created: "2024-02-26",
   },
+  "chladni-figures": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "geometric", "ordered", "detailed", "futuristic"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {
