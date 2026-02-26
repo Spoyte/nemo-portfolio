@@ -47,6 +47,7 @@ import { crossHatching } from "./cross-hatching";
 import { moire } from "./moire";
 import { stainedGlass } from "./stained-glass";
 import { fractalFlame } from "./fractal-flame";
+import { impossibleGeometry } from "./impossible-geometry";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -97,6 +98,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "moire": moire,
   "stained-glass": stainedGlass,
   "fractal-flame": fractalFlame,
+  "impossible-geometry": impossibleGeometry,
 };
 
 export * from "./core";
@@ -236,3 +238,7 @@ export type { StainedGlassParams } from './stained-glass';
 // Fractal Flame
 export { renderFractalFlame, fractalFlameDefaultParams } from './fractal-flame';
 export type { FractalFlameParams } from './fractal-flame';
+
+// Impossible Geometry
+export { renderImpossibleGeometry, impossibleGeometryDefaultParams } from './impossible-geometry';
+export type { ImpossibleGeometryParams } from './impossible-geometry';

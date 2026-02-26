@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impossible Geometry — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      max-width: 100%;
+      height: auto;
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+      text-align: center;
+    }
+    .figure-name {
+      color: #fff;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .hint {
+      color: #666;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="400" height="400"></canvas>
+  <div class="controls">
+    <div class="figure-name">Impossible Geometry</div>
+    <div>Penrose Triangle · Impossible Staircase · Blivet · Necker Cube</div>
+    <div class="hint">Watch the paradox unfold</div>
+  </div>
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    const colorSchemes = {
+      classic: { 
+        bg: '#0a0a0f', 
+        lines: ['#e8e8e8', '#c0c0c0', '#a0a0a0'],
+        accent: '#ffffff'
+      },
+      neon: { 
+        bg: '#050510', 
+        lines: ['#ff00ff', '#00ffff', '#ffff00'],
+        accent: '#ff0080'
+      },
+      monochrome: { 
+        bg: '#000000', 
+        lines: ['#ffffff', '#aaaaaa', '#666666'],
+        accent: '#ffffff'
+      },
+      warm: { 
+        bg: '#1a0f05', 
+        lines: ['#ffaa44', '#ff6644', '#ffcc88'],
+        accent: '#ff8844'
+      },
+      cool: { 
+        bg: '#050a1a', 
+        lines: ['#4488ff', '#44aaff', '#88ccff'],
+        accent: '#66aaff'
+      },
+    };
+    
+    function drawLine(x1, y1, x2, y2, color, width, progress) {
+      if (progress <= 0) return;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const endX = x1 + dx * Math.min(progress, 1);
+      const endY = y1 + dy * Math.min(progress, 1);
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    }
+    
+    function drawPenroseTriangle(cx, cy, size, progress, colors, lineWidth) {
+      const s = size;
+      const h = s * 0.866;
+      
+      const corners = [
+        [cx, cy - s * 0.8],
+        [cx - h * 0.8, cy + s * 0.4],
+        [cx + h * 0.8, cy + s * 0.4],
+      ];
+      
+      const beamWidth = s * 0.15;
+      const segments = 9;
+      const segProgress = progress * segments;
+      
+      const p1 = corners[0];
+      const p2 = [corners[0][0] - beamWidth * 0.5, corners[0][1] + beamWidth];
+      const p3 = [corners[1][0] + beamWidth, corners[1][1] - beamWidth * 0.5];
+      const p4 = corners[1];
+      
+      drawLine(p1[0], p1[1], p2[0], p2[1], colors[0], lineWidth, segProgress - 0);
+      drawLine(p2[0], p2[1], p3[0], p3[1], colors[0], lineWidth, segProgress - 1);
+      drawLine(p3[0], p3[1], p4[0], p4[1], colors[0], lineWidth, segProgress - 2);
+      
+      const p5 = [corners[1][0] + beamWidth * 0.5, corners[1][1] - beamWidth * 0.3];
+      const p6 = [corners[2][0] - beamWidth * 0.5, corners[2][1] - beamWidth * 0.3];
+      
+      drawLine(p4[0], p4[1], p5[0], p5[1], colors[1], lineWidth, segProgress - 3);
+      drawLine(p5[0], p5[1], p6[0], p6[1], colors[1], lineWidth, segProgress - 4);
+      drawLine(p6[0], p6[1], corners[2][0], corners[2][1], colors[1], lineWidth, segProgress - 5);
+      
+      const p7 = [corners[2][0] - beamWidth, corners[2][1] - beamWidth * 0.5];
+      const p8 = [corners[0][0] + beamWidth * 0.5, corners[0][1] + beamWidth];
+      
+      drawLine(corners[2][0], corners[2][1], p7[0], p7[1], colors[2], lineWidth, segProgress - 6);
+      drawLine(p7[0], p7[1], p8[0], p8[1], colors[2], lineWidth, segProgress - 7);
+      drawLine(p8[0], p8[1], p1[0], p1[1], colors[2], lineWidth, segProgress - 8);
+      
+      if (progress > 0.7) {
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = colors[0];
+        ctx.globalAlpha = (progress - 0.7) * 3.3;
+        
+        ctx.beginPath();
+        ctx.moveTo(p2[0], p2[1]);
+        ctx.lineTo(p8[0], p8[1]);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(p3[0], p3[1]);
+        ctx.lineTo(p5[0], p5[1]);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(p6[0], p6[1]);
+        ctx.lineTo(p7[0], p7[1]);
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    function drawImpossibleStaircase(cx, cy, size, progress, colors, lineWidth) {
+      const steps = 6;
+      const stepHeight = size / steps;
+      const stepDepth = size / steps * 0.6;
+      const segments = steps * 3 + 2;
+      const segProgress = progress * segments;
+      
+      for (let i = 0; i < steps; i++) {
+        const x = cx - size * 0.4 + i * stepHeight * 0.5;
+        const y = cy + size * 0.3 - i * stepHeight * 0.3;
+        
+        const p1 = [x, y];
+        const p2 = [x + stepHeight, y];
+        const p3 = [x + stepHeight, y - stepDepth];
+        const p4 = [x + stepHeight * 0.3, y - stepDepth * 0.5];
+        
+        const baseIdx = i * 3;
+        
+        drawLine(p1[0], p1[1], p2[0], p2[1], colors[i % colors.length], lineWidth, segProgress - baseIdx);
+        drawLine(p2[0], p2[1], p3[0], p3[1], colors[i % colors.length], lineWidth, segProgress - baseIdx - 1);
+        drawLine(p3[0], p3[1], p4[0], p4[1], colors[i % colors.length], lineWidth * 0.7, segProgress - baseIdx - 2);
+      }
+      
+      if (progress > 0.85) {
+        const alpha = (progress - 0.85) * 6.67;
+        ctx.strokeStyle = colors[0];
+        ctx.globalAlpha = alpha;
+        ctx.setLineDash([3, 7]);
+        
+        const bottomX = cx - size * 0.4;
+        const bottomY = cy + size * 0.3;
+        const topX = cx + size * 0.1;
+        const topY = cy - size * 0.3;
+        
+        ctx.beginPath();
+        ctx.moveTo(bottomX, bottomY);
+        ctx.lineTo(topX, topY);
+        ctx.stroke();
+        
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    function drawBlivet(cx, cy, size, progress, colors, lineWidth) {
+      const s = size * 0.4;
+      const segments = 12;
+      const segProgress = progress * segments;
+      
+      const leftBase = [cx - s, cy + s * 0.5];
+      const leftTop = [cx - s * 0.3, cy - s * 0.8];
+      const rightBase = [cx + s, cy + s * 0.5];
+      const rightTop = [cx + s * 0.3, cy - s * 0.8];
+      const middleTop = [cx, cy - s];
+      
+      drawLine(leftBase[0], leftBase[1], leftTop[0], leftTop[1], colors[0], lineWidth, segProgress - 0);
+      drawLine(rightBase[0], rightBase[1], rightTop[0], rightTop[1], colors[0], lineWidth, segProgress - 1);
+      
+      const forkY = cy + s * 0.2;
+      drawLine(leftBase[0], leftBase[1], cx, forkY, colors[1], lineWidth, segProgress - 2);
+      drawLine(rightBase[0], rightBase[1], cx, forkY, colors[1], lineWidth, segProgress - 3);
+      
+      drawLine(cx, forkY, leftTop[0], leftTop[1], colors[2], lineWidth, segProgress - 4);
+      drawLine(cx, forkY, rightTop[0], rightTop[1], colors[2], lineWidth, segProgress - 5);
+      drawLine(cx, forkY, middleTop[0], middleTop[1], colors[2], lineWidth, segProgress - 6);
+      
+      if (progress > 0.6) {
+        const alpha = (progress - 0.6) * 2.5;
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = colors[0];
+        ctx.lineWidth = lineWidth * 0.5;
+        
+        ctx.beginPath();
+        ctx.moveTo(leftTop[0], leftTop[1]);
+        ctx.lineTo(cx - s * 0.15, cy - s * 0.4);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(rightTop[0], rightTop[1]);
+        ctx.lineTo(cx + s * 0.15, cy - s * 0.4);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(middleTop[0], middleTop[1]);
+        ctx.lineTo(cx, cy - s * 0.3);
+        ctx.stroke();
+        
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    function drawNeckerCube(cx, cy, size, progress, colors, lineWidth) {
+      const s = size * 0.35;
+      const segments = 12;
+      const segProgress = progress * segments;
+      
+      const f1 = [cx - s, cy - s];
+      const f2 = [cx + s, cy - s];
+      const f3 = [cx + s, cy + s];
+      const f4 = [cx - s, cy + s];
+      
+      const offset = s * 0.4;
+      const b1 = [f1[0] - offset, f1[1] - offset];
+      const b2 = [f2[0] - offset, f2[1] - offset];
+      const b3 = [f3[0] - offset, f3[1] - offset];
+      const b4 = [f4[0] - offset, f4[1] - offset];
+      
+      drawLine(f1[0], f1[1], f2[0], f2[1], colors[0], lineWidth, segProgress - 0);
+      drawLine(f2[0], f2[1], f3[0], f3[1], colors[0], lineWidth, segProgress - 1);
+      drawLine(f3[0], f3[1], f4[0], f4[1], colors[0], lineWidth, segProgress - 2);
+      drawLine(f4[0], f4[1], f1[0], f1[1], colors[0], lineWidth, segProgress - 3);
+      
+      drawLine(b1[0], b1[1], b2[0], b2[1], colors[1], lineWidth, segProgress - 4);
+      drawLine(b2[0], b2[1], b3[0], b3[1], colors[1], lineWidth, segProgress - 5);
+      drawLine(b3[0], b3[1], b4[0], b4[1], colors[1], lineWidth, segProgress - 6);
+      drawLine(b4[0], b4[1], b1[0], b1[1], colors[1], lineWidth, segProgress - 7);
+      
+      drawLine(f1[0], f1[1], b1[0], b1[1], colors[2], lineWidth, segProgress - 8);
+      drawLine(f2[0], f2[1], b2[0], b2[1], colors[2], lineWidth, segProgress - 9);
+      drawLine(f3[0], f3[1], b3[0], b3[1], colors[2], lineWidth, segProgress - 10);
+      drawLine(f4[0], f4[1], b4[0], b4[1], colors[2], lineWidth, segProgress - 11);
+      
+      if (progress > 0.9) {
+        const pulse = Math.sin(progress * Math.PI * 4) * 0.5 + 0.5;
+        ctx.strokeStyle = colors[0];
+        ctx.lineWidth = lineWidth * (1 + pulse);
+        ctx.globalAlpha = pulse * 0.5;
+        
+        ctx.beginPath();
+        ctx.moveTo(f1[0], f1[1]);
+        ctx.lineTo(b3[0], b3[1]);
+        ctx.stroke();
+        
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    const params = {
+      figure: 'all',
+      speed: 30,
+      complexity: 50,
+      colorScheme: 'classic',
+      revealMode: 'construct',
+      lineWidth: 3
+    };
+    
+    function render(time) {
+      const t = time * params.speed * 0.001;
+      const width = canvas.width;
+      const height = canvas.height;
+      const scheme = colorSchemes[params.colorScheme];
+      
+      ctx.fillStyle = scheme.bg;
+      ctx.fillRect(0, 0, width, height);
+      
+      let progress;
+      const cycle = t % 10;
+      
+      switch (params.revealMode) {
+        case 'construct':
+          progress = Math.min(cycle / 4, 1);
+          break;
+        case 'deconstruct':
+          progress = Math.max(1 - cycle / 4, 0);
+          break;
+        case 'pulse':
+          progress = Math.sin(cycle * 0.8) * 0.5 + 0.5;
+          break;
+        case 'rotate':
+          progress = 1;
+          break;
+        default:
+          progress = Math.min(cycle / 4, 1);
+      }
+      
+      const size = Math.min(width, height) * (0.25 + params.complexity * 0.002);
+      
+      ctx.save();
+      
+      if (params.revealMode === 'rotate') {
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(t * 0.2);
+        ctx.translate(-width / 2, -height / 2);
+      }
+      
+      const figures = ['penrose-triangle', 'impossible-staircase', 'blivet', 'necker-cube'];
+      const positions = [
+        [width * 0.25, height * 0.25],
+        [width * 0.75, height * 0.25],
+        [width * 0.25, height * 0.75],
+        [width * 0.75, height * 0.75],
+      ];
+      
+      figures.forEach((fig, idx) => {
+        const [cx, cy] = positions[idx];
+        const figProgress = Math.max(0, Math.min(1, progress * 2 - idx * 0.2));
+        
+        switch (fig) {
+          case 'penrose-triangle':
+            drawPenroseTriangle(cx, cy, size, figProgress, scheme.lines, params.lineWidth);
+            break;
+          case 'impossible-staircase':
+            drawImpossibleStaircase(cx, cy, size, figProgress, scheme.lines, params.lineWidth);
+            break;
+          case 'blivet':
+            drawBlivet(cx, cy, size, figProgress, scheme.lines, params.lineWidth);
+            break;
+          case 'necker-cube':
+            drawNeckerCube(cx, cy, size, figProgress, scheme.lines, params.lineWidth);
+            break;
+        }
+      });
+      
+      if (progress > 0.8) {
+        ctx.fillStyle = scheme.accent;
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.globalAlpha = (progress - 0.8) * 5;
+        ctx.fillText('IMPOSSIBLE', width / 2, height - 20);
+        ctx.globalAlpha = 1;
+      }
+      
+      ctx.restore();
+      requestAnimationFrame(render);
+    }
+    
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
