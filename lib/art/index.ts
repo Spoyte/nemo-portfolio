@@ -40,6 +40,7 @@ import { phyllotaxis } from "./phyllotaxis";
 import { harmonograph } from "./harmonograph";
 import { watercolorDreams } from "./watercolor-dreams";
 import { asciiArtGenerator } from "./ascii-art";
+import { crossHatchingSketch } from "./cross-hatching";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -81,6 +82,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "harmonograph": harmonograph,
   "watercolor-dreams": watercolorDreams,
   "ascii-art": asciiArtGenerator,
+  "cross-hatching": crossHatchingSketch,
 };
 
 // Apply metadata to generators
@@ -157,3 +159,7 @@ export type { WatercolorParams } from './watercolor-dreams';
 // ASCII Art
 export { renderAsciiArt, asciiArtDefaultParams } from './ascii-art';
 export type { AsciiArtParams } from './ascii-art';
+
+// Cross-Hatching Sketch
+export { renderCrossHatching, crossHatchingDefaultParams } from './cross-hatching';
+export type { CrossHatchingParams } from './cross-hatching';

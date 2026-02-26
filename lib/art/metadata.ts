@@ -222,6 +222,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "monochrome", "abstract"],
     created: "2024-02-26",
   },
+  "cross-hatching": {
+    category: "traditional",
+    complexity: "moderate",
+    tags: ["animated", "monochrome", "detailed"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {
