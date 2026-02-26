@@ -258,6 +258,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "colorful", "chaotic"],
     created: "2024-02-26",
   },
+  "prism-dispersion": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "colorful", "ordered", "detailed", "futuristic"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {

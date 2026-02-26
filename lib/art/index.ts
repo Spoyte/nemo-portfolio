@@ -46,6 +46,7 @@ import { chladniFigures } from "./chladni-figures";
 import { spaceFillingCurves } from "./space-filling-curves";
 import { origamiTessellation } from "./origami-tessellation";
 import { cymatics } from "./cymatics";
+import { prismDispersion } from "./prism-dispersion";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -93,6 +94,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "space-filling-curves": spaceFillingCurves,
   "origami-tessellation": origamiTessellation,
   "cymatics": cymatics,
+  "prism-dispersion": prismDispersion,
 };
 
 // Apply metadata to generators
@@ -193,3 +195,7 @@ export type { OrigamiTessellationParams } from './origami-tessellation';
 // Cymatics
 export { renderCymatics, cymaticsDefaultParams } from './cymatics';
 export type { CymaticsParams } from './cymatics';
+
+// Prism Dispersion
+export { renderPrismDispersion, prismDispersionDefaultParams } from './prism-dispersion';
+export type { PrismDispersionParams } from './prism-dispersion';
