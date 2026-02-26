@@ -210,6 +210,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["static", "geometric", "colorful", "detailed"],
     created: "2024-02-24",
   },
+  "watercolor-dreams": {
+    category: "traditional",
+    complexity: "complex",
+    tags: ["animated", "organic", "colorful", "detailed"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {

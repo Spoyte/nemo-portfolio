@@ -38,6 +38,7 @@ import { impossibleGeometry } from "./impossible-geometry";
 import { metaballs } from "./metaballs";
 import { phyllotaxis } from "./phyllotaxis";
 import { harmonograph } from "./harmonograph";
+import { watercolorDreams } from "./watercolor-dreams";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -77,6 +78,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "metaballs": metaballs,
   "phyllotaxis": phyllotaxis,
   "harmonograph": harmonograph,
+  "watercolor-dreams": watercolorDreams,
 };
 
 // Apply metadata to generators
@@ -145,3 +147,7 @@ export type { PhyllotaxisParams } from './phyllotaxis';
 // Harmonograph
 export { renderHarmonograph, harmonographDefaultParams } from './harmonograph';
 export type { HarmonographParams } from './harmonograph';
+
+// Watercolor Dreams
+export { renderWatercolorDreams, watercolorDreamsDefaultParams } from './watercolor-dreams';
+export type { WatercolorParams } from './watercolor-dreams';
