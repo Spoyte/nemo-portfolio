@@ -39,6 +39,7 @@ import { metaballs } from "./metaballs";
 import { phyllotaxis } from "./phyllotaxis";
 import { harmonograph } from "./harmonograph";
 import { watercolorDreams } from "./watercolor-dreams";
+import { asciiArtGenerator } from "./ascii-art";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -79,6 +80,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "phyllotaxis": phyllotaxis,
   "harmonograph": harmonograph,
   "watercolor-dreams": watercolorDreams,
+  "ascii-art": asciiArtGenerator,
 };
 
 // Apply metadata to generators
@@ -151,3 +153,7 @@ export type { HarmonographParams } from './harmonograph';
 // Watercolor Dreams
 export { renderWatercolorDreams, watercolorDreamsDefaultParams } from './watercolor-dreams';
 export type { WatercolorParams } from './watercolor-dreams';
+
+// ASCII Art
+export { renderAsciiArt, asciiArtDefaultParams } from './ascii-art';
+export type { AsciiArtParams } from './ascii-art';

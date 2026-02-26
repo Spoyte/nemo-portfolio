@@ -216,6 +216,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "colorful", "detailed"],
     created: "2024-02-26",
   },
+  "ascii-art": {
+    category: "traditional",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "monochrome", "abstract"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {
