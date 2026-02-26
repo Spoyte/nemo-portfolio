@@ -252,6 +252,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "detailed"],
     created: "2024-02-26",
   },
+  "cymatics": {
+    category: "physics",
+    complexity: "moderate",
+    tags: ["animated", "organic", "colorful", "chaotic"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {

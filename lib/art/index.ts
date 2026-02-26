@@ -45,6 +45,7 @@ import { moirePattern } from "./moire-pattern";
 import { chladniFigures } from "./chladni-figures";
 import { spaceFillingCurves } from "./space-filling-curves";
 import { origamiTessellation } from "./origami-tessellation";
+import { cymatics } from "./cymatics";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -91,6 +92,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "chladni-figures": chladniFigures,
   "space-filling-curves": spaceFillingCurves,
   "origami-tessellation": origamiTessellation,
+  "cymatics": cymatics,
 };
 
 // Apply metadata to generators
@@ -187,3 +189,7 @@ export type { SpaceFillingCurvesParams } from './space-filling-curves';
 // Origami Tessellation
 export { renderOrigamiTessellation, origamiTessellationDefaultParams } from './origami-tessellation';
 export type { OrigamiTessellationParams } from './origami-tessellation';
+
+// Cymatics
+export { renderCymatics, cymaticsDefaultParams } from './cymatics';
+export type { CymaticsParams } from './cymatics';
