@@ -1,4 +1,6 @@
-export interface ImpossibleGeometryParams {
+import { ArtGenerator, ArtParams, ParamConfig } from "./core";
+
+export interface ImpossibleGeometryParams extends ArtParams {
   figure: 'penrose-triangle' | 'impossible-staircase' | 'blivet' | 'necker-cube' | 'all';
   speed: number;
   complexity: number;
@@ -438,3 +440,56 @@ export function renderImpossibleGeometry(
   
   ctx.restore();
 }
+
+// ArtGenerator wrapper
+export const impossibleGeometry: ArtGenerator = {
+  name: "Impossible Geometry",
+  description: "Optical illusions and paradoxical figures including Penrose triangle, impossible staircase, blivet, and Necker cube",
+  params: {
+    figure: {
+      name: "Figure",
+      type: "select",
+      options: ["penrose-triangle", "impossible-staircase", "blivet", "necker-cube", "all"],
+      default: "all",
+    },
+    speed: {
+      name: "Animation Speed",
+      type: "range",
+      min: 0,
+      max: 100,
+      step: 5,
+      default: 30,
+    },
+    complexity: {
+      name: "Complexity",
+      type: "range",
+      min: 10,
+      max: 100,
+      step: 10,
+      default: 50,
+    },
+    colorScheme: {
+      name: "Color Scheme",
+      type: "select",
+      options: ["classic", "neon", "monochrome", "warm", "cool"],
+      default: "classic",
+    },
+    revealMode: {
+      name: "Reveal Mode",
+      type: "select",
+      options: ["construct", "deconstruct", "pulse", "rotate"],
+      default: "construct",
+    },
+    lineWidth: {
+      name: "Line Width",
+      type: "range",
+      min: 1,
+      max: 8,
+      step: 1,
+      default: 3,
+    },
+  },
+  generate: (ctx: CanvasRenderingContext2D, params: ArtParams, time: number = 0) => {
+    renderImpossibleGeometry(ctx, ctx.canvas.width, ctx.canvas.height, time, params as ImpossibleGeometryParams);
+  },
+};

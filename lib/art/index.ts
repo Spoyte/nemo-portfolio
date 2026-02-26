@@ -34,6 +34,7 @@ import { stainedGlass } from "./stained-glass";
 import { fractalFlame } from "./fractal-flame";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { islamicPatterns } from "./islamic-patterns";
+import { impossibleGeometry } from "./impossible-geometry";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -69,6 +70,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "fractal-flame": fractalFlame,
   "polyhedral-sculptures": polyhedralSculptures,
   "islamic-patterns": islamicPatterns,
+  "impossible-geometry": impossibleGeometry,
 };
 
 // Apply metadata to generators
@@ -123,3 +125,5 @@ export { renderPolyhedralSculptures, polyhedralSculpturesDefaultParams } from '.
 export type { PolyhedralSculpturesParams } from './polyhedral-sculptures';
 export { renderIslamicPatterns, islamicPatternsDefaultParams } from './islamic-patterns';
 export type { IslamicPatternParams } from './islamic-patterns';
+export { renderImpossibleGeometry, impossibleGeometryDefaultParams } from './impossible-geometry';
+export type { ImpossibleGeometryParams } from './impossible-geometry';

@@ -136,6 +136,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
   },
 
   // === ABSTRACT ===
+  "impossible-geometry": {
+    category: "abstract",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "monochrome", "abstract"],
+    created: "2024-02-26",
+  },
   "flow-field": {
     category: "abstract",
     complexity: "moderate",
