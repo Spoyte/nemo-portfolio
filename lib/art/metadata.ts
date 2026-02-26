@@ -240,6 +240,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "detailed", "futuristic"],
     created: "2024-02-26",
   },
+  "space-filling-curves": {
+    category: "mathematical",
+    complexity: "complex",
+    tags: ["animated", "geometric", "ordered", "detailed"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {

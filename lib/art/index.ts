@@ -43,6 +43,7 @@ import { asciiArtGenerator } from "./ascii-art";
 import { crossHatchingSketch } from "./cross-hatching";
 import { moirePattern } from "./moire-pattern";
 import { chladniFigures } from "./chladni-figures";
+import { spaceFillingCurves } from "./space-filling-curves";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -87,6 +88,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "cross-hatching": crossHatchingSketch,
   "moire-pattern": moirePattern,
   "chladni-figures": chladniFigures,
+  "space-filling-curves": spaceFillingCurves,
 };
 
 // Apply metadata to generators
@@ -175,3 +177,7 @@ export type { MoirePatternParams } from './moire-pattern';
 // Chladni Figures
 export { renderChladniFigures, chladniFiguresDefaultParams } from './chladni-figures';
 export type { ChladniFiguresParams } from './chladni-figures';
+
+// Space-Filling Curves
+export { renderSpaceFillingCurves, spaceFillingCurvesDefaultParams } from './space-filling-curves';
+export type { SpaceFillingCurvesParams } from './space-filling-curves';
