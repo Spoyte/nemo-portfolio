@@ -40,6 +40,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
   },
 
   // === NATURAL ===
+  "aurora-borealis": {
+    category: "natural",
+    complexity: "complex",
+    tags: ["animated", "organic", "nature", "colorful", "detailed"],
+    created: "2024-02-27",
+  },
   "recursive-trees": {
     category: "natural",
     complexity: "moderate",

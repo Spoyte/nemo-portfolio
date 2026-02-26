@@ -2,6 +2,7 @@ import { ArtGenerator } from "./core";
 import { ARTWORK_METADATA } from "./metadata";
 
 // Import all generators
+import { auroraBorealis } from "./aurora-borealis";
 import { flowField } from "./flow-field";
 import { geometricMandala } from "./geometric-mandala";
 import { particleNetwork } from "./particle-network";
@@ -50,6 +51,7 @@ import { prismDispersion } from "./prism-dispersion";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
+  "aurora-borealis": auroraBorealis,
   "flow-field": flowField,
   "geometric-mandala": geometricMandala,
   "particle-network": particleNetwork,
@@ -116,6 +118,8 @@ export * from "./core";
 export * from "./metadata";
 
 // Re-export individual functions for backward compatibility
+export { renderAuroraBorealis, auroraBorealisDefaultParams } from './aurora-borealis';
+export type { AuroraParams } from './aurora-borealis';
 export { renderOrbitalMechanics, orbitalMechanicsDefaultParams } from './orbital-mechanics';
 export type { OrbitalMechanicsParams } from './orbital-mechanics';
 export { renderLightCaverns, lightCavernsDefaultParams } from './light-caverns';
