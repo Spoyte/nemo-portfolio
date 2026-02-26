@@ -50,6 +50,8 @@ import { cymatics } from "./cymatics";
 import { prismDispersion } from "./prism-dispersion";
 import { kineticTypography } from "./kinetic-typography";
 import { magneticField } from "./magnetic-field";
+import { plasmaArc } from "./plasma-arc";
+import { slimeMold } from "./slime-mold";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -101,6 +103,8 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "prism-dispersion": prismDispersion,
   "kinetic-typography": kineticTypography,
   "magnetic-field": magneticField,
+  "plasma-arc": plasmaArc,
+  "slime-mold": slimeMold,
 };
 
 // Apply metadata to generators
@@ -215,3 +219,11 @@ export type { PrismDispersionParams } from './prism-dispersion';
 // Magnetic Field
 export { renderMagneticField, magneticFieldDefaultParams } from './magnetic-field';
 export type { MagneticFieldParams } from './magnetic-field';
+
+// Plasma Arc
+export { renderPlasmaArc, plasmaArcDefaultParams } from './plasma-arc';
+export type { PlasmaArcParams } from './plasma-arc';
+
+// Slime Mold
+export { renderSlimeMold, slimeMoldDefaultParams } from './slime-mold';
+export type { SlimeMoldParams } from './slime-mold';

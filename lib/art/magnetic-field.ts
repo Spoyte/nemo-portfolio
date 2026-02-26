@@ -61,9 +61,9 @@ const COLOR_SCHEMES: Record<string, (strength: number, t: number) => string> = {
 function getNeonColor(index: number, alpha: number): string {
   const colors = [
     `rgba(0, 255, 255, ${alpha})`,   // cyan
-    `rgba(255, 0, 255, ${alpha})",   // magenta
-    `rgba(255, 255, 0, ${alpha})",   // yellow
-    `rgba(0, 255, 128, ${alpha})",   // green
+    `rgba(255, 0, 255, ${alpha})`,   // magenta
+    `rgba(255, 255, 0, ${alpha})`,   // yellow
+    `rgba(0, 255, 128, ${alpha})`,   // green
   ];
   return colors[index % colors.length];
 }

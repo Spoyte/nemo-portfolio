@@ -282,6 +282,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "colorful", "detailed"],
     created: "2024-02-27",
   },
+  "slime-mold": {
+    category: "natural",
+    complexity: "complex",
+    tags: ["animated", "organic", "nature", "chaotic", "detailed"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
