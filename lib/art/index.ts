@@ -44,6 +44,7 @@ import { crossHatchingSketch } from "./cross-hatching";
 import { moirePattern } from "./moire-pattern";
 import { chladniFigures } from "./chladni-figures";
 import { spaceFillingCurves } from "./space-filling-curves";
+import { origamiTessellation } from "./origami-tessellation";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -89,6 +90,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "moire-pattern": moirePattern,
   "chladni-figures": chladniFigures,
   "space-filling-curves": spaceFillingCurves,
+  "origami-tessellation": origamiTessellation,
 };
 
 // Apply metadata to generators
@@ -181,3 +183,7 @@ export type { ChladniFiguresParams } from './chladni-figures';
 // Space-Filling Curves
 export { renderSpaceFillingCurves, spaceFillingCurvesDefaultParams } from './space-filling-curves';
 export type { SpaceFillingCurvesParams } from './space-filling-curves';
+
+// Origami Tessellation
+export { renderOrigamiTessellation, origamiTessellationDefaultParams } from './origami-tessellation';
+export type { OrigamiTessellationParams } from './origami-tessellation';

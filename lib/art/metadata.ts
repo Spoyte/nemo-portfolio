@@ -246,6 +246,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "detailed"],
     created: "2024-02-26",
   },
+  "origami-tessellation": {
+    category: "geometric",
+    complexity: "complex",
+    tags: ["animated", "geometric", "ordered", "detailed"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {
