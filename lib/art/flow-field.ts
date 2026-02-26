@@ -51,6 +51,12 @@ export const flowField: ArtGenerator = {
       default: 1,
     },
   },
+  meta: {
+    category: "abstract",
+    complexity: "moderate",
+    tags: ["animated", "organic", "colorful"],
+    created: "2024-02-20",
+  },
   generate: (ctx, params, time = 0) => {
     const canvas = ctx.canvas;
     const { particleCount, noiseScale, speed, colorHue, seed } = params;

@@ -16,11 +16,51 @@ export interface ParamConfig {
   default: number | string;
 }
 
+// Artwork category for organization
+export type ArtCategory =
+  | "mathematical"      // Pure math: fractals, curves, geometric forms
+  | "natural"           // Nature-inspired: trees, terrain, organic patterns
+  | "physics"           // Physics simulations: fluids, particles, waves
+  | "geometric"         // Geometric patterns: mandalas, tessellations, symmetry
+  | "abstract"          // Abstract art: fields, reaction-diffusion, noise
+  | "traditional"       // Traditional media emulation: hatching, stained glass
+  | "3d"                // 3D rendering: wireframes, raymarching, sculptures
+  | "text"              // Typography and text-based art
+  | "interactive";      // Interactive/animated experiences
+
+// Difficulty/technical complexity level
+export type ArtComplexity = "simple" | "moderate" | "complex" | "expert";
+
+// Visual style tags for filtering
+export type ArtTag =
+  | "animated"
+  | "static"
+  | "monochrome"
+  | "colorful"
+  | "geometric"
+  | "organic"
+  | "chaotic"
+  | "ordered"
+  | "minimal"
+  | "detailed"
+  | "retro"
+  | "futuristic"
+  | "nature"
+  | "abstract";
+
 export interface ArtGenerator {
   name: string;
   description: string;
   params: Record<string, ParamConfig>;
   generate: (ctx: CanvasRenderingContext2D, params: ArtParams, time?: number) => void;
+  // Metadata for organization and discovery
+  meta?: {
+    category: ArtCategory;
+    complexity: ArtComplexity;
+    tags: ArtTag[];
+    created: string; // ISO date
+    dependsOn?: string[]; // IDs of related generators
+  };
 }
 
 // Utility: Fill canvas with color
