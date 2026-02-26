@@ -26,6 +26,7 @@ import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { ScreenSaver } from "@/components/screen-saver";
 import { ToastProvider } from "@/components/notification-toast";
 import { PomodoroTimer } from "@/components/pomodoro-timer";
+import { ParticleNetwork } from "@/components/particle-network";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -64,6 +65,7 @@ export default function RootLayout({
             <FocusModeProvider>
               <CursorFollower>
                 <ParticleCursorTrail>
+                  <ParticleNetwork />
                   <DynamicFavicon />
                   <Analytics />
                   <ScrollProgress />

@@ -1,4 +1,4 @@
-import { ArtGenerator, ArtParams, ParamType, ParamConfig } from "./core";
+import { ArtGenerator, ArtParams, ParamConfig } from "./core";
 
 export interface StainedGlassParams extends ArtParams {
   cellCount: number;
