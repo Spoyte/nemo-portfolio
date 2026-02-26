@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cross-Hatching Sketch | Generative Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 0.875rem;
+      margin-bottom: 30px;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      max-width: 100%;
+      height: auto;
+    }
+    .controls {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      max-width: 700px;
+    }
+    .control {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input[type="range"] {
+      width: 100px;
+    }
+    select {
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+    button {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cross-Hatching Sketch</h1>
+    <p class="subtitle">Traditional media simulation with intersecting lines</p>
+    
+    <canvas id="canvas" width="600" height="600"></canvas>
+    
+    <div class="controls">
+      <div class="control">
+        <label>Subject</label>
+        <select id="subject">
+          <option value="portrait" selected>Portrait</option>
+          <option value="sphere">Sphere</option>
+          <option value="landscape">Landscape</option>
+          <option value="stillLife">Still Life</option>
+          <option value="abstract">Abstract</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Paper</label>
+        <select id="paperTone">
+          <option value="white" selected>White</option>
+          <option value="cream">Cream</option>
+          <option value="grey">Grey</option>
+          <option value="tan">Tan</option>
+          <option value="blueprint">Blueprint</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Pencil</label>
+        <select id="pencilGrade">
+          <option value="2H">2H</option>
+          <option value="HB" selected>HB</option>
+          <option value="2B">2B</option>
+          <option value="4B">4B</option>
+          <option value="6B">6B</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Density</label>
+        <input type="range" id="lineDensity" min="0.3" max="2" value="1" step="0.1">
+      </div>
+      <div class="control">
+        <label>Layers</label>
+        <input type="range" id="hatchingLayers" min="1" max="4" value="3" step="1">
+      </div>
+      <div class="control">
+        <label>Roughness</label>
+        <input type="range" id="roughness" min="0" max="1" value="0.3" step="0.1">
+      </div>
+      <div class="control">
+        <label>Contrast</label>
+        <input type="range" id="contrast" min="0.5" max="2" value="1" step="0.1">
+      </div>
+      <div class="control">
+        <label>&nbsp;</label>
+        <button id="regenerate">New Sketch</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Seeded random number generator
+    let seed = Math.random() * 10000;
+    function random() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    }
+    
+    // Simplex-like noise function
+    function noise(x, y) {
+      const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+      return n - Math.floor(n);
+    }
+    
+    // Paper colors
+    const PAPER_COLORS = {
+      white: '#fafafa',
+      cream: '#f5f5dc',
+      grey: '#d0d0d0',
+      tan: '#d2b48c',
+      blueprint: '#1a3a5c'
+    };
+    
+    // Pencil grades (opacity multipliers)
+    const PENCIL_GRADES = {
+      '2H': 0.2,
+      'HB': 0.35,
+      '2B': 0.5,
+      '4B': 0.7,
+      '6B': 0.85
+    };
+    
+    // Subject tone functions - define tonal structure
+    const SUBJECT_TONES = {
+      portrait: (x, y, w, h, t) => {
+        const nx = x / w;
+        const ny = y / h;
+        const cx = 0.5, cy = 0.5;
+        const dx = nx - cx, dy = ny - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        const faceShape = dist < 0.35 ? 1 : Math.max(0, 1 - (dist - 0.35) * 5);
+        const leftEye = Math.exp(-((nx - 0.35) ** 2 + (ny - 0.42) ** 2) * 200);
+        const rightEye = Math.exp(-((nx - 0.65) ** 2 + (ny - 0.42) ** 2) * 200);
+        const nose = Math.exp(-((nx - 0.5) ** 2 + (ny - 0.52) ** 2) * 100) * 0.5;
+        const mouth = Math.exp(-((nx - 0.5) ** 2 * 50 + (ny - 0.65) ** 2 * 400)) * 0.7;
+        const chin = ny > 0.75 ? (ny - 0.75) * 2 : 0;
+        const forehead = ny < 0.35 ? 0.3 : 0;
+        const leftCheek = Math.exp(-((nx - 0.3) ** 2 + (ny - 0.58) ** 2) * 80) * 0.4;
+        const rightCheek = Math.exp(-((nx - 0.7) ** 2 + (ny - 0.58) ** 2) * 80) * 0.4;
+        
+        return Math.min(1, faceShape * (leftEye + rightEye + nose + mouth + chin + leftCheek + rightCheek + forehead));
+      },
+      
+      sphere: (x, y, w, h, t) => {
+        const nx = x / w;
+        const ny = y / h;
+        const cx = 0.5, cy = 0.5;
+        const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+        
+        if (dist > 0.4) return 0;
+        
+        // Light from top-left
+        const lightX = 0.3, lightY = 0.3;
+        const lightDist = Math.sqrt((nx - lightX) ** 2 + (ny - lightY) ** 2);
+        const shadow = 1 - lightDist * 1.5;
+        
+        // Ambient occlusion at edges
+        const ao = Math.max(0, 1 - dist * 2.5);
+        
+        return Math.max(0, (1 - shadow * 0.7) * ao);
+      },
+      
+      landscape: (x, y, w, h, t) => {
+        const nx = x / w;
+        const ny = y / h;
+        
+        // Sky gradient
+        if (ny < 0.4) {
+          return 0.1 + ny * 0.3;
+        }
+        
+        // Hills
+        const hill1 = Math.sin(nx * 3 + 1) * 0.1 + 0.5;
+        const hill2 = Math.sin(nx * 5 + 2) * 0.08 + 0.65;
+        const hill3 = Math.sin(nx * 2 + 0.5) * 0.15 + 0.8;
+        
+        if (ny < hill1) return 0.3 + (hill1 - ny) * 2;
+        if (ny < hill2) return 0.5 + (hill2 - ny) * 1.5;
+        if (ny < hill3) return 0.7 + (hill3 - ny) * 1.2;
+        
+        return 0.9; // Foreground
+      },
+      
+      stillLife: (x, y, w, h, t) => {
+        const nx = x / w;
+        const ny = y / h;
+        
+        // Table surface
+        if (ny > 0.7) {
+          return 0.4 + Math.sin(nx * 10) * 0.05;
+        }
+        
+        // Vase
+        const vaseCenterX = 0.35;
+        const vaseCenterY = 0.55;
+        const vaseWidth = 0.12 + Math.abs(ny - vaseCenterY) * 0.15;
+        if (Math.abs(nx - vaseCenterX) < vaseWidth && ny > 0.35 && ny < 0.75) {
+          const light = 1 - Math.abs(nx - (vaseCenterX - 0.05)) * 3;
+          return 0.3 + Math.max(0, light) * 0.4;
+        }
+        
+        // Apple
+        const appleX = 0.6, appleY = 0.62;
+        const appleDist = Math.sqrt((nx - appleX) ** 2 + (ny - appleY) ** 2);
+        if (appleDist < 0.12) {
+          const light = 1 - Math.sqrt((nx - 0.55) ** 2 + (ny - 0.58) ** 2) * 4;
+          return 0.25 + Math.max(0, light) * 0.5;
+        }
+        
+        // Orange
+        const orangeX = 0.75, orangeY = 0.65;
+        const orangeDist = Math.sqrt((nx - orangeX) ** 2 + (ny - orangeY) ** 2);
+        if (orangeDist < 0.1) {
+          const light = 1 - Math.sqrt((nx - 0.7) ** 2 + (ny - 0.6) ** 2) * 5;
+          return 0.3 + Math.max(0, light) * 0.45;
+        }
+        
+        // Shadows
+        const shadowVase = Math.exp(-((nx - 0.35) ** 2 * 20 + (ny - 0.78) ** 2 * 100)) * 0.3;
+        const shadowApple = Math.exp(-((nx - 0.6) ** 2 * 25 + (ny - 0.78) ** 2 * 100)) * 0.25;
+        const shadowOrange = Math.exp(-((nx - 0.75) ** 2 * 30 + (ny - 0.78) ** 2 * 100)) * 0.2;
+        
+        return Math.min(0.95, shadowVase + shadowApple + shadowOrange + 0.05);
+      },
+      
+      abstract: (x, y, w, h, t) => {
+        const nx = x / w;
+        const ny = y / h;
+        const time = Date.now() / 2000;
+        
+        const v1 = Math.sin(nx * 4 + time) * Math.cos(ny * 3);
+        const v2 = Math.sin(nx * 7 - time * 0.7) * Math.sin(ny * 5);
+        const v3 = Math.cos((nx + ny) * 5 + time * 0.5);
+        
+        return (v1 + v2 + v3 + 3) / 6;
+      }
+    };
+    
+    function drawHatchingLine(x1, y1, x2, y2, opacity, roughness) {
+      ctx.beginPath();
+      
+      if (roughness > 0) {
+        const steps = Math.ceil(Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) / 5);
+        ctx.moveTo(x1 + (random() - 0.5) * roughness * 2, y1 + (random() - 0.5) * roughness * 2);
+        
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          const x = x1 + (x2 - x1) * t + (random() - 0.5) * roughness * 2;
+          const y = y1 + (y2 - y1) * t + (random() - 0.5) * roughness * 2;
+          ctx.lineTo(x, y);
+        }
+      } else {
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+      }
+      
+      ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+      ctx.stroke();
+    }
+    
+    function drawBlueprintLine(x1, y1, x2, y2, opacity, roughness) {
+      ctx.beginPath();
+      
+      if (roughness > 0) {
+        const steps = Math.ceil(Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) / 5);
+        ctx.moveTo(x1 + (random() - 0.5) * roughness * 2, y1 + (random() - 0.5) * roughness * 2);
+        
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          const x = x1 + (x2 - x1) * t + (random() - 0.5) * roughness * 2;
+          const y = y1 + (y2 - y1) * t + (random() - 0.5) * roughness * 2;
+          ctx.lineTo(x, y);
+        }
+      } else {
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+      }
+      
+      ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+      ctx.stroke();
+    }
+    
+    function render() {
+      const subject = document.getElementById('subject').value;
+      const paperTone = document.getElementById('paperTone').value;
+      const pencilGrade = document.getElementById('pencilGrade').value;
+      const lineDensity = parseFloat(document.getElementById('lineDensity').value);
+      const hatchingLayers = parseInt(document.getElementById('hatchingLayers').value);
+      const roughness = parseFloat(document.getElementById('roughness').value) * 3;
+      const contrast = parseFloat(document.getElementById('contrast').value);
+      const isBlueprint = paperTone === 'blueprint';
+      
+      // Background
+      ctx.fillStyle = PAPER_COLORS[paperTone];
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Paper texture
+      if (!isBlueprint) {
+        ctx.fillStyle = 'rgba(0,0,0,0.02)';
+        for (let i = 0; i < 5000; i++) {
+          const x = random() * canvas.width;
+          const y = random() * canvas.height;
+          ctx.fillRect(x, y, 1, 1);
+        }
+      }
+      
+      const baseOpacity = PENCIL_GRADES[pencilGrade];
+      const toneFn = SUBJECT_TONES[subject];
+      const drawLine = isBlueprint ? drawBlueprintLine : drawHatchingLine;
+      
+      // Hatching angles for each layer
+      const angles = [0, Math.PI / 3, -Math.PI / 3, Math.PI / 6];
+      
+      // Spacing between lines
+      const baseSpacing = 8 / lineDensity;
+      
+      for (let layer = 0; layer < hatchingLayers; layer++) {
+        const angle = angles[layer % angles.length];
+        const spacing = baseSpacing * (1 + layer * 0.3);
+        
+        // Calculate line endpoints across canvas at this angle
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        
+        // Determine scan direction perpendicular to hatching
+        const perpX = -sin;
+        const perpY = cos;
+        
+        // Scan across canvas
+        const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
+        const steps = Math.ceil(diagonal / spacing);
+        
+        for (let i = -steps; i <= steps; i++) {
+          const offset = i * spacing;
+          
+          // Line center point
+          const cx = canvas.width / 2 + perpX * offset;
+          const cy = canvas.height / 2 + perpY * offset;
+          
+          // Line endpoints (extend beyond canvas)
+          const lineLen = diagonal;
+          const x1 = cx - cos * lineLen;
+          const y1 = cy - sin * lineLen;
+          const x2 = cx + cos * lineLen;
+          const y2 = cy + sin * lineLen;
+          
+          // Sample points along the line to determine where to draw
+          const sampleSteps = Math.ceil(lineLen * 2 / 4);
+          let drawing = false;
+          let segStart = null;
+          
+          for (let s = 0; s <= sampleSteps; s++) {
+            const t = s / sampleSteps;
+            const sx = x1 + (x2 - x1) * t;
+            const sy = y1 + (y2 - y1) * t;
+            
+            // Skip if outside canvas
+            if (sx < 0 || sx >= canvas.width || sy < 0 || sy >= canvas.height) {
+              if (drawing && segStart) {
+                drawLine(segStart.x, segStart.y, sx, sy, baseOpacity * (0.5 + layer * 0.2), roughness);
+              }
+              drawing = false;
+              segStart = null;
+              continue;
+            }
+            
+            const tone = toneFn(sx, sy, canvas.width, canvas.height, 0);
+            const threshold = (layer + 1) / (hatchingLayers + 1);
+            
+            // Determine if we should draw at this point based on tone
+            const shouldDraw = tone > threshold * (1 / contrast);
+            
+            if (shouldDraw && !drawing) {
+              drawing = true;
+              segStart = { x: sx, y: sy };
+            } else if (!shouldDraw && drawing && segStart) {
+              drawLine(segStart.x, segStart.y, sx, sy, baseOpacity * (0.5 + layer * 0.15), roughness);
+              drawing = false;
+              segStart = null;
+            }
+          }
+          
+          if (drawing && segStart) {
+            drawLine(segStart.x, segStart.y, x2, y2, baseOpacity * (0.5 + layer * 0.15), roughness);
+          }
+        }
+      }
+      
+      // Contour hatching for form definition (simplified)
+      if (subject !== 'abstract') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        
+        const contourSpacing = baseSpacing * 2;
+        for (let y = 0; y < canvas.height; y += contourSpacing) {
+          for (let x = 0; x < canvas.width; x += contourSpacing) {
+            const tone = toneFn(x, y, canvas.width, canvas.height, 0);
+            
+            if (tone > 0.3 && tone < 0.8) {
+              // Calculate gradient direction for contour following
+              const delta = 2;
+              const tx = toneFn(x + delta, y, canvas.width, canvas.height, 0);
+              const ty = toneFn(x, y + delta, canvas.width, canvas.height, 0);
+              
+              const gradX = (tx - tone) / delta;
+              const gradY = (ty - tone) / delta;
+              
+              // Draw short stroke perpendicular to gradient
+              const len = 5 + tone * 10;
+              const angle = Math.atan2(gradY, gradX) + Math.PI / 2;
+              
+              const x1 = x - Math.cos(angle) * len;
+              const y1 = y - Math.sin(angle) * len;
+              const x2 = x + Math.cos(angle) * len;
+              const y2 = y + Math.sin(angle) * len;
+              
+              drawLine(x1, y1, x2, y2, baseOpacity * 0.3 * tone, roughness * 0.5);
+            }
+          }
+        }
+        ctx.restore();
+      }
+    }
+    
+    // Animation for abstract mode
+    let animationId = null;
+    function animate() {
+      if (document.getElementById('subject').value === 'abstract') {
+        seed = Date.now() / 1000;
+        render();
+        animationId = requestAnimationFrame(animate);
+      }
+    }
+    
+    // Event listeners
+    document.getElementById('regenerate').addEventListener('click', () => {
+      seed = Math.random() * 10000;
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      render();
+      if (document.getElementById('subject').value === 'abstract') {
+        animate();
+      }
+    });
+    
+    document.getElementById('subject').addEventListener('change', () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      render();
+      if (document.getElementById('subject').value === 'abstract') {
+        animate();
+      }
+    });
+    
+    ['paperTone', 'pencilGrade', 'lineDensity', 'hatchingLayers', 'roughness', 'contrast'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (!animationId) render();
+      });
+    });
+    
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
