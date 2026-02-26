@@ -49,6 +49,7 @@ import { origamiTessellation } from "./origami-tessellation";
 import { cymatics } from "./cymatics";
 import { prismDispersion } from "./prism-dispersion";
 import { kineticTypography } from "./kinetic-typography";
+import { magneticField } from "./magnetic-field";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -99,6 +100,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "cymatics": cymatics,
   "prism-dispersion": prismDispersion,
   "kinetic-typography": kineticTypography,
+  "magnetic-field": magneticField,
 };
 
 // Apply metadata to generators
@@ -209,3 +211,7 @@ export type { CymaticsParams } from './cymatics';
 // Prism Dispersion
 export { renderPrismDispersion, prismDispersionDefaultParams } from './prism-dispersion';
 export type { PrismDispersionParams } from './prism-dispersion';
+
+// Magnetic Field
+export { renderMagneticField, magneticFieldDefaultParams } from './magnetic-field';
+export type { MagneticFieldParams } from './magnetic-field';

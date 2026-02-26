@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cymatics — Visible Sound</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #0a0a0f;
+      color: #e0e0e5;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      padding: 1.5rem 2rem;
+      background: linear-gradient(180deg, #12121a 0%, transparent 100%);
+      border-bottom: 1px solid #2a2a3a;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: #888899;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .canvas-container {
+      flex: 1;
+      background: #12121a;
+      border-radius: 1rem;
+      border: 1px solid #2a2a3a;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .controls {
+      width: 320px;
+      background: #12121a;
+      border-radius: 1rem;
+      border: 1px solid #2a2a3a;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 150px);
+    }
+    
+    .control-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6366f1;
+    }
+    
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .mode-btn {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      color: #888899;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .mode-btn:hover {
+      border-color: #6366f1;
+      color: #e0e0e5;
+    }
+    
+    .mode-btn.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #6366f1;
+      color: #a5b4fc;
+    }
+    
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8125rem;
+    }
+    
+    .slider-label {
+      color: #888899;
+    }
+    
+    .slider-value {
+      color: #e0e0e5;
+      font-weight: 500;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #2a2a3a;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #6366f1;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+    }
+    
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .color-btn {
+      width: 100%;
+      aspect-ratio: 1;
+      border: 2px solid transparent;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .color-btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .color-btn.active {
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .toggle {
+      width: 44px;
+      height: 24px;
+      background: #2a2a3a;
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .toggle.active {
+      background: #6366f1;
+    }
+    
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: all 0.2s;
+    }
+    
+    .toggle.active::after {
+      left: 23px;
+    }
+    
+    .info-box {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      color: #a5b4fc;
+    }
+    
+    .particle-count {
+      font-size: 0.75rem;
+      color: #888899;
+      text-align: center;
+      padding-top: 0.5rem;
+      border-top: 1px solid #2a2a3a;
+    }
+    
+    @media (max-width: 900px) {
+      main {
+        flex-direction: column;
+      }
+      
+      .controls {
+        width: 100%;
+        max-height: none;
+      }
+      
+      .canvas-container {
+        min-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌊 Cymatics — Visible Sound</h1>
+    <p class="subtitle">Watch how sound frequencies create geometric patterns on a vibrating surface</p>
+  </header>
+  
+  <main>
+    <div class="canvas-container">
+      <canvas id="cymaticsCanvas"></canvas>
+    </div>
+    
+    <div class="controls">
+      <div class="control-section">
+        <div class="section-title">Vibration Mode</div>
+        <div class="mode-grid">
+          <button class="mode-btn active" data-mode="circular">Circular</button>
+          <button class="mode-btn" data-mode="square">Square</button>
+          <button class="mode-btn" data-mode="triangle">Triangle</button>
+          <button class="mode-btn" data-mode="hexagon">Hexagon</button>
+          <button class="mode-btn" data-mode="star">Star</button>
+          <button class="mode-btn" data-mode="heart">Heart</button>
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <div class="section-title">Frequency Controls</div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Base Frequency</span>
+            <span class="slider-value" id="freqValue">440 Hz</span>
+          </div>
+          <input type="range" id="frequency" min="80" max="1200" value="440" step="10">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Harmonics</span>
+            <span class="slider-value" id="harmonicsValue">3</span>
+          </div>
+          <input type="range" id="harmonics" min="1" max="8" value="3" step="1">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Amplitude</span>
+            <span class="slider-value" id="amplitudeValue">50%</span>
+          </div>
+          <input type="range" id="amplitude" min="10" max="100" value="50">
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <div class="section-title">Particle Settings</div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Particle Count</span>
+            <span class="slider-value" id="particleValue">8000</span>
+          </div>
+          <input type="range" id="particles" min="1000" max="20000" value="8000" step="1000">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Particle Size</span>
+            <span class="slider-value" id="sizeValue">1.5px</span>
+          </div>
+          <input type="range" id="particleSize" min="0.5" max="4" value="1.5" step="0.1">
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <div class="section-title">Color Scheme</div>
+        <div class="color-grid">
+          <button class="color-btn active" data-color="cyan" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);"></button>
+          <button class="color-btn" data-color="magenta" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);"></button>
+          <button class="color-btn" data-color="gold" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);"></button>
+          <button class="color-btn" data-color="rainbow" style="background: linear-gradient(135deg, #ef4444, #22c55e, #3b82f6);"></button>
+          <button class="color-btn" data-color="fire" style="background: linear-gradient(135deg, #f97316, #dc2626);"></button>
+          <button class="color-btn" data-color="neon" style="background: linear-gradient(135deg, #84cc16, #10b981);"></button>
+          <button class="color-btn" data-color="white" style="background: linear-gradient(135deg, #f0f0f5, #888899);"></button>
+          <button class="color-btn" data-color="plasma" style="background: linear-gradient(135deg, #a855f7, #ec4899, #f97316);"></button>
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <div class="section-title">Display Options</div>
+        <div class="toggle-group">
+          <span class="slider-label">Show Wave Overlay</span>
+          <div class="toggle active" id="waveToggle"></div>
+        </div>
+        <div class="toggle-group">
+          <span class="slider-label">Auto-Animate Frequency</span>
+          <div class="toggle" id="animateToggle"></div>
+        </div>
+        <div class="toggle-group">
+          <span class="slider-label">Glow Effect</span>
+          <div class="toggle active" id="glowToggle"></div>
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <strong>Cymatics</strong> is the study of visible sound vibration. When a surface vibrates at specific frequencies, particles arrange themselves into geometric patterns — revealing the hidden geometry of sound.
+      </div>
+      
+      <div class="particle-count" id="particleCount">Active particles: 8,000</div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('cymaticsCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // State
+    const state = {
+      mode: 'circular',
+      frequency: 440,
+      harmonics: 3,
+      amplitude: 50,
+      particleCount: 8000,
+      particleSize: 1.5,
+      colorScheme: 'cyan',
+      showWave: true,
+      autoAnimate: false,
+      glow: true,
+      time: 0,
+      particles: []
+    };
+    
+    // Color schemes
+    const colors = {
+      cyan: { primary: '#06b6d4', secondary: '#3b82f6', accent: '#60a5fa' },
+      magenta: { primary: '#ec4899', secondary: '#8b5cf6', accent: '#d946ef' },
+      gold: { primary: '#fbbf24', secondary: '#f59e0b', accent: '#fcd34d' },
+      rainbow: { primary: '#ef4444', secondary: '#22c55e', accent: '#3b82f6' },
+      fire: { primary: '#f97316', secondary: '#dc2626', accent: '#fbbf24' },
+      neon: { primary: '#84cc16', secondary: '#10b981', accent: '#22d3ee' },
+      white: { primary: '#f0f0f5', secondary: '#888899', accent: '#ffffff' },
+      plasma: { primary: '#a855f7', secondary: '#ec4899', accent: '#f97316' }
+    };
+    
+    // Resize canvas
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      initParticles();
+    }
+    
+    // Initialize particles
+    function initParticles() {
+      state.particles = [];
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) * 0.4;
+      
+      for (let i = 0; i < state.particleCount; i++) {
+        let x, y, valid = false;
+        let attempts = 0;
+        
+        // Try to place particle within the shape
+        while (!valid && attempts < 100) {
+          const angle = Math.random() * Math.PI * 2;
+          const r = Math.sqrt(Math.random()) * radius;
+          x = cx + Math.cos(angle) * r;
+          y = cy + Math.sin(angle) * r;
+          
+          valid = isInsideShape(x, y, cx, cy, radius);
+          attempts++;
+        }
+        
+        if (valid) {
+          state.particles.push({
+            x: x,
+            y: y,
+            baseX: x,
+            baseY: y,
+            vx: 0,
+            vy: 0,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+      }
+      
+      document.getElementById('particleCount').textContent = 
+        `Active particles: ${state.particles.length.toLocaleString()}`;
+    }
+    
+    // Check if point is inside current shape
+    function isInsideShape(x, y, cx, cy, radius) {
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      switch (state.mode) {
+        case 'circular':
+          return dist <= radius;
+          
+        case 'square':
+          return Math.abs(dx) <= radius * 0.8 && Math.abs(dy) <= radius * 0.8;
+          
+        case 'triangle': {
+          // Equilateral triangle
+          const h = radius * Math.sqrt(3) / 2;
+          const yOffset = dy + radius * 0.3;
+          if (yOffset > h || yOffset < -radius * 0.5) return false;
+          const xBound = (h - yOffset) / Math.sqrt(3);
+          return Math.abs(dx) <= xBound;
+        }
+        
+        case 'hexagon': {
+          // Hexagon using cube coordinates approximation
+          const q = (2/3) * dx / (radius * 0.6);
+          const r = (-1/3 * dx + Math.sqrt(3)/3 * dy) / (radius * 0.6);
+          const s = -q - r;
+          return Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= 1;
+        }
+        
+        case 'star': {
+          // 5-pointed star
+          const angle = Math.atan2(dy, dx);
+          const normalizedAngle = ((angle + Math.PI * 2.5) % (Math.PI * 2 / 5)) - Math.PI / 5;
+          const starRadius = radius * (0.4 + 0.6 * Math.cos(normalizedAngle * 2.5));
+          return dist <= starRadius;
+        }
+        
+        case 'heart': {
+          // Heart shape
+          const nx = dx / (radius * 0.5);
+          const ny = -dy / (radius * 0.5) - 0.5;
+          return (nx * nx + ny * ny - 1) * (nx * nx + ny * ny - 1) * (nx * nx + ny * ny - 1) - nx * nx * ny * ny * ny <= 0;
+        }
+        
+        default:
+          return dist <= radius;
+      }
+    }
+    
+    // Calculate wave displacement at a point
+    function getWaveDisplacement(x, y, cx, cy, time) {
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+      
+      let displacement = 0;
+      const freq = state.frequency / 100; // Scale for visualization
+      const amp = state.amplitude / 100;
+      
+      // Base standing wave pattern based on shape
+      switch (state.mode) {
+        case 'circular':
+          // Bessel function approximation for circular membrane
+          for (let h = 1; h <= state.harmonics; h++) {
+            const wave = Math.sin(dist * freq * 0.05 * h - time * 2) * 
+                        Math.cos(time * 0.5 + h);
+            displacement += wave * amp / h;
+          }
+          break;
+          
+        case 'square':
+          // Square standing wave (product of sine waves)
+          for (let nx = 1; nx <= state.harmonics; nx++) {
+            for (let ny = 1; ny <= state.harmonics; ny++) {
+              if ((nx + ny) % 2 === 0) continue; // Skip even modes for variety
+              const wave = Math.sin(dx * freq * 0.02 * nx) * 
+                          Math.sin(dy * freq * 0.02 * ny) * 
+                          Math.cos(time * (nx + ny) * 0.3);
+              displacement += wave * amp / (nx * ny);
+            }
+          }
+          break;
+          
+        case 'triangle':
+          // Triangular modes
+          for (let h = 1; h <= state.harmonics; h++) {
+            const wave = Math.sin((dx + dy) * freq * 0.03 * h) * 
+                        Math.sin((dx - dy) * freq * 0.03 * h) * 
+                        Math.cos(time * h * 0.5);
+            displacement += wave * amp / h;
+          }
+          break;
+          
+        case 'hexagon':
+          // Hexagonal symmetry
+          for (let h = 1; h <= state.harmonics; h++) {
+            for (let k = 0; k < 6; k++) {
+              const a = k * Math.PI / 3;
+              const wave = Math.sin((dx * Math.cos(a) + dy * Math.sin(a)) * freq * 0.03 * h);
+              displacement += wave * amp / (h * 6);
+            }
+          }
+          break;
+          
+        case 'star':
+          // 5-fold symmetry
+          for (let h = 1; h <= state.harmonics; h++) {
+            const wave = Math.sin(angle * 5 * h + time) * 
+                        Math.sin(dist * freq * 0.04 * h - time * 2);
+            displacement += wave * amp / h;
+          }
+          break;
+          
+        case 'heart':
+          // Radial pulse from center
+          for (let h = 1; h <= state.harmonics; h++) {
+            const pulse = Math.sin(dist * freq * 0.05 * h - time * 3) * 
+                         Math.exp(-dist * 0.002);
+            displacement += pulse * amp / h;
+          }
+          break;
+      }
+      
+      return displacement;
+    }
+    
+    // Get color based on displacement and scheme
+    function getParticleColor(displacement, scheme) {
+      const t = (displacement + 1) / 2; // Normalize to 0-1
+      const c = colors[scheme];
+      
+      if (scheme === 'rainbow') {
+        const hue = (t * 360 + state.time * 20) % 360;
+        return `hsla(${hue}, 80%, 60%, ${0.5 + t * 0.5})`;
+      }
+      
+      if (scheme === 'plasma') {
+        const hue = 260 + t * 100;
+        return `hsla(${hue}, 90%, 60%, ${0.5 + t * 0.5})`;
+      }
+      
+      // Interpolate between primary and secondary
+      return t > 0.5 ? c.primary : c.secondary;
+    }
+    
+    // Render frame
+    function render() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      // Clear with fade for trails
+      ctx.fillStyle = 'rgba(10, 10, 15, 0.3)';
+      ctx.fillRect(0, 0, w, h);
+      
+      // Set glow
+      if (state.glow) {
+        ctx.shadowBlur = state.particleSize * 3;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      
+      // Draw wave overlay if enabled
+      if (state.showWave) {
+        drawWaveOverlay(w, h, cx, cy);
+      }
+      
+      // Update and draw particles
+      const radius = Math.min(w, h) * 0.4;
+      
+      state.particles.forEach(p => {
+        // Calculate displacement
+        const displacement = getWaveDisplacement(p.baseX, p.baseY, cx, cy, state.time);
+        
+        // Move particle based on displacement (nodes attract particles)
+        const dx = p.baseX - cx;
+        const dy = p.baseY - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        
+        // Particles move toward/displacement from nodes
+        const moveAmount = displacement * 20;
+        p.x = p.baseX + Math.cos(angle) * moveAmount;
+        p.y = p.baseY + Math.sin(angle) * moveAmount;
+        
+        // Draw particle
+        const color = getParticleColor(displacement, state.colorScheme);
+        ctx.shadowColor = color;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, state.particleSize * (0.5 + Math.abs(displacement) * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      // Reset shadow
+      ctx.shadowBlur = 0;
+      
+      // Draw shape outline
+      drawShapeOutline(cx, cy, radius);
+      
+      // Update time
+      state.time += 0.016;
+      
+      // Auto-animate frequency
+      if (state.autoAnimate) {
+        state.frequency = 200 + Math.sin(state.time * 0.5) * 150 + 
+                         Math.sin(state.time * 1.3) * 100;
+        document.getElementById('frequency').value = state.frequency;
+        document.getElementById('freqValue').textContent = Math.round(state.frequency) + ' Hz';
+      }
+      
+      requestAnimationFrame(render);
+    }
+    
+    // Draw wave overlay visualization
+    function drawWaveOverlay(w, h, cx, cy) {
+      const radius = Math.min(w, h) * 0.4;
+      const imageData = ctx.createImageData(w, h);
+      const data = imageData.data;
+      
+      // Sample wave at lower resolution for performance
+      const step = 4;
+      for (let y = 0; y < h; y += step) {
+        for (let x = 0; x < w; x += step) {
+          if (!isInsideShape(x, y, cx, cy, radius)) continue;
+          
+          const displacement = getWaveDisplacement(x, y, cx, cy, state.time);
+          const intensity = Math.abs(displacement);
+          
+          if (intensity > 0.3) {
+            const c = colors[state.colorScheme];
+            const alpha = Math.floor(intensity * 30);
+            
+            for (let dy = 0; dy < step && y + dy < h; dy++) {
+              for (let dx = 0; dx < step && x + dx < w; dx++) {
+                const idx = ((y + dy) * w + (x + dx)) * 4;
+                // Simple color based on scheme
+                if (state.colorScheme === 'rainbow') {
+                  const hue = (displacement + 1) * 180;
+                  const rgb = hslToRgb(hue / 360, 0.8, 0.5);
+                  data[idx] = rgb[0];
+                  data[idx + 1] = rgb[1];
+                  data[idx + 2] = rgb[2];
+                } else {
+                  data[idx] = parseInt(c.primary.slice(1, 3), 16);
+                  data[idx + 1] = parseInt(c.primary.slice(3, 5), 16);
+                  data[idx + 2] = parseInt(c.primary.slice(5, 7), 16);
+                }
+                data[idx + 3] = alpha;
+              }
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    }
+    
+    // HSL to RGB helper
+    function hslToRgb(h, s, l) {
+      let r, g, b;
+      if (s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+    
+    // Draw shape outline
+    function drawShapeOutline(cx, cy, radius) {
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      switch (state.mode) {
+        case 'circular':
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          break;
+          
+        case 'square':
+          ctx.rect(cx - radius * 0.8, cy - radius * 0.8, radius * 1.6, radius * 1.6);
+          break;
+          
+        case 'triangle': {
+          const h = radius * Math.sqrt(3) / 2;
+          ctx.moveTo(cx, cy - radius * 0.7);
+          ctx.lineTo(cx - h, cy + radius * 0.5);
+          ctx.lineTo(cx + h, cy + radius * 0.5);
+          ctx.closePath();
+          break;
+        }
+          
+        case 'hexagon':
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 - Math.PI / 6;
+            const x = cx + Math.cos(angle) * radius * 0.8;
+            const y = cy + Math.sin(angle) * radius * 0.8;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          break;
+          
+        case 'star':
+          for (let i = 0; i < 10; i++) {
+            const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
+            const r = i % 2 === 0 ? radius : radius * 0.4;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          break;
+          
+        case 'heart':
+          for (let t = 0; t <= Math.PI * 2; t += 0.1) {
+            const x = cx + radius * 0.5 * (16 * Math.pow(Math.sin(t), 3)) / 16;
+            const y = cy - radius * 0.5 * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) / 16;
+            if (t === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          break;
+      }
+      
+      ctx.stroke();
+    }
+    
+    // Event listeners
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = btn.dataset.mode;
+        initParticles();
+      });
+    });
+    
+    document.getElementById('frequency').addEventListener('input', (e) => {
+      state.frequency = parseInt(e.target.value);
+      document.getElementById('freqValue').textContent = state.frequency + ' Hz';
+    });
+    
+    document.getElementById('harmonics').addEventListener('input', (e) => {
+      state.harmonics = parseInt(e.target.value);
+      document.getElementById('harmonicsValue').textContent = state.harmonics;
+    });
+    
+    document.getElementById('amplitude').addEventListener('input', (e) => {
+      state.amplitude = parseInt(e.target.value);
+      document.getElementById('amplitudeValue').textContent = state.amplitude + '%';
+    });
+    
+    document.getElementById('particles').addEventListener('input', (e) => {
+      state.particleCount = parseInt(e.target.value);
+      document.getElementById('particleValue').textContent = state.particleCount.toLocaleString();
+      initParticles();
+    });
+    
+    document.getElementById('particleSize').addEventListener('input', (e) => {
+      state.particleSize = parseFloat(e.target.value);
+      document.getElementById('sizeValue').textContent = state.particleSize + 'px';
+    });
+    
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.colorScheme = btn.dataset.color;
+      });
+    });
+    
+    document.getElementById('waveToggle').addEventListener('click', () => {
+      state.showWave = !state.showWave;
+      document.getElementById('waveToggle').classList.toggle('active');
+    });
+    
+    document.getElementById('animateToggle').addEventListener('click', () => {
+      state.autoAnimate = !state.autoAnimate;
+      document.getElementById('animateToggle').classList.toggle('active');
+    });
+    
+    document.getElementById('glowToggle').addEventListener('click', () => {
+      state.glow = !state.glow;
+      document.getElementById('glowToggle').classList.toggle('active');
+    });
+    
+    window.addEventListener('resize', resize);
+    
+    // Initialize
+    resize();
+    render();
+  </script>
+</body>
+</html>

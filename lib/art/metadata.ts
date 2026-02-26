@@ -276,6 +276,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "colorful", "futuristic", "abstract"],
     created: "2024-02-27",
   },
+  "magnetic-field": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "geometric", "ordered", "colorful", "detailed"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {

@@ -1,275 +1,268 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Trophy,
-  Star,
-  Zap,
-  Target,
-  Flame,
-  Crown,
-  Diamond,
-  Award,
-  Medal,
+import { useState, useEffect } from "react";
+import { 
   Sparkles,
+  Zap,
+  Shield,
+  Sword,
+  Heart,
+  Brain,
+  Target,
+  Clock,
+  Star,
+  Trophy,
   Lock,
   Unlock,
-  Share2,
-  Download,
+  Shuffle,
   RotateCcw,
-  Filter,
-  Grid3X3,
-  List,
-  Search,
-  SortAsc,
+  ChevronLeft,
   ChevronRight,
-  CheckCircle2,
-  Clock,
-  TrendingUp,
-  Users,
-  Globe,
-  Code2,
-  Palette,
-  Terminal,
-  Cpu,
-  Database,
-  Layout,
-  Smartphone,
-  Globe2,
-  GitBranch,
-  Bug,
-  Rocket,
-  Lightbulb,
-  BookOpen,
-  Heart,
-  MessageSquare,
-  Eye,
-  Hash
+  Info
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import confetti from "canvas-confetti";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-interface TradingCard {
+interface SkillCard {
   id: string;
   name: string;
-  description: string;
-  rarity: "common" | "rare" | "epic" | "legendary" | "mythic";
-  category: string;
-  icon: typeof Code2;
+  title: string;
+  emoji: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  category: 'frontend' | 'backend' | 'devops' | 'design' | 'soft';
   stats: {
     power: number;
     speed: number;
-    creativity: number;
-    learning: number;
+    defense: number;
+    intelligence: number;
   };
   abilities: string[];
+  description: string;
+  experience: number;
+  level: number;
   unlocked: boolean;
-  unlockedAt?: Date;
-  xpBonus: number;
-  collectorNumber: number;
-  totalCollectors: number;
+  unlockRequirement?: string;
 }
 
-const tradingCards: TradingCard[] = [
+const skillCards: SkillCard[] = [
   {
-    id: "react-mastery",
-    name: "React Mastery",
-    description: "Master of component architecture and state management",
+    id: "react",
+    name: "React",
+    title: "Component Master",
+    emoji: "⚛️",
     rarity: "legendary",
-    category: "Frontend",
-    icon: Code2,
-    stats: { power: 95, speed: 88, creativity: 92, learning: 90 },
-    abilities: ["Virtual DOM Manipulation", "Hook Sorcery", "Component Composition"],
-    unlocked: true,
-    unlockedAt: new Date("2024-01-15"),
-    xpBonus: 500,
-    collectorNumber: 1,
-    totalCollectors: 100
+    category: "frontend",
+    stats: { power: 95, speed: 90, defense: 85, intelligence: 92 },
+    abilities: ["Virtual DOM", "Hooks Mastery", "State Management", "Component Architecture"],
+    description: "Master of component-based architecture and reactive programming.",
+    experience: 8750,
+    level: 42,
+    unlocked: true
   },
   {
-    id: "typescript-wizard",
-    name: "TypeScript Wizard",
-    description: "Type safety enforcer and generic spellcaster",
+    id: "typescript",
+    name: "TypeScript",
+    title: "Type Guardian",
+    emoji: "📘",
     rarity: "epic",
-    category: "Language",
-    icon: Terminal,
-    stats: { power: 88, speed: 82, creativity: 75, learning: 95 },
-    abilities: ["Type Inference", "Generic Polymorphism", "Interface Design"],
-    unlocked: true,
-    unlockedAt: new Date("2024-02-20"),
-    xpBonus: 350,
-    collectorNumber: 2,
-    totalCollectors: 250
+    category: "frontend",
+    stats: { power: 88, speed: 75, defense: 98, intelligence: 95 },
+    abilities: ["Type Safety", "IntelliSense", "Refactoring", "Compile-time Checks"],
+    description: "Brings order to chaos with strict type definitions.",
+    experience: 6200,
+    level: 35,
+    unlocked: true
   },
   {
-    id: "css-artist",
-    name: "CSS Artist",
-    description: "Creates visual masterpieces with stylesheets",
-    rarity: "rare",
-    category: "Design",
-    icon: Palette,
-    stats: { power: 75, speed: 90, creativity: 98, learning: 70 },
-    abilities: ["Grid Mastery", "Animation Sorcery", "Responsive Design"],
-    unlocked: true,
-    unlockedAt: new Date("2024-03-10"),
-    xpBonus: 250,
-    collectorNumber: 3,
-    totalCollectors: 500
-  },
-  {
-    id: "node-ninja",
-    name: "Node.js Ninja",
-    description: "Server-side JavaScript assassin",
-    rarity: "epic",
-    category: "Backend",
-    icon: Cpu,
-    stats: { power: 90, speed: 85, creativity: 70, learning: 88 },
-    abilities: ["Event Loop Mastery", "Stream Manipulation", "Async Operations"],
-    unlocked: true,
-    unlockedAt: new Date("2024-01-28"),
-    xpBonus: 400,
-    collectorNumber: 4,
-    totalCollectors: 300
-  },
-  {
-    id: "database-sage",
-    name: "Database Sage",
-    description: "Keeper of queries and schema designer",
-    rarity: "rare",
-    category: "Backend",
-    icon: Database,
-    stats: { power: 85, speed: 70, creativity: 65, learning: 90 },
-    abilities: ["Query Optimization", "Schema Design", "Transaction Control"],
-    unlocked: false,
-    xpBonus: 300,
-    collectorNumber: 5,
-    totalCollectors: 400
-  },
-  {
-    id: "ui-architect",
-    name: "UI Architect",
-    description: "Builder of beautiful user interfaces",
+    id: "nextjs",
+    name: "Next.js",
+    title: "Full-Stack Visionary",
+    emoji: "▲",
     rarity: "legendary",
-    category: "Design",
-    icon: Layout,
-    stats: { power: 80, speed: 88, creativity: 96, learning: 82 },
-    abilities: ["Design System Creation", "Accessibility Expert", "Micro-interactions"],
-    unlocked: true,
-    unlockedAt: new Date("2024-02-05"),
-    xpBonus: 450,
-    collectorNumber: 6,
-    totalCollectors: 150
+    category: "frontend",
+    stats: { power: 92, speed: 88, defense: 90, intelligence: 89 },
+    abilities: ["SSR/SSG", "API Routes", "Image Optimization", "Edge Runtime"],
+    description: "The complete React framework for production.",
+    experience: 7800,
+    level: 39,
+    unlocked: true
   },
   {
-    id: "mobile-maestro",
-    name: "Mobile Maestro",
-    description: "Cross-platform mobile development expert",
+    id: "nodejs",
+    name: "Node.js",
+    title: "Async Conjurer",
+    emoji: "🟢",
     rarity: "epic",
-    category: "Mobile",
-    icon: Smartphone,
-    stats: { power: 82, speed: 90, creativity: 85, learning: 88 },
-    abilities: ["React Native", "iOS/Android", "Mobile Optimization"],
-    unlocked: false,
-    xpBonus: 380,
-    collectorNumber: 7,
-    totalCollectors: 280
+    category: "backend",
+    stats: { power: 85, speed: 90, defense: 80, intelligence: 87 },
+    abilities: ["Event Loop", "Stream Processing", "NPM Ecosystem", "Microservices"],
+    description: "JavaScript runtime built on Chrome's V8 engine.",
+    experience: 7100,
+    level: 36,
+    unlocked: true
   },
   {
-    id: "web-guru",
-    name: "Web Guru",
-    description: "Full-stack web development master",
-    rarity: "mythic",
-    category: "Full Stack",
-    icon: Globe2,
-    stats: { power: 95, speed: 92, creativity: 90, learning: 95 },
-    abilities: ["End-to-End Development", "System Architecture", "Performance Optimization"],
-    unlocked: true,
-    unlockedAt: new Date("2024-03-01"),
-    xpBonus: 1000,
-    collectorNumber: 8,
-    totalCollectors: 50
-  },
-  {
-    id: "git-master",
-    name: "Git Master",
-    description: "Version control virtuoso",
-    rarity: "rare",
-    category: "Tools",
-    icon: GitBranch,
-    stats: { power: 70, speed: 95, creativity: 60, learning: 85 },
-    abilities: ["Branch Management", "Conflict Resolution", "Rebase Sorcery"],
-    unlocked: true,
-    unlockedAt: new Date("2024-01-10"),
-    xpBonus: 200,
-    collectorNumber: 9,
-    totalCollectors: 600
-  },
-  {
-    id: "debug-detective",
-    name: "Debug Detective",
-    description: "Bug hunter and problem solver",
-    rarity: "epic",
-    category: "Tools",
-    icon: Bug,
-    stats: { power: 88, speed: 75, creativity: 92, learning: 85 },
-    abilities: ["Console Mastery", "Breakpoint Wizardry", "Stack Trace Reading"],
-    unlocked: true,
-    unlockedAt: new Date("2024-02-15"),
-    xpBonus: 320,
-    collectorNumber: 10,
-    totalCollectors: 350
-  },
-  {
-    id: "deployment-hero",
-    name: "Deployment Hero",
-    description: "CI/CD pipeline champion",
+    id: "rust",
+    name: "Rust",
+    title: "Memory Sentinel",
+    emoji: "🦀",
     rarity: "legendary",
-    category: "DevOps",
-    icon: Rocket,
-    stats: { power: 92, speed: 95, creativity: 75, learning: 88 },
-    abilities: ["Docker Mastery", "Kubernetes", "Cloud Deployment"],
-    unlocked: false,
-    xpBonus: 480,
-    collectorNumber: 11,
-    totalCollectors: 120
+    category: "backend",
+    stats: { power: 98, speed: 85, defense: 100, intelligence: 96 },
+    abilities: ["Memory Safety", "Zero-cost Abstractions", "Concurrency", "Pattern Matching"],
+    description: "Systems programming with fearless concurrency.",
+    experience: 2400,
+    level: 18,
+    unlocked: true
   },
   {
-    id: "innovation-maven",
-    name: "Innovation Maven",
-    description: "Creative problem solver and idea generator",
+    id: "postgresql",
+    name: "PostgreSQL",
+    title: "Data Architect",
+    emoji: "🐘",
     rarity: "epic",
-    category: "Soft Skills",
-    icon: Lightbulb,
-    stats: { power: 75, speed: 80, creativity: 98, learning: 92 },
-    abilities: ["Design Thinking", "Rapid Prototyping", "User Empathy"],
-    unlocked: true,
-    unlockedAt: new Date("2024-03-20"),
-    xpBonus: 360,
-    collectorNumber: 12,
-    totalCollectors: 275
+    category: "backend",
+    stats: { power: 82, speed: 78, defense: 95, intelligence: 90 },
+    abilities: ["ACID Compliance", "JSON Support", "Window Functions", "Full-text Search"],
+    description: "The world's most advanced open source relational database.",
+    experience: 5800,
+    level: 32,
+    unlocked: true
+  },
+  {
+    id: "docker",
+    name: "Docker",
+    title: "Container Captain",
+    emoji: "🐳",
+    rarity: "rare",
+    category: "devops",
+    stats: { power: 78, speed: 85, defense: 88, intelligence: 82 },
+    abilities: ["Containerization", "Image Building", "Compose", "Multi-stage Builds"],
+    description: "OS-level virtualization to deliver software in packages called containers.",
+    experience: 4200,
+    level: 26,
+    unlocked: true
+  },
+  {
+    id: "aws",
+    name: "AWS",
+    title: "Cloud Commander",
+    emoji: "☁️",
+    rarity: "epic",
+    category: "devops",
+    stats: { power: 90, speed: 82, defense: 85, intelligence: 88 },
+    abilities: ["EC2", "Lambda", "S3", "CloudFormation"],
+    description: "Comprehensive cloud computing platform.",
+    experience: 5100,
+    level: 29,
+    unlocked: true
+  },
+  {
+    id: "figma",
+    name: "Figma",
+    title: "Pixel Perfectionist",
+    emoji: "🎨",
+    rarity: "rare",
+    category: "design",
+    stats: { power: 72, speed: 88, defense: 70, intelligence: 85 },
+    abilities: ["Vector Networks", "Auto Layout", "Components", "Prototyping"],
+    description: "Collaborative interface design tool.",
+    experience: 3600,
+    level: 22,
+    unlocked: true
+  },
+  {
+    id: "problem-solving",
+    name: "Problem Solving",
+    title: "Logic Weaver",
+    emoji: "🧩",
+    rarity: "legendary",
+    category: "soft",
+    stats: { power: 95, speed: 88, defense: 85, intelligence: 98 },
+    abilities: ["Algorithm Design", "Pattern Recognition", "Debugging", "Optimization"],
+    description: "The art of breaking down complex problems into manageable solutions.",
+    experience: 9200,
+    level: 45,
+    unlocked: true
+  },
+  {
+    id: "communication",
+    name: "Communication",
+    title: "Team Catalyst",
+    emoji: "💬",
+    rarity: "epic",
+    category: "soft",
+    stats: { power: 75, speed: 82, defense: 80, intelligence: 92 },
+    abilities: ["Technical Writing", "Code Reviews", "Mentoring", "Presentations"],
+    description: "Bridging the gap between technical and non-technical stakeholders.",
+    experience: 6800,
+    level: 34,
+    unlocked: true
+  },
+  {
+    id: "go",
+    name: "Go",
+    title: "Gopher General",
+    emoji: "🐹",
+    rarity: "rare",
+    category: "backend",
+    stats: { power: 85, speed: 95, defense: 82, intelligence: 80 },
+    abilities: ["Goroutines", "Channels", "Fast Compilation", "Static Typing"],
+    description: "Statically typed, compiled language designed at Google.",
+    experience: 1800,
+    level: 15,
+    unlocked: false,
+    unlockRequirement: "Complete 5 backend projects"
+  },
+  {
+    id: "kubernetes",
+    name: "Kubernetes",
+    title: "Orchestration Overlord",
+    emoji: "☸️",
+    rarity: "legendary",
+    category: "devops",
+    stats: { power: 95, speed: 78, defense: 92, intelligence: 94 },
+    abilities: ["Pod Management", "Auto-scaling", "Service Discovery", "Rolling Updates"],
+    description: "Automating deployment, scaling, and management of containerized applications.",
+    experience: 1200,
+    level: 12,
+    unlocked: false,
+    unlockRequirement: "Master Docker first"
+  },
+  {
+    id: "threejs",
+    name: "Three.js",
+    title: "3D Wizard",
+    emoji: "🎲",
+    rarity: "epic",
+    category: "frontend",
+    stats: { power: 88, speed: 72, defense: 75, intelligence: 90 },
+    abilities: ["WebGL", "Shaders", "Animations", "Scene Graph"],
+    description: "Cross-browser JavaScript library used to create 3D graphics.",
+    experience: 2100,
+    level: 14,
+    unlocked: false,
+    unlockRequirement: "Strong math fundamentals"
   }
 ];
 
 const rarityColors = {
-  common: { bg: "from-gray-500 to-gray-600", text: "text-gray-500", border: "border-gray-400" },
-  rare: { bg: "from-blue-500 to-blue-600", text: "text-blue-500", border: "border-blue-400" },
-  epic: { bg: "from-purple-500 to-purple-600", text: "text-purple-500", border: "border-purple-400" },
-  legendary: { bg: "from-orange-500 to-red-500", text: "text-orange-500", border: "border-orange-400" },
-  mythic: { bg: "from-yellow-400 via-orange-500 to-red-500", text: "text-yellow-500", border: "border-yellow-400" }
+  common: { bg: "#6b7280", gradient: "from-gray-500 to-gray-600" },
+  rare: { bg: "#3b82f6", gradient: "from-blue-500 to-blue-600" },
+  epic: { bg: "#a855f7", gradient: "from-purple-500 to-purple-600" },
+  legendary: { bg: "#f59e0b", gradient: "from-amber-500 to-orange-500" }
 };
 
-const rarityGlow = {
-  common: "",
-  rare: "shadow-[0_0_20px_rgba(59,130,246,0.3)]",
-  epic: "shadow-[0_0_30px_rgba(147,51,234,0.4)]",
-  legendary: "shadow-[0_0_40px_rgba(249,115,22,0.5)]",
-  mythic: "shadow-[0_0_50px_rgba(234,179,8,0.6)]"
+const categoryIcons = {
+  frontend: Zap,
+  backend: Shield,
+  devops: Target,
+  design: Sparkles,
+  soft: Brain
 };
 
 function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
@@ -279,188 +272,53 @@ function StatBar({ label, value, color }: { label: string; value: number; color:
         <span className="text-muted-foreground">{label}</span>
         <span className="font-medium">{value}</span>
       </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${value}%` }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className={`h-full rounded-full ${color}`}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
         />
       </div>
     </div>
   );
 }
 
-function TradingCardComponent({ 
-  card, 
-  isFlipped, 
-  onFlip 
-}: { 
-  card: TradingCard; 
-  isFlipped: boolean;
-  onFlip: () => void;
-}) {
-  const Icon = card.icon;
-  const rarityStyle = rarityColors[card.rarity];
-  const glowClass = rarityGlow[card.rarity];
-
-  return (
-    <motion.div
-      className="relative w-full aspect-[3/4] cursor-pointer perspective-1000"
-      onClick={onFlip}
-      whileHover={{ scale: 1.02 }}
-    >
-      <motion.div
-        className="relative w-full h-full preserve-3d"
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6, type: "spring" }}
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {/* Front of Card */}
-        <div 
-          className={`absolute inset-0 backface-hidden rounded-2xl overflow-hidden border-2 ${rarityStyle.border} ${glowClass} ${!card.unlocked ? 'opacity-60' : ''}`}
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          {/* Card Background */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${rarityStyle.bg} opacity-10`} />
-          
-          <div className="relative h-full p-4 flex flex-col">
-            {/* Card Header */}
-            <div className="flex items-start justify-between mb-4">
-              <Badge className={`${rarityStyle.text} bg-transparent border-current`}>
-                {card.rarity.toUpperCase()}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                #{card.collectorNumber}/{card.totalCollectors}
-              </span>
-            </div>
-
-            {/* Card Image Area */}
-            <div className="flex-1 flex items-center justify-center mb-4">
-              <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${rarityStyle.bg} flex items-center justify-center ${!card.unlocked ? 'grayscale' : ''}`}>
-                {card.unlocked ? (
-                  <Icon className="h-12 w-12 text-white" />
-                ) : (
-                  <Lock className="h-12 w-12 text-white/50" />
-                )}
-              </div>
-            </div>
-
-            {/* Card Info */}
-            <div className="text-center mb-4">
-              <h3 className="font-bold text-lg mb-1">{card.name}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {card.unlocked ? card.description : "???"}
-              </p>
-            </div>
-
-            {/* Category */}
-            <div className="flex justify-center mb-4">
-              <Badge variant="outline" className="text-xs">
-                {card.category}
-              </Badge>
-            </div>
-
-            {/* XP Bonus */}
-            <div className="flex items-center justify-center gap-1 text-sm">
-              <Zap className="h-4 w-4 text-yellow-500" />
-              <span className="font-medium">+{card.xpBonus} XP</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Back of Card */}
-        <div 
-          className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden border-2 border-primary/30 bg-card"
-          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-        >
-          <div className="h-full p-4 flex flex-col">
-            <h4 className="font-bold text-center mb-4">{card.name}</h4>
-            
-            {card.unlocked ? (
-              <>
-                <div className="space-y-3 mb-4">
-                  <StatBar label="Power" value={card.stats.power} color="bg-red-500" />
-                  <StatBar label="Speed" value={card.stats.speed} color="bg-blue-500" />
-                  <StatBar label="Creativity" value={card.stats.creativity} color="bg-purple-500" />
-                  <StatBar label="Learning" value={card.stats.learning} color="bg-green-500" />
-                </div>
-
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">ABILITIES</p>
-                  <div className="space-y-1">
-                    {card.abilities.map((ability, index) => (
-                      <div key={index} className="flex items-center gap-2 text-xs">
-                        <Sparkles className="h-3 w-3 text-primary" />
-                        {ability}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {card.unlockedAt && (
-                  <div className="text-center text-xs text-muted-foreground mt-4">
-                    Unlocked {card.unlockedAt.toLocaleDateString()}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <Lock className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Complete challenges to unlock</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-export default function DeveloperTradingCardsPage() {
+export default function TradingCardsPage() {
+  const [selectedCard, setSelectedCard] = useState<SkillCard | null>(null);
+  const [filter, setFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'rarity' | 'level' | 'category'>('rarity');
+  const [viewMode, setViewMode] = useState<'grid' | 'carousel'>('grid');
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [filterRarity, setFilterRarity] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"rarity" | "date" | "xp">("rarity");
-
-  const toggleCardFlip = (cardId: string) => {
-    const newFlipped = new Set(flippedCards);
-    if (newFlipped.has(cardId)) {
-      newFlipped.delete(cardId);
-    } else {
-      newFlipped.add(cardId);
-    }
-    setFlippedCards(newFlipped);
-  };
-
-  const filteredCards = tradingCards.filter(card => {
-    const matchesSearch = card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         card.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRarity = filterRarity === "all" || card.rarity === filterRarity;
-    return matchesSearch && matchesRarity;
-  }).sort((a, b) => {
-    if (sortBy === "rarity") {
-      const rarityOrder = { mythic: 5, legendary: 4, epic: 3, rare: 2, common: 1 };
-      return rarityOrder[b.rarity] - rarityOrder[a.rarity];
-    } else if (sortBy === "xp") {
-      return b.xpBonus - a.xpBonus;
-    }
-    return 0;
-  });
-
-  const unlockedCount = tradingCards.filter(c => c.unlocked).length;
-  const totalXP = tradingCards.filter(c => c.unlocked).reduce((acc, c) => acc + c.xpBonus, 0);
-  const completionRate = Math.round((unlockedCount / tradingCards.length) * 100);
-
-  const rarityCounts = {
-    common: tradingCards.filter(c => c.rarity === "common" && c.unlocked).length,
-    rare: tradingCards.filter(c => c.rarity === "rare" && c.unlocked).length,
-    epic: tradingCards.filter(c => c.rarity === "epic" && c.unlocked).length,
-    legendary: tradingCards.filter(c => c.rarity === "legendary" && c.unlocked).length,
-    mythic: tradingCards.filter(c => c.rarity === "mythic" && c.unlocked).length
+  
+  const filteredCards = skillCards
+    .filter(card => !filter || card.category === filter || (filter === 'locked' && !card.unlocked))
+    .sort((a, b) => {
+      if (sortBy === 'rarity') {
+        const rarityOrder = { legendary: 4, epic: 3, rare: 2, common: 1 };
+        return rarityOrder[b.rarity] - rarityOrder[a.rarity];
+      }
+      if (sortBy === 'level') return b.level - a.level;
+      return 0;
+    });
+  
+  const unlockedCount = skillCards.filter(c => c.unlocked).length;
+  const totalPower = skillCards
+    .filter(c => c.unlocked)
+    .reduce((acc, c) => acc + c.stats.power + c.stats.speed + c.stats.defense + c.stats.intelligence, 0);
+  
+  const toggleFlip = (cardId: string) => {
+    setFlippedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(cardId)) {
+        newSet.delete(cardId);
+      } else {
+        newSet.add(cardId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -479,16 +337,16 @@ export default function DeveloperTradingCardsPage() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
           >
             <Trophy className="h-4 w-4" />
-            <span className="text-sm font-medium">Collect & Trade</span>
+            <span className="text-sm font-medium">Collectible Skills</span>
           </motion.div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Developer{" "}
-            <span className="text-gradient">Trading Cards</span>
+            Skill <span className="text-gradient">Trading Cards</span>
           </h1>
+          
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Collectible cards showcasing your skills and achievements. 
-            Unlock rare cards by completing challenges and mastering technologies.
+            Collect, upgrade, and showcase your developer skills.
+            Each card represents a unique ability in your arsenal.
           </p>
         </motion.div>
 
@@ -496,71 +354,23 @@ export default function DeveloperTradingCardsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
         >
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold">{unlockedCount}/{tradingCards.length}</div>
-              <div className="text-sm text-muted-foreground">Cards Collected</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold">{completionRate}%</div>
-              <div className="text-sm text-muted-foreground">Completion</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold">{totalXP.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Total XP</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold">{rarityCounts.mythic + rarityCounts.legendary}</div>
-              <div className="text-sm text-muted-foreground">Legendary+</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Rarity Progress */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4">Collection Progress</h3>
-              <div className="grid grid-cols-5 gap-4">
-                {Object.entries(rarityCounts).map(([rarity, count]) => {
-                  const totalOfRarity = tradingCards.filter(c => c.rarity === rarity).length;
-                  const percentage = Math.round((count / totalOfRarity) * 100);
-                  
-                  return (
-                    <div key={rarity} className="text-center">
-                      <div className={`text-lg font-bold capitalize ${rarityColors[rarity as keyof typeof rarityColors].text}`}>
-                        {count}/{totalOfRarity}
-                      </div>
-                      <div className="text-xs text-muted-foreground capitalize mb-2">{rarity}</div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full bg-gradient-to-r ${rarityColors[rarity as keyof typeof rarityColors].bg}`}
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          {[
+            { label: "Cards Collected", value: `${unlockedCount}/${skillCards.length}`, icon: Star },
+            { label: "Total Power", value: totalPower.toLocaleString(), icon: Zap },
+            { label: "Legendary", value: skillCards.filter(c => c.rarity === 'legendary' && c.unlocked).length, icon: Trophy },
+            { label: "Avg Level", value: Math.round(skillCards.filter(c => c.unlocked).reduce((a, c) => a + c.level, 0) / unlockedCount || 0), icon: Target }
+          ].map((stat, index) => (
+            <Card key={stat.label}>
+              <CardContent className="p-4 text-center">
+                <stat.icon className="h-5 w-5 mx-auto mb-2 text-primary" />
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
         </motion.div>
 
         {/* Filters */}
@@ -568,94 +378,245 @@ export default function DeveloperTradingCardsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex flex-col md:flex-row gap-4 mb-8"
+          className="flex flex-wrap items-center justify-between gap-4 mb-8"
         >
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search cards..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filter === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter(null)}
+            >
+              All
+            </Button>
+            {['frontend', 'backend', 'devops', 'design', 'soft'].map(cat => (
+              <Button
+                key={cat}
+                variant={filter === cat ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter(cat)}
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </Button>
+            ))}
+            <Button
+              variant={filter === 'locked' ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter('locked')}
+            >
+              <Lock className="h-3 w-3 mr-1" />
+              Locked
+            </Button>
           </div>
           
-          <div className="flex gap-2">
-            <select
-              value={filterRarity}
-              onChange={(e) => setFilterRarity(e.target.value)}
-              className="px-3 py-2 rounded-md border bg-background"
-            >
-              <option value="all">All Rarities</option>
-              <option value="common">Common</option>
-              <option value="rare">Rare</option>
-              <option value="epic">Epic</option>
-              <option value="legendary">Legendary</option>
-              <option value="mythic">Mythic</option>
-            </select>
-            
+          <div className="flex items-center gap-2">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 rounded-md border bg-background"
+              className="text-sm border rounded-md px-2 py-1 bg-background"
             >
               <option value="rarity">Sort by Rarity</option>
-              <option value="xp">Sort by XP</option>
+              <option value="level">Sort by Level</option>
+              <option value="category">Sort by Category</option>
             </select>
             
-            <div className="flex border rounded-md overflow-hidden">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setViewMode(viewMode === 'grid' ? 'carousel' : 'grid')}
+            >
+              {viewMode === 'grid' ? <Shuffle className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+            </Button>
           </div>
         </motion.div>
 
         {/* Cards Grid */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        >
-          <AnimatePresence>
-            {filteredCards.map((card, index) => (
-              <motion.div
-                key={card.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <TradingCardComponent
-                  card={card}
-                  isFlipped={flippedCards.has(card.id)}
-                  onFlip={() => toggleCardFlip(card.id)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <AnimatePresence mode="wait">
+          {viewMode === 'grid' ? (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {filteredCards.map((card, index) => {
+                const isFlipped = flippedCards.has(card.id);
+                const rarityColor = rarityColors[card.rarity];
+                const CategoryIcon = categoryIcons[card.category];
+                
+                return (
+                  <motion.div
+                    key={card.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => card.unlocked && setSelectedCard(card)}
+                    className="cursor-pointer group perspective-1000"
+                  >
+                    <motion.div
+                      animate={{ rotateY: isFlipped ? 180 : 0 }}
+                      transition={{ duration: 0.6 }}
+                      className="relative preserve-3d"
+                    >
+                      {/* Card Front */}
+                      <Card className={`relative overflow-hidden transition-all duration-300 ${
+                        card.unlocked 
+                          ? 'hover:shadow-xl hover:-translate-y-2' 
+                          : 'opacity-60 grayscale'
+                      }`}>
+                        {/* Rarity Banner */}
+                        <div 
+                          className={`h-1 bg-gradient-to-r ${rarityColor.gradient}`}
+                        />
+                        
+                        <CardContent className="p-5">
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="text-4xl"
+                                style={{ filter: card.unlocked ? 'none' : 'grayscale(100%)' }}
+                              >
+                                {card.unlocked ? card.emoji : "🔒"}
+                              </div>
+                              <div>
+                                <Badge 
+                                  variant="secondary" 
+                                  className="text-xs"
+                                  style={{ 
+                                    backgroundColor: `${rarityColor.bg}30`,
+                                    color: rarityColor.bg 
+                                  }}
+                                >
+                                  {card.rarity}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Lv.{card.level}
+                                </p>
+                              </div>
+                            </div>
+                            <CategoryIcon className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          
+                          {/* Name & Title */}
+                          <h3 className="font-bold text-lg mb-1">{card.name}</h3>
+                          <p className="text-xs text-muted-foreground mb-4">{card.title}</p>
+                          
+                          {/* Stats Preview */}
+                          <div className="space-y-2 mb-4">
+                            <StatBar label="PWR" value={card.stats.power} color={rarityColor.bg} />
+                            <StatBar label="SPD" value={card.stats.speed} color="#3b82f6" />
+                          </div>
+                          
+                          {/* XP Bar */}
+                          <div className="mt-4 pt-4 border-t">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-muted-foreground">XP</span>
+                              <span>{card.experience.toLocaleString()}</span>
+                            </div>
+                            <Progress value={(card.experience % 1000) / 10} className="h-1" />
+                          </div>
+                          
+                          {/* Locked Overlay */}
+                          
+                          {!card.unlocked && (
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                              <div className="text-center">
+                                <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground px-4">
+                                  {card.unlockRequirement}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          ) : (
+            <>
+              {/* Carousel View */}
+              <>
+                {/* ... carousel implementation ... */}
+              </>
+            </>
+          )}
+        </AnimatePresence>
 
-        {filteredCards.length === 0 && (
-          <div className="text-center py-16">
-            <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No cards found</h3>
-            <p className="text-muted-foreground">Try adjusting your filters</p>
-          </div>
-        )}
+        {/* Card Detail Dialog */}
+        <Dialog open={!!selectedCard} onOpenChange={() => setSelectedCard(null)}>
+          <DialogContent className="max-w-2xl">
+            {selectedCard && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <span className="text-4xl">{selectedCard.emoji}</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {selectedCard.name}
+                        <Badge 
+                          style={{ 
+                            backgroundColor: rarityColors[selectedCard.rarity].bg,
+                            color: 'white'
+                          }}
+                        >
+                          {selectedCard.rarity}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{selectedCard.title}</p>
+                    </div>
+                  </DialogTitle>
+                  <DialogDescription>{selectedCard.description}</DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid grid-cols-2 gap-6 mt-6">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Zap className="h-4 w-4" /> Stats
+                    </h4>
+                    <StatBar label="Power" value={selectedCard.stats.power} color="#ef4444" />
+                    <StatBar label="Speed" value={selectedCard.stats.speed} color="#3b82f6" />
+                    <StatBar label="Defense" value={selectedCard.stats.defense} color="#22c55e" />
+                    <StatBar label="Intelligence" value={selectedCard.stats.intelligence} color="#a855f7" />
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold flex items-center gap-2 mb-3">
+                      <Sparkles className="h-4 w-4" /> Abilities
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCard.abilities.map(ability => (
+                        <Badge key={ability} variant="secondary">
+                          {ability}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-muted rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Level {selectedCard.level}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {selectedCard.experience.toLocaleString()} XP
+                        </span>
+                      </div>
+                      <Progress value={(selectedCard.experience % 1000) / 10} />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {(1000 - (selectedCard.experience % 1000)).toLocaleString()} XP to next level
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
 }
+
+// Missing import
+import { LayoutGrid } from "lucide-react";
