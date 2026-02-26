@@ -134,6 +134,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["static", "geometric", "ordered", "colorful", "detailed"],
     created: "2024-02-25",
   },
+  "phyllotaxis": {
+    category: "geometric",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "organic", "nature", "colorful"],
+    created: "2024-02-25",
+  },
 
   // === ABSTRACT ===
   "impossible-geometry": {
@@ -141,6 +147,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     complexity: "moderate",
     tags: ["animated", "geometric", "monochrome", "abstract"],
     created: "2024-02-26",
+  },
+  "metaballs": {
+    category: "abstract",
+    complexity: "moderate",
+    tags: ["animated", "organic", "colorful", "abstract"],
+    created: "2024-02-25",
   },
   "flow-field": {
     category: "abstract",

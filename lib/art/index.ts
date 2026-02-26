@@ -35,6 +35,8 @@ import { fractalFlame } from "./fractal-flame";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { islamicPatterns } from "./islamic-patterns";
 import { impossibleGeometry } from "./impossible-geometry";
+import { metaballs } from "./metaballs";
+import { phyllotaxis } from "./phyllotaxis";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -71,6 +73,8 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "polyhedral-sculptures": polyhedralSculptures,
   "islamic-patterns": islamicPatterns,
   "impossible-geometry": impossibleGeometry,
+  "metaballs": metaballs,
+  "phyllotaxis": phyllotaxis,
 };
 
 // Apply metadata to generators
@@ -127,3 +131,11 @@ export { renderIslamicPatterns, islamicPatternsDefaultParams } from './islamic-p
 export type { IslamicPatternParams } from './islamic-patterns';
 export { renderImpossibleGeometry, impossibleGeometryDefaultParams } from './impossible-geometry';
 export type { ImpossibleGeometryParams } from './impossible-geometry';
+
+// Metaballs
+export { renderMetaballs, metaballsDefaultParams } from './metaballs';
+export type { MetaballsParams } from './metaballs';
+
+// Phyllotaxis
+export { renderPhyllotaxis, phyllotaxisDefaultParams } from './phyllotaxis';
+export type { PhyllotaxisParams } from './phyllotaxis';
