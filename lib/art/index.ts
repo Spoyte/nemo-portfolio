@@ -41,6 +41,7 @@ import { harmonograph } from "./harmonograph";
 import { watercolorDreams } from "./watercolor-dreams";
 import { asciiArtGenerator } from "./ascii-art";
 import { crossHatchingSketch } from "./cross-hatching";
+import { moirePattern } from "./moire-pattern";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -83,6 +84,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "watercolor-dreams": watercolorDreams,
   "ascii-art": asciiArtGenerator,
   "cross-hatching": crossHatchingSketch,
+  "moire-pattern": moirePattern,
 };
 
 // Apply metadata to generators
@@ -163,3 +165,7 @@ export type { AsciiArtParams } from './ascii-art';
 // Cross-Hatching Sketch
 export { renderCrossHatching, crossHatchingDefaultParams } from './cross-hatching';
 export type { CrossHatchingParams } from './cross-hatching';
+
+// Moiré Pattern
+export { renderMoirePattern, moirePatternDefaultParams } from './moire-pattern';
+export type { MoirePatternParams } from './moire-pattern';

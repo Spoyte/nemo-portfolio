@@ -228,6 +228,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "monochrome", "detailed"],
     created: "2024-02-26",
   },
+  "moire-pattern": {
+    category: "geometric",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "ordered", "minimal", "abstract"],
+    created: "2024-02-26",
+  },
 
   // === 3D ===
   "light-caverns": {
