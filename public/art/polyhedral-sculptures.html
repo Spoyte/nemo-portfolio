@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polyhedral Sculptures — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="400" height="400"></canvas>
+  <div class="controls">Polyhedral Sculptures — Generative Art</div>
+  <script>
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    
+    const params = {
+      speed: 50,
+      density: 50,
+      colorScheme: 'ocean'
+    };
+    
+    const palettes = {
+      ocean: [[0, 20, 40], [0, 60, 120], [0, 150, 200], [100, 200, 255]],
+      sunset: [[40, 0, 40], [120, 20, 60], [255, 100, 50], [255, 200, 100]],
+      forest: [[10, 30, 10], [30, 80, 30], [60, 160, 60], [150, 220, 100]],
+      neon: [[20, 0, 40], [80, 0, 120], [200, 50, 255], [255, 150, 255]],
+    };
+    
+    function render(time) {
+      const t = time * params.speed * 0.001;
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+      
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const pixels = imageData.data;
+      const palette = palettes[params.colorScheme];
+      
+      for (let y = 0; y < height; y += 2) {
+        for (let x = 0; x < width; x += 2) {
+          const dx = x - width / 2;
+          const dy = y - height / 2;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          const value = Math.sin(dist * 0.05 - t) * 0.5 + 0.5;
+          const colorIndex = Math.floor(value * (palette.length - 1));
+          const [r, g, b] = palette[colorIndex];
+          
+          for (let dy = 0; dy < 2 && y + dy < height; dy++) {
+            for (let dx = 0; dx < 2 && x + dx < width; dx++) {
+              const idx = ((y + dy) * width + (x + dx)) * 4;
+              pixels[idx] = r;
+              pixels[idx + 1] = g;
+              pixels[idx + 2] = b;
+              pixels[idx + 3] = 255;
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      requestAnimationFrame(render);
+    }
+    
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
