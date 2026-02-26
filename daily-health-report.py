@@ -2,211 +2,378 @@
 """
 Daily Health Report for OpenClaw Workspace
 Generates a summary of system and workspace health.
+
+Usage:
+    python daily-health-report.py              # Full report
+    python daily-health-report.py --json       # JSON output for parsing
+    python daily-health-report.py --quiet      # Exit code only (0=healthy, 1=issues)
+    python daily-health-report.py --check      # Quick health check, minimal output
 """
 
 import subprocess
 import json
 import os
-from datetime import datetime
+import sys
+import argparse
+from datetime import datetime, timedelta
 from pathlib import Path
+from dataclasses import dataclass, asdict
+from typing import Optional, Union
 
-def run_cmd(cmd, shell=True):
+
+@dataclass
+class DiskInfo:
+    total: str = "N/A"
+    used: str = "N/A"
+    available: str = "N/A"
+    percent: int = 0
+    
+    @property
+    def is_critical(self) -> bool:
+        return self.percent > 90
+    
+    @property
+    def is_warning(self) -> bool:
+        return self.percent > 80
+
+
+@dataclass  
+class MemoryInfo:
+    total: str = "N/A"
+    used: str = "N/A"
+    available: str = "N/A"
+    percent_used: int = 0
+
+
+@dataclass
+class GitInfo:
+    branch: str = "unknown"
+    uncommitted_files: int = 0
+    last_commit: str = "N/A"
+    needs_push: bool = False
+    
+    @property
+    def is_clean(self) -> bool:
+        return self.uncommitted_files == 0 and not self.needs_push
+
+
+@dataclass
+class BackupInfo:
+    latest: Optional[str] = None
+    date: Optional[str] = None
+    age_hours: float = float('inf')
+    count: int = 0
+    
+    @property
+    def is_fresh(self) -> bool:
+        return self.age_hours < 24
+    
+    @property
+    def is_stale(self) -> bool:
+        return self.age_hours > 48
+
+
+@dataclass
+class HealthReport:
+    timestamp: str
+    timezone: str
+    disk: DiskInfo
+    memory: MemoryInfo
+    load: str
+    git: GitInfo
+    backup: BackupInfo
+    memory_files_count: int
+    memory_files_recent: int
+    
+    @property
+    def has_issues(self) -> bool:
+        return (
+            self.disk.is_critical or
+            self.backup.is_stale or
+            not self.git.is_clean
+        )
+    
+    @property
+    def has_warnings(self) -> bool:
+        return (
+            self.disk.is_warning or
+            not self.backup.is_fresh
+        )
+
+
+def run_cmd(cmd: str, shell: bool = True, timeout: int = 30) -> str:
     """Run a command and return output or error message."""
     try:
-        result = subprocess.run(cmd, shell=shell, capture_output=True, text=True, timeout=30)
-        return result.stdout.strip() if result.returncode == 0 else f"Error: {result.stderr.strip()[:100]}"
-    except Exception as e:
-        return f"Error: {str(e)[:100]}"
+        result = subprocess.run(
+            cmd, 
+            shell=shell, 
+            capture_output=True, 
+            text=True, 
+            timeout=timeout
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except Exception:
+        return ""
 
-def check_disk_space():
-    """Check disk usage."""
+def parse_disk_info() -> DiskInfo:
+    """Parse disk usage from df command."""
     output = run_cmd("df -h / | tail -1")
     parts = output.split()
     if len(parts) >= 5:
-        return {
-            "total": parts[1],
-            "used": parts[2],
-            "available": parts[3],
-            "percent": parts[4]
-        }
-    return {"error": "Could not parse disk info"}
+        percent_str = parts[4].replace('%', '')
+        try:
+            percent = int(percent_str)
+        except ValueError:
+            percent = 0
+        return DiskInfo(
+            total=parts[1],
+            used=parts[2], 
+            available=parts[3],
+            percent=percent
+        )
+    return DiskInfo()
 
-def check_memory():
-    """Check memory usage."""
+
+def parse_memory_info() -> MemoryInfo:
+    """Parse memory usage from free command."""
     output = run_cmd("free -h | grep Mem")
     parts = output.split()
     if len(parts) >= 7:
-        return {
-            "total": parts[1],
-            "used": parts[2],
-            "free": parts[3],
-            "available": parts[6]
-        }
-    return {"error": "Could not parse memory info"}
+        return MemoryInfo(
+            total=parts[1],
+            used=parts[2],
+            available=parts[6]
+        )
+    return MemoryInfo()
 
-def check_load():
-    """Check system load."""
+
+def parse_load() -> str:
+    """Get system load average."""
     output = run_cmd("uptime | awk -F'load average:' '{print $2}'")
     return output.strip() if output else "N/A"
 
-def check_openclaw_status():
-    """Check OpenClaw gateway status."""
-    return run_cmd("openclaw gateway status 2>&1 || echo 'Gateway status unavailable'")
 
-def check_git_status():
-    """Check git repository status."""
-    workspace = "/root/.openclaw/workspace"
-    os.chdir(workspace)
-    
-    # Check for uncommitted changes
-    status = run_cmd("git status --porcelain")
-    branch = run_cmd("git branch --show-current")
-    
-    uncommitted = len([l for l in status.split('\n') if l.strip()]) if status else 0
-    
-    # Check last commit
-    last_commit = run_cmd("git log -1 --format='%h %s (%ar)'")
-    
-    # Check if behind remote
-    fetch_result = run_cmd("git fetch --dry-run 2>&1", shell=True)
-    
-    return {
-        "branch": branch,
-        "uncommitted_files": uncommitted,
-        "last_commit": last_commit,
-        "needs_push": "untracked" in run_cmd("git status -sb").lower() if run_cmd("git status -sb") else False
-    }
+def parse_git_info(workspace: str) -> GitInfo:
+    """Parse git repository status."""
+    original_dir = os.getcwd()
+    try:
+        os.chdir(workspace)
+        
+        branch = run_cmd("git branch --show-current") or "unknown"
+        status = run_cmd("git status --porcelain")
+        uncommitted = len([l for l in status.split('\n') if l.strip()]) if status else 0
+        last_commit = run_cmd("git log -1 --format='%h %s (%ar)'") or "N/A"
+        
+        # Check if ahead of remote
+        status_short = run_cmd("git status -sb")
+        needs_push = "ahead" in status_short.lower() if status_short else False
+        
+        return GitInfo(
+            branch=branch,
+            uncommitted_files=uncommitted,
+            last_commit=last_commit,
+            needs_push=needs_push
+        )
+    finally:
+        os.chdir(original_dir)
 
-def check_cron_jobs():
-    """List OpenClaw cron jobs."""
-    output = run_cmd("openclaw cron list 2>&1 || echo 'Cron list unavailable'")
-    return output
 
-def check_recent_backups():
+def parse_backup_info(workspace: str) -> BackupInfo:
     """Check for recent backups."""
-    backup_dir = "/root/.openclaw/workspace/backups"
-    if not os.path.exists(backup_dir):
-        return "No backup directory found"
+    backup_dir = Path(workspace) / "backups"
+    if not backup_dir.exists():
+        return BackupInfo()
     
-    backups = sorted(Path(backup_dir).glob("*.zip"), key=lambda x: x.stat().st_mtime, reverse=True)
+    backups = sorted(backup_dir.glob("*.zip"), key=lambda x: x.stat().st_mtime, reverse=True)
     if not backups:
-        return "No backups found"
+        return BackupInfo()
     
     latest = backups[0]
     mtime = datetime.fromtimestamp(latest.stat().st_mtime)
     age_hours = (datetime.now() - mtime).total_seconds() / 3600
     
-    return {
-        "latest": latest.name,
-        "date": mtime.strftime("%Y-%m-%d %H:%M"),
-        "age_hours": round(age_hours, 1),
-        "count": len(backups)
-    }
+    return BackupInfo(
+        latest=latest.name,
+        date=mtime.strftime("%Y-%m-%d %H:%M"),
+        age_hours=round(age_hours, 1),
+        count=len(backups)
+    )
 
-def check_memory_files():
+
+def parse_memory_files(workspace: str) -> tuple[int, int]:
     """Check memory directory for recent entries."""
-    memory_dir = "/root/.openclaw/workspace/memory"
-    if not os.path.exists(memory_dir):
-        return "No memory directory"
+    memory_dir = Path(workspace) / "memory"
+    if not memory_dir.exists():
+        return 0, 0
     
-    files = sorted(Path(memory_dir).glob("*.md"), key=lambda x: x.stat().st_mtime, reverse=True)
-    recent = [f for f in files if (datetime.now() - datetime.fromtimestamp(f.stat().st_mtime)).days <= 7]
+    files = sorted(memory_dir.glob("*.md"), key=lambda x: x.stat().st_mtime, reverse=True)
+    week_ago = datetime.now() - timedelta(days=7)
+    recent = [f for f in files if datetime.fromtimestamp(f.stat().st_mtime) > week_ago]
     
-    return {
-        "total_files": len(files),
-        "recent_7_days": len(recent),
-        "latest": files[0].name if files else None
-    }
+    return len(files), len(recent)
+
+
+def generate_report(workspace: str) -> HealthReport:
+    """Generate complete health report."""
+    total_mem, recent_mem = parse_memory_files(workspace)
+    
+    return HealthReport(
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        timezone="Asia/Shanghai",
+        disk=parse_disk_info(),
+        memory=parse_memory_info(),
+        load=parse_load(),
+        git=parse_git_info(workspace),
+        backup=parse_backup_info(workspace),
+        memory_files_count=total_mem,
+        memory_files_recent=recent_mem
+    )
+
+def format_report(report: HealthReport) -> str:
+    """Format report as human-readable text."""
+    lines = []
+    
+    # Header
+    lines.extend([
+        "=" * 50,
+        "📊 DAILY HEALTH REPORT",
+        f"🕐 {report.timestamp} ({report.timezone})",
+        "=" * 50,
+    ])
+    
+    # System section
+    lines.extend([
+        "\n🖥️  SYSTEM HEALTH",
+        "-" * 30,
+        f"   Disk: {report.disk.used}/{report.disk.total} used ({report.disk.percent}%)",
+        f"   Memory: {report.memory.used}/{report.memory.total} used, {report.memory.available} available",
+        f"   Load: {report.load}",
+    ])
+    
+    # Workspace section
+    lines.extend([
+        "\n📁 WORKSPACE HEALTH",
+        "-" * 30,
+        f"   Git branch: {report.git.branch}",
+        f"   Uncommitted: {report.git.uncommitted_files} files",
+        f"   Last commit: {report.git.last_commit[:50]}...",
+    ])
+    
+    if report.git.needs_push:
+        lines.append("   ⚠️ Unpushed commits")
+    
+    if report.backup.latest:
+        lines.append(f"   Latest backup: {report.backup.latest} ({report.backup.age_hours}h ago)")
+    else:
+        lines.append("   Backups: None found")
+    
+    lines.append(f"   Memory files: {report.memory_files_count} total, {report.memory_files_recent} in last 7 days")
+    
+    # Status summary
+    lines.extend(["\n" + "=" * 50])
+    
+    if report.has_issues:
+        lines.append("🚨 ISSUES DETECTED")
+        if report.disk.is_critical:
+            lines.append(f"   ⚠️  Disk critical: {report.disk.percent}% full")
+        if report.backup.is_stale:
+            lines.append(f"   ⚠️  Backup stale: {report.backup.age_hours:.0f}h old")
+        if report.git.uncommitted_files > 0:
+            lines.append(f"   ⚠️  {report.git.uncommitted_files} uncommitted files")
+        if report.git.needs_push:
+            lines.append("   ⚠️  Unpushed commits")
+    elif report.has_warnings:
+        lines.append("⚠️  WARNINGS")
+        if report.disk.is_warning:
+            lines.append(f"   Disk usage high: {report.disk.percent}%")
+        if not report.backup.is_fresh:
+            lines.append(f"   Backup aging: {report.backup.age_hours:.0f}h old")
+    else:
+        lines.append("✅ All systems nominal")
+    
+    lines.append("=" * 50)
+    
+    return "\n".join(lines)
+
+
+def format_check(report: HealthReport) -> str:
+    """Format quick health check."""
+    parts = []
+    
+    # Disk status
+    if report.disk.is_critical:
+        parts.append(f"❌ Disk {report.disk.percent}%")
+    elif report.disk.is_warning:
+        parts.append(f"⚠️ Disk {report.disk.percent}%")
+    else:
+        parts.append(f"✅ Disk {report.disk.percent}%")
+    
+    # Git status
+    if report.git.is_clean:
+        parts.append("✅ Git clean")
+    else:
+        issues = []
+        if report.git.uncommitted_files:
+            issues.append(f"{report.git.uncommitted_files} uncommitted")
+        if report.git.needs_push:
+            issues.append("unpushed")
+        parts.append(f"⚠️ Git: {', '.join(issues)}")
+    
+    # Backup status
+    if report.backup.is_fresh:
+        parts.append(f"✅ Backup ({report.backup.age_hours:.0f}h)")
+    elif report.backup.is_stale:
+        parts.append(f"❌ Backup ({report.backup.age_hours:.0f}h)")
+    else:
+        parts.append("⚠️ No backup")
+    
+    return " | ".join(parts)
+
 
 def main():
-    report = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "timezone": "Asia/Shanghai",
-        "system": {
-            "disk": check_disk_space(),
-            "memory": check_memory(),
-            "load": check_load()
-        },
-        "openclaw": {
-            "gateway_status": check_openclaw_status(),
-            "cron_jobs": check_cron_jobs()
-        },
-        "workspace": {
-            "git": check_git_status(),
-            "backups": check_recent_backups(),
-            "memory_files": check_memory_files()
+    parser = argparse.ArgumentParser(description="Daily health report for OpenClaw workspace")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--quiet", action="store_true", help="Exit code only (0=healthy, 1=issues)")
+    parser.add_argument("--check", action="store_true", help="Quick health check")
+    parser.add_argument("--workspace", default="/root/.openclaw/workspace", help="Workspace path")
+    args = parser.parse_args()
+    
+    report = generate_report(args.workspace)
+    
+    if args.quiet:
+        sys.exit(1 if report.has_issues else 0)
+    
+    if args.json:
+        # Convert dataclass to dict for JSON serialization
+        report_dict = {
+            "timestamp": report.timestamp,
+            "timezone": report.timezone,
+            "system": {
+                "disk": asdict(report.disk),
+                "memory": asdict(report.memory),
+                "load": report.load
+            },
+            "workspace": {
+                "git": asdict(report.git),
+                "backup": asdict(report.backup),
+                "memory_files": {
+                    "total": report.memory_files_count,
+                    "recent_7_days": report.memory_files_recent
+                }
+            },
+            "status": {
+                "has_issues": report.has_issues,
+                "has_warnings": report.has_warnings
+            }
         }
-    }
-    
-    # Print formatted report
-    print("=" * 50)
-    print(f"📊 DAILY HEALTH REPORT")
-    print(f"🕐 {report['timestamp']} ({report['timezone']})")
-    print("=" * 50)
-    
-    print("\n🖥️  SYSTEM HEALTH")
-    print("-" * 30)
-    disk = report['system']['disk']
-    if 'percent' in disk:
-        print(f"   Disk: {disk['used']}/{disk['total']} used ({disk['percent']})")
+        print(json.dumps(report_dict, indent=2))
+    elif args.check:
+        print(format_check(report))
     else:
-        print(f"   Disk: {disk.get('error', 'Unknown')}")
+        print(format_report(report))
     
-    mem = report['system']['memory']
-    if 'available' in mem:
-        print(f"   Memory: {mem['used']}/{mem['total']} used, {mem['available']} available")
-    else:
-        print(f"   Memory: {mem.get('error', 'Unknown')}")
-    
-    print(f"   Load: {report['system']['load']}")
-    
-    print("\n🤖 OPENCLAW STATUS")
-    print("-" * 30)
-    print(f"   Gateway: {report['openclaw']['gateway_status'][:60]}...")
-    cron = report['openclaw']['cron_jobs']
-    cron_lines = [l for l in cron.split('\n') if l.strip() and 'ID' not in l]
-    print(f"   Cron jobs: {len(cron_lines)} active")
-    
-    print("\n📁 WORKSPACE HEALTH")
-    print("-" * 30)
-    git = report['workspace']['git']
-    print(f"   Git branch: {git['branch']}")
-    print(f"   Uncommitted files: {git['uncommitted_files']}")
-    print(f"   Last commit: {git['last_commit'][:50]}...")
-    
-    backup = report['workspace']['backups']
-    if isinstance(backup, dict):
-        print(f"   Latest backup: {backup['latest']} ({backup['age_hours']}h ago)")
-    else:
-        print(f"   Backups: {backup}")
-    
-    mem_files = report['workspace']['memory_files']
-    print(f"   Memory files: {mem_files['total_files']} total, {mem_files['recent_7_days']} in last 7 days")
-    
-    print("\n" + "=" * 50)
-    
-    # Alerts
-    alerts = []
-    if isinstance(disk, dict) and disk.get('percent', '0%').replace('%', '').isdigit():
-        if int(disk['percent'].replace('%', '')) > 80:
-            alerts.append("⚠️ Disk usage above 80%")
-    
-    if git['uncommitted_files'] > 5:
-        alerts.append(f"⚠️ {git['uncommitted_files']} uncommitted files")
-    
-    if isinstance(backup, dict) and backup['age_hours'] > 48:
-        alerts.append(f"⚠️ Backup is {backup['age_hours']:.0f} hours old")
-    
-    if alerts:
-        print("\n🚨 ALERTS")
-        for alert in alerts:
-            print(f"   {alert}")
-    else:
-        print("\n✅ All systems nominal")
-    
-    print("=" * 50)
-    
-    return report
+    sys.exit(1 if report.has_issues else 0)
+
 
 if __name__ == "__main__":
     main()
