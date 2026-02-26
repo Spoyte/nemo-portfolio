@@ -49,6 +49,7 @@ import { stainedGlass } from "./stained-glass";
 import { fractalFlame } from "./fractal-flame";
 import { impossibleGeometry } from "./impossible-geometry";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
+import { islamicPatterns } from "./islamic-patterns";
 
 export const artGenerators: Record<string, ArtGenerator> = {
   "flow-field": flowField,
@@ -101,6 +102,7 @@ export const artGenerators: Record<string, ArtGenerator> = {
   "fractal-flame": fractalFlame,
   "impossible-geometry": impossibleGeometry,
   "polyhedral-sculptures": polyhedralSculptures,
+  "islamic-patterns": islamicPatterns,
 };
 
 export * from "./core";
@@ -248,3 +250,7 @@ export type { ImpossibleGeometryParams } from './impossible-geometry';
 // Polyhedral Sculptures
 export { renderPolyhedralSculptures, polyhedralSculpturesDefaultParams } from './polyhedral-sculptures';
 export type { PolyhedralSculpturesParams } from './polyhedral-sculptures';
+
+// Islamic Geometric Patterns
+export { renderIslamicPatterns, islamicPatternsDefaultParams } from './islamic-patterns';
+export type { IslamicPatternParams } from './islamic-patterns';
