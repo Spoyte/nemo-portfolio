@@ -48,6 +48,7 @@ import { spaceFillingCurves } from "./space-filling-curves";
 import { origamiTessellation } from "./origami-tessellation";
 import { cymatics } from "./cymatics";
 import { prismDispersion } from "./prism-dispersion";
+import { kineticTypography } from "./kinetic-typography";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -97,6 +98,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "origami-tessellation": origamiTessellation,
   "cymatics": cymatics,
   "prism-dispersion": prismDispersion,
+  "kinetic-typography": kineticTypography,
 };
 
 // Apply metadata to generators
@@ -198,6 +200,10 @@ export type { OrigamiTessellationParams } from './origami-tessellation';
 
 // Cymatics
 export { renderCymatics, cymaticsDefaultParams } from './cymatics';
+
+// Kinetic Typography
+export { renderKineticTypography, kineticTypographyDefaultParams } from './kinetic-typography';
+export type { KineticTypographyParams } from './kinetic-typography';
 export type { CymaticsParams } from './cymatics';
 
 // Prism Dispersion

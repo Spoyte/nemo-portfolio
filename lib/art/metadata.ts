@@ -270,6 +270,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "colorful", "ordered", "detailed", "futuristic"],
     created: "2024-02-27",
   },
+  "kinetic-typography": {
+    category: "text",
+    complexity: "complex",
+    tags: ["animated", "colorful", "futuristic", "abstract"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
