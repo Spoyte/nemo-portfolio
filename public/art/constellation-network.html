@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Constellation Network — Interactive Particle Constellations</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    #canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 20px 30px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      gap: 25px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 90vw;
+      z-index: 10;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 120px;
+    }
+
+    .control-group label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #6366f1;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .control-group select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .control-group select option {
+      background: #1a1a2e;
+    }
+
+    .value-display {
+      font-size: 12px;
+      color: #6366f1;
+      font-weight: 600;
+    }
+
+    .title {
+      position: fixed;
+      top: 30px;
+      left: 30px;
+      z-index: 10;
+    }
+
+    .title h1 {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+    }
+
+    .title p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .info {
+      position: fixed;
+      top: 30px;
+      right: 30px;
+      text-align: right;
+      z-index: 10;
+    }
+
+    .info span {
+      display: block;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 4px;
+    }
+
+    .info .stat {
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        padding: 15px 20px;
+        gap: 15px;
+      }
+
+      .control-group {
+        min-width: 100px;
+      }
+
+      .title {
+        top: 20px;
+        left: 20px;
+      }
+
+      .title h1 {
+        font-size: 18px;
+      }
+
+      .info {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div class="title">
+    <h1>CONSTELLATION</h1>
+    <p>Move your cursor to interact</p>
+  </div>
+
+  <div class="info">
+    <span>Particles <span class="stat" id="particleCount">0</span></span>
+    <span>Connections <span class="stat" id="connectionCount">0</span></span>
+    <span>FPS <span class="stat" id="fps">60</span></span>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Particle Count</label>
+      <input type="range" id="particleSlider" min="20" max="150" value="60">
+      <span class="value-display" id="particleValue">60</span>
+    </div>
+
+    <div class="control-group">
+      <label>Connection Distance</label>
+      <input type="range" id="distanceSlider" min="50" max="250" value="150">
+      <span class="value-display" id="distanceValue">150px</span>
+    </div>
+
+    <div class="control-group">
+      <label>Speed</label>
+      <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="0.8">
+      <span class="value-display" id="speedValue">0.8</span>
+    </div>
+
+    <div class="control-group">
+      <label>Color Theme</label>
+      <select id="themeSelect">
+        <option value="rainbow">Rainbow</option>
+        <option value="ocean">Ocean</option>
+        <option value="fire">Fire</option>
+        <option value="neon">Neon</option>
+        <option value="gold">Gold</option>
+        <option value="mono">Monochrome</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Mouse Effect</label>
+      <select id="mouseSelect">
+        <option value="attract">Attract</option>
+        <option value="repel">Repel</option>
+        <option value="connect">Connect</option>
+        <option value="none">None</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Configuration
+    let config = {
+      particleCount: 60,
+      connectionDistance: 150,
+      speed: 0.8,
+      theme: 'rainbow',
+      mouseEffect: 'attract'
+    };
+
+    // Color themes
+    const themes = {
+      rainbow: [
+        'rgba(220, 38, 38, 0.7)',   // red
+        'rgba(234, 88, 12, 0.7)',   // orange
+        'rgba(217, 119, 6, 0.7)',   // amber
+        'rgba(101, 163, 13, 0.7)',  // lime
+        'rgba(8, 145, 178, 0.7)',   // cyan
+        'rgba(99, 102, 241, 0.7)',  // indigo
+        'rgba(168, 85, 247, 0.7)',  // purple
+        'rgba(236, 72, 153, 0.7)',  // pink
+      ],
+      ocean: [
+        'rgba(6, 182, 212, 0.7)',   // cyan
+        'rgba(59, 130, 246, 0.7)',  // blue
+        'rgba(99, 102, 241, 0.7)',  // indigo
+        'rgba(14, 165, 233, 0.7)',  // sky
+        'rgba(20, 184, 166, 0.7)',  // teal
+      ],
+      fire: [
+        'rgba(239, 68, 68, 0.7)',   // red
+        'rgba(249, 115, 22, 0.7)',  // orange
+        'rgba(245, 158, 11, 0.7)',  // amber
+        'rgba(234, 179, 8, 0.7)',   // yellow
+        'rgba(220, 38, 38, 0.7)',   // dark red
+      ],
+      neon: [
+        'rgba(236, 72, 153, 0.7)',  // pink
+        'rgba(168, 85, 247, 0.7)',  // purple
+        'rgba(99, 102, 241, 0.7)',  // indigo
+        'rgba(6, 182, 212, 0.7)',   // cyan
+        'rgba(34, 197, 94, 0.7)',   // green
+      ],
+      gold: [
+        'rgba(234, 179, 8, 0.7)',   // yellow
+        'rgba(202, 138, 4, 0.7)',   // gold
+        'rgba(251, 191, 36, 0.7)',  // amber
+        'rgba(180, 83, 9, 0.7)',    // bronze
+        'rgba(245, 158, 11, 0.7)',  // orange
+      ],
+      mono: [
+        'rgba(255, 255, 255, 0.8)',
+        'rgba(200, 200, 200, 0.7)',
+        'rgba(150, 150, 150, 0.6)',
+        'rgba(100, 100, 100, 0.5)',
+        'rgba(255, 255, 255, 0.4)',
+      ]
+    };
+
+    // State
+    let particles = [];
+    let mouse = { x: 0, y: 0, active: false };
+    let animationId;
+    let lastTime = 0;
+    let frameCount = 0;
+    let fps = 60;
+
+    // Particle class
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * config.speed;
+        this.vy = (Math.random() - 0.5) * config.speed;
+        this.radius = Math.random() * 2 + 1.5;
+        this.baseRadius = this.radius;
+        this.color = themes[config.theme][Math.floor(Math.random() * themes[config.theme].length)];
+        this.pulse = Math.random() * Math.PI * 2;
+        this.pulseSpeed = 0.02 + Math.random() * 0.03;
+      }
+
+      update() {
+        // Apply mouse effect
+        if (mouse.active && config.mouseEffect !== 'none') {
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = 200;
+
+          if (dist < maxDist) {
+            const force = (1 - dist / maxDist) * 0.5;
+            if (config.mouseEffect === 'attract') {
+              this.vx += (dx / dist) * force * 0.1;
+              this.vy += (dy / dist) * force * 0.1;
+            } else if (config.mouseEffect === 'repel') {
+              this.vx -= (dx / dist) * force * 0.2;
+              this.vy -= (dy / dist) * force * 0.2;
+            }
+          }
+        }
+
+        // Update position
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Bounce off edges
+        if (this.x < 0 || this.x > canvas.width) {
+          this.vx *= -1;
+          this.x = Math.max(0, Math.min(canvas.width, this.x));
+        }
+        if (this.y < 0 || this.y > canvas.height) {
+          this.vy *= -1;
+          this.y = Math.max(0, Math.min(canvas.height, this.y));
+        }
+
+        // Damping
+        this.vx *= 0.999;
+        this.vy *= 0.999;
+
+        // Minimum speed
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (speed < 0.1) {
+          this.vx += (Math.random() - 0.5) * 0.05;
+          this.vy += (Math.random() - 0.5) * 0.05;
+        }
+
+        // Pulse animation
+        this.pulse += this.pulseSpeed;
+        this.radius = this.baseRadius + Math.sin(this.pulse) * 0.5;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+
+        // Glow effect
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * 2, 0, Math.PI * 2);
+        ctx.fillStyle = this.color.replace(/[\d.]+\)$/, '0.2)');
+        ctx.fill();
+      }
+    }
+
+    // Initialize particles
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < config.particleCount; i++) {
+        particles.push(new Particle(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height
+        ));
+      }
+    }
+
+    // Draw connections
+    function drawConnections() {
+      const maxDist = config.connectionDistance;
+      let connectionCount = 0;
+
+      for (let i = 0; i < particles.length; i++) {
+        // Connect to mouse
+        if (mouse.active && config.mouseEffect === 'connect') {
+          const dx = mouse.x - particles[i].x;
+          const dy = mouse.y - particles[i].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < maxDist * 1.5) {
+            const opacity = (1 - dist / (maxDist * 1.5)) * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            connectionCount++;
+          }
+        }
+
+        // Connect to other particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < maxDist) {
+            const opacity = (1 - dist / maxDist) * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+            connectionCount++;
+          }
+        }
+      }
+
+      return connectionCount;
+    }
+
+    // Animation loop
+    function animate(currentTime) {
+      // Calculate FPS
+      if (currentTime - lastTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastTime = currentTime;
+        document.getElementById('fps').textContent = fps;
+      }
+      frameCount++;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Update and draw particles
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw();
+      });
+
+      // Draw connections
+      const connectionCount = drawConnections();
+
+      // Update stats
+      document.getElementById('particleCount').textContent = particles.length;
+      document.getElementById('connectionCount').textContent = connectionCount;
+
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Resize handler
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    }
+
+    // Event listeners
+    window.addEventListener('resize', resize);
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      mouse.active = false;
+    });
+
+    // Touch support
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      mouse.x = e.touches[0].clientX;
+      mouse.y = e.touches[0].clientY;
+      mouse.active = true;
+    });
+
+    canvas.addEventListener('touchend', () => {
+      mouse.active = false;
+    });
+
+    // Control handlers
+    document.getElementById('particleSlider').addEventListener('input', (e) => {
+      config.particleCount = parseInt(e.target.value);
+      document.getElementById('particleValue').textContent = config.particleCount;
+      initParticles();
+    });
+
+    document.getElementById('distanceSlider').addEventListener('input', (e) => {
+      config.connectionDistance = parseInt(e.target.value);
+      document.getElementById('distanceValue').textContent = config.connectionDistance + 'px';
+    });
+
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      config.speed = parseFloat(e.target.value);
+      document.getElementById('speedValue').textContent = config.speed;
+      particles.forEach(p => {
+        p.vx = (Math.random() - 0.5) * config.speed;
+        p.vy = (Math.random() - 0.5) * config.speed;
+      });
+    });
+
+    document.getElementById('themeSelect').addEventListener('change', (e) => {
+      config.theme = e.target.value;
+      particles.forEach(p => {
+        p.color = themes[config.theme][Math.floor(Math.random() * themes[config.theme].length)];
+      });
+    });
+
+    document.getElementById('mouseSelect').addEventListener('change', (e) => {
+      config.mouseEffect = e.target.value;
+    });
+
+    // Initialize
+    resize();
+    animate(0);
+  </script>
+</body>
+</html>
