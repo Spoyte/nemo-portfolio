@@ -54,6 +54,7 @@ import { plasmaArc } from "./plasma-arc";
 import { slimeMold } from "./slime-mold";
 import { waveTank } from "./wave-tank";
 import { solarFlare } from "./solar-flare";
+import { crystalLattice } from "./crystal-lattice";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -109,6 +110,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "slime-mold": slimeMold,
   "wave-tank": waveTank,
   "solar-flare": solarFlare,
+"crystal-lattice": crystalLattice,
 };
 
 // Apply metadata to generators
@@ -239,3 +241,7 @@ export type { WaveTankParams } from './wave-tank';
 // Solar Flare
 export { renderSolarFlare, solarFlareDefaultParams } from './solar-flare';
 export type { SolarFlareParams } from './solar-flare';
+
+// Crystal Lattice
+export { renderCrystalLattice, crystalLatticeDefaultParams } from './crystal-lattice';
+export type { CrystalLatticeParams } from './crystal-lattice';

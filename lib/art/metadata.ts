@@ -307,6 +307,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     created: "2024-02-27",
     dependsOn: ["magnetic-field"],
   },
+  "crystal-lattice": {
+    category: "3d",
+    complexity: "expert",
+    tags: ["animated", "3d", "geometric", "ordered", "colorful", "detailed"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -440,6 +446,7 @@ export const VALID_ARTWORK_IDS = new Set([
   // 3D
   "light-caverns",
   "polyhedral-sculptures",
+  "crystal-lattice",
   // Interactive
   "particle-network",
   "frequency-visualizer",
@@ -488,7 +495,7 @@ export function validateMetadata(): {
     "harmonograph", "watercolor-dreams", "ascii-art", "cross-hatching",
     "moire-pattern", "chladni-figures", "space-filling-curves", "origami-tessellation",
     "cymatics", "prism-dispersion", "kinetic-typography", "magnetic-field",
-    "plasma-arc", "slime-mold", "wave-tank", "solar-flare",
+    "plasma-arc", "slime-mold", "wave-tank", "solar-flare", "crystal-lattice",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 
