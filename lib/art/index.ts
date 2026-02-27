@@ -65,6 +65,7 @@ import { penroseTiling } from "./penrose-tiling";
 import { lenia } from "./lenia";
 import { bioluminescentPlanktonGenerator } from "./bioluminescent-plankton-generator";
 import { selfOrganizingMap } from "./self-organizing-map";
+import { abelianSandpile } from "./abelian-sandpile";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -131,6 +132,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "lenia": lenia,
   "bioluminescent-plankton": bioluminescentPlanktonGenerator,
   "self-organizing-map": selfOrganizingMap,
+  "abelian-sandpile": abelianSandpile,
 };
 
 // Apply metadata to generators
@@ -306,3 +308,7 @@ export type { PlanktonParams } from './bioluminescent-plankton';
 // Self-Organizing Map
 export { renderSelfOrganizingMap, selfOrganizingMap, defaultParams as selfOrganizingMapDefaultParams } from './self-organizing-map';
 export type { SOMParams } from './self-organizing-map';
+
+// Abelian Sandpile
+export { renderAbelianSandpile, abelianSandpile, defaultParams as abelianSandpileDefaultParams } from './abelian-sandpile';
+export type { SandpileParams } from './abelian-sandpile';
