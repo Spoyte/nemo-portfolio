@@ -182,7 +182,7 @@ cat > "$SKILL_DIR/install.sh" << EOF
 set -euo pipefail
 
 SKILL_NAME="$SKILL_NAME"
-SKILL_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" \&\& pwd)"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Detect shell
 SHELL_RC=""

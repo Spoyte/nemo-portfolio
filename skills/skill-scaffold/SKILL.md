@@ -13,6 +13,11 @@ Rapid scaffolding for OpenClaw skills. Creates consistent structure: SKILL.md do
 # Scaffold a new skill
 skill-new <kebab-name> "Descriptive Name"
 
+# List all available skills
+skill-list
+skill-list -q          # Machine-readable (names only)
+skill-list -j          # JSON output
+
 # Example:
 skill-new web-screenshot "Web Screenshot Utility"
 ```
@@ -28,6 +33,17 @@ skills/
     ├── web-screenshot    # Main executable script
     └── install.sh        # Shell integration setup
 ```
+
+## Skill Discovery
+
+`skill-list` scans all skill directories and extracts:
+- Skill name (from directory)
+- Description (from SKILL.md frontmatter)
+
+Output modes:
+- **Default**: Pretty table with colors
+- **`-q`**: Names only (for scripts)
+- **`-j`**: JSON array (for automation)
 
 ## Skill Structure Convention
 

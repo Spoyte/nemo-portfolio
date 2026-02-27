@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+#
+# skill-list — List all OpenClaw skills with descriptions
+#
+# Usage: skill-list [options]
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GRAY='\033[0;90m'
+NC='\033[0m'
+
+# Configuration
+SKILLS_DIR="${SKILLS_DIR:-$HOME/.openclaw/workspace/skills}"
+
+# Help
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "skill-list — List all OpenClaw skills with descriptions"
+    echo ""
+    echo "Usage: skill-list [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help       Show this help"
+    echo "  -q, --quiet      Machine-readable output (name only)"
+    echo "  -j, --json       JSON output for automation"
+    exit 0
+fi
+
+# Parse arguments
+QUIET=false
+JSON=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -q|--quiet)
+            QUIET=true
+            shift
+            ;;
+        -j|--json)
+            JSON=true
+            shift
+            ;;
+        -*)
+            echo -e "${RED}Unknown option: $1${NC}" >&2
+            exit 1
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Check skills directory exists
+if [[ ! -d "$SKILLS_DIR" ]]; then
+    echo -e "${RED}Error: Skills directory not found: $SKILLS_DIR${NC}" >&2
+    exit 1
+fi
+
+# Find all SKILL.md files and extract info
+declare -a SKILLS=()
+declare -a NAMES=()
+declare -a DESCRIPTIONS=()
+
+while IFS= read -r skill_md; do
+    skill_dir=$(dirname "$skill_md")
+    skill_name=$(basename "$skill_dir")
+    
+    # Extract description from frontmatter
+    description=""
+    if [[ -f "$skill_md" ]]; then
+        description=$(grep -m1 "^description:" "$skill_md" 2>/dev/null | sed 's/description: *"//;s/"$//' || echo "")
+    fi
+    
+    # Fallback: use directory name
+    if [[ -z "$description" ]]; then
+        description="No description"
+    fi
+    
+    SKILLS+=("$skill_name")
+    NAMES+=("$skill_name")
+    DESCRIPTIONS+=("$description")
+done < <(find "$SKILLS_DIR" -name "SKILL.md" -type f 2>/dev/null | sort)
+
+# Output: JSON
+if [[ "$JSON" == "true" ]]; then
+    echo "["
+    for i in "${!SKILLS[@]}"; do
+        echo -n "  {\"name\": \"${SKILLS[$i]}\", \"description\": \"${DESCRIPTIONS[$i]}\"}"
+        if [[ $i -lt $((${#SKILLS[@]} - 1)) ]]; then
+            echo ","
+        else
+            echo ""
+        fi
+    done
+    echo "]"
+    exit 0
+fi
+
+# Output: Quiet (names only)
+if [[ "$QUIET" == "true" ]]; then
+    for skill in "${SKILLS[@]}"; do
+        echo "$skill"
+    done
+    exit 0
+fi
+
+# Output: Pretty table
+echo -e "${BLUE}Available Skills${NC}"
+echo -e "${GRAY}$(printf '=%.0s' {1..50})${NC}"
+echo ""
+
+for i in "${!SKILLS[@]}"; do
+    printf "  ${GREEN}%-20s${NC} %s\n" "${SKILLS[$i]}" "${DESCRIPTIONS[$i]}"
+done
+
+echo ""
+echo -e "${GRAY}Total: ${#SKILLS[@]} skills${NC}"
+echo ""
+echo -e "${YELLOW}Tip:${NC} Use 'skill-list -q' for machine-readable output"
+
+exit 0
