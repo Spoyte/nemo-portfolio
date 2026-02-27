@@ -24,6 +24,11 @@ art-thumbnails --list
 
 # Clean all thumbnails
 art-thumbnails --clean
+
+# Enhanced version (art-specific thumbnails)
+art-thumbnails-enhanced --list
+art-thumbnails-enhanced --regenerate
+art-thumbnails-enhanced --verify
 ```
 
 ## What It Does
@@ -40,6 +45,27 @@ Each art piece gets a category-appropriate SVG thumbnail:
 | **Abstract** | Flowing gradients, organic shapes |
 
 Thumbnails are saved to `public/art-thumbnails/{art-id}.svg` and can be referenced by the gallery.
+
+## Two Generators
+
+### `art-thumbnails` (Original)
+Category-based templates. Fast, consistent, good for bulk generation.
+
+### `art-thumbnails-enhanced` (New)
+Art-specific thumbnails based on each piece's unique characteristics:
+- **Flow field** → Flowing curves with particle dots
+- **Spirograph** → Elliptical spirograph patterns
+- **Mandelbrot** → Cardioid shape with bulb
+- **Particle systems** → Network nodes and connections
+- **Wave interference** → Overlapping sine waves
+- **Trees/Nature** → Recursive branching structures
+- **Fractals** → Self-similar branching
+- **Cellular automata** → Grid patterns
+
+The enhanced version also includes:
+- **Verification mode** (`--verify`) — Check for orphaned/missing thumbnails
+- **Better metadata extraction** — Pulls names from metadata.ts
+- **Art-specific colors** — Based on tags (colorful vs monochrome)
 
 ## Integration with Gallery
 
@@ -63,9 +89,12 @@ To use thumbnails in the gallery, update the `ArtworkCard` component:
 3. **Dark theme** — Matches the portfolio aesthetic
 4. **Gradient accents** — Each category has its color identity
 5. **Fast generation** — Pure bash, no dependencies
+6. **Art-specific detail** — Unique patterns for recognizable algorithms
 
 ## Future Enhancements
 
+- [x] Generate art-specific thumbnails (enhanced version)
+- [x] Verification mode for consistency checking
 - [ ] Generate actual screenshots from canvas output
 - [ ] Add animation hints (subtle CSS animations)
 - [ ] Support for custom thumbnail per piece
