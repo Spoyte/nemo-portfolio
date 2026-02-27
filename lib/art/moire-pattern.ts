@@ -1,443 +1,365 @@
-import { ArtGenerator, ArtParams, fillCanvas, hslToRgb } from "./core";
+import { ArtGenerator, ArtPiece, ControlType } from "./core";
+import { seededRandom } from "./seeded-random";
 
 export interface MoirePatternParams {
-  patternType: "concentric" | "radial" | "grid" | "spiral" | "waves";
-  lineDensity: number;
-  lineWidth: number;
-  overlayOffset: number;
-  rotationSpeed: number;
-  colorScheme: "monochrome" | "gradient" | "complementary" | "rainbow" | "gold";
-  interferenceIntensity: number;
-  animationMode: "rotate" | "breathe" | "slide" | "morph";
+  basePattern: "lines" | "circles" | "grid" | "radial" | "spiral";
+  overlayPattern: "lines" | "circles" | "grid" | "radial" | "spiral";
+  baseDensity: number; // 10-100
+  overlayDensity: number; // 10-100
+  baseAngle: number; // 0-180
+  overlayAngle: number; // 0-180
+  animationSpeed: number; // 0-5
+  colorScheme: "monochrome" | "rainbow" | "ocean" | "sunset" | "matrix";
+  lineWidth: number; // 0.5-5
+  opacity: number; // 0.1-1.0
+  blendMode: "normal" | "multiply" | "screen" | "overlay" | "difference";
 }
 
-export const moirePatternDefaultParams: MoirePatternParams = {
-  patternType: "concentric",
-  lineDensity: 30,
-  lineWidth: 1,
-  overlayOffset: 5,
-  rotationSpeed: 0.5,
+const defaultParams: MoirePatternParams = {
+  basePattern: "lines",
+  overlayPattern: "lines",
+  baseDensity: 40,
+  overlayDensity: 42,
+  baseAngle: 0,
+  overlayAngle: 5,
+  animationSpeed: 0.5,
   colorScheme: "monochrome",
-  interferenceIntensity: 1,
-  animationMode: "rotate",
+  lineWidth: 1,
+  opacity: 0.8,
+  blendMode: "normal",
 };
 
-// Color schemes
 const COLOR_SCHEMES: Record<string, string[]> = {
-  monochrome: ["#0a0a0a", "#333333", "#666666", "#999999", "#cccccc"],
-  gradient: ["#1a1a2e", "#16213e", "#0f3460", "#e94560", "#ff6b6b"],
-  complementary: ["#ff006e", "#8338ec", "#3a86ff", "#06ffa5", "#ffbe0b"],
-  rainbow: ["#ff0000", "#ff7f00", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#9400d3"],
-  gold: ["#1a1a1a", "#4a3728", "#8b6914", "#c9a227", "#ffd700", "#fff8dc"],
+  monochrome: ["#000000", "#333333", "#666666", "#999999", "#CCCCCC"],
+  rainbow: ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"],
+  ocean: ["#001F3F", "#0074D9", "#7FDBFF", "#39CCCC", "#2ECC40"],
+  sunset: ["#FF4136", "#FF851B", "#FFDC00", "#F012BE", "#B10DC9"],
+  matrix: ["#00FF00", "#003300", "#006600", "#009900", "#00CC00"],
 };
 
-function getColorFromScheme(
-  scheme: string,
-  index: number,
-  total: number,
-  alpha: number = 1
-): string {
-  const colors = COLOR_SCHEMES[scheme] || COLOR_SCHEMES.monochrome;
-  const colorIndex = Math.floor((index / total) * colors.length) % colors.length;
-  const color = colors[colorIndex];
-  
-  // Parse hex and apply alpha
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
-  
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function drawConcentricPattern(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  maxRadius: number,
-  density: number,
-  lineWidth: number,
-  offset: number,
-  rotation: number,
-  colorScheme: string,
-  isOverlay: boolean
-): void {
-  ctx.save();
-  ctx.translate(centerX, centerY);
-  ctx.rotate(rotation);
-  ctx.translate(offset, offset);
-  
-  const spacing = maxRadius / density;
-  
-  for (let i = 0; i < density; i++) {
-    const radius = (i + 1) * spacing;
-    const alpha = isOverlay ? 0.4 : 0.8;
-    ctx.strokeStyle = getColorFromScheme(colorScheme, i, density, alpha);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  
-  ctx.restore();
-}
-
-function drawRadialPattern(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  maxRadius: number,
-  density: number,
-  lineWidth: number,
-  offset: number,
-  rotation: number,
-  colorScheme: string,
-  isOverlay: boolean
-): void {
-  ctx.save();
-  ctx.translate(centerX, centerY);
-  
-  const angleStep = (Math.PI * 2) / density;
-  const alpha = isOverlay ? 0.4 : 0.8;
-  
-  for (let i = 0; i < density; i++) {
-    const angle = i * angleStep + rotation + (isOverlay ? offset * 0.01 : 0);
-    ctx.strokeStyle = getColorFromScheme(colorScheme, i, density, alpha);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(angle) * maxRadius, Math.sin(angle) * maxRadius);
-    ctx.stroke();
-  }
-  
-  ctx.restore();
-}
-
-function drawGridPattern(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  density: number,
-  lineWidth: number,
-  offset: number,
-  rotation: number,
-  colorScheme: string,
-  isOverlay: boolean
-): void {
-  ctx.save();
-  
-  const spacing = Math.min(width, height) / density;
-  const alpha = isOverlay ? 0.3 : 0.6;
-  
-  // Vertical lines
-  for (let i = 0; i <= density; i++) {
-    const x = i * spacing + (isOverlay ? offset : 0);
-    ctx.strokeStyle = getColorFromScheme(colorScheme, i, density * 2, alpha);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + Math.sin(rotation) * 20, height);
-    ctx.stroke();
-  }
-  
-  // Horizontal lines
-  for (let i = 0; i <= density; i++) {
-    const y = i * spacing + (isOverlay ? offset * 0.5 : 0);
-    ctx.strokeStyle = getColorFromScheme(colorScheme, i + density, density * 2, alpha);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y + Math.cos(rotation) * 20);
-    ctx.stroke();
-  }
-  
-  ctx.restore();
-}
-
-function drawSpiralPattern(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  maxRadius: number,
-  density: number,
-  lineWidth: number,
-  offset: number,
-  rotation: number,
-  colorScheme: string,
-  isOverlay: boolean
-): void {
-  ctx.save();
-  ctx.translate(centerX, centerY);
-  
-  const spirals = 3;
-  const alpha = isOverlay ? 0.35 : 0.7;
-  
-  for (let s = 0; s < spirals; s++) {
-    const spiralOffset = (s / spirals) * Math.PI * 2;
-    
-    ctx.strokeStyle = getColorFromScheme(colorScheme, s, spirals, alpha);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    
-    for (let i = 0; i < density * 10; i++) {
-      const t = i / 10;
-      const angle = t * 0.3 + spiralOffset + rotation + (isOverlay ? offset * 0.02 : 0);
-      const radius = t * (maxRadius / density) * 3;
-      
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    }
-    
-    ctx.stroke();
-  }
-  
-  ctx.restore();
-}
-
-function drawWavePattern(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  density: number,
-  lineWidth: number,
-  offset: number,
-  rotation: number,
-  colorScheme: string,
-  isOverlay: boolean
-): void {
-  ctx.save();
-  
-  const spacing = height / density;
-  const alpha = isOverlay ? 0.35 : 0.7;
-  const waveAmplitude = 30 + rotation * 10;
-  const waveFrequency = 0.02;
-  
-  for (let i = 0; i < density; i++) {
-    const baseY = i * spacing;
-    ctx.strokeStyle = getColorFromScheme(colorScheme, i, density, alpha);
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    
-    for (let x = 0; x <= width; x += 5) {
-      const phaseOffset = isOverlay ? offset * 0.1 : 0;
-      const y = baseY + Math.sin(x * waveFrequency + phaseOffset) * waveAmplitude;
-      
-      if (x === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    }
-    
-    ctx.stroke();
-  }
-  
-  ctx.restore();
-}
-
-export function renderMoirePattern(
-  ctx: CanvasRenderingContext2D,
-  params: MoirePatternParams,
-  time: number = 0
-): void {
-  const width = ctx.canvas.width;
-  const height = ctx.canvas.height;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const maxRadius = Math.min(width, height) * 0.45;
-  
-  // Background
-  const bgColors: Record<string, string> = {
-    monochrome: "#f5f5f5",
-    gradient: "#0a0a0a",
-    complementary: "#1a1a2e",
-    rainbow: "#0a0a0a",
-    gold: "#1a1a1a",
+function getBlendMode(mode: string): GlobalCompositeOperation {
+  const modes: Record<string, GlobalCompositeOperation> = {
+    normal: "source-over",
+    multiply: "multiply",
+    screen: "screen",
+    overlay: "overlay",
+    difference: "difference",
   };
-  fillCanvas(ctx, bgColors[params.colorScheme] || "#f5f5f5", width, height);
-  
-  // Calculate animation values
-  let rotation = 0;
-  let offset = params.overlayOffset;
-  
-  switch (params.animationMode) {
-    case "rotate":
-      rotation = time * params.rotationSpeed * 0.001;
+  return modes[mode] || "source-over";
+}
+
+function drawPattern(
+  ctx: CanvasRenderingContext2D,
+  pattern: string,
+  density: number,
+  angle: number,
+  width: number,
+  height: number,
+  time: number,
+  colors: string[],
+  lineWidth: number,
+  opacity: number
+) {
+  ctx.save();
+  ctx.translate(width / 2, height / 2);
+  ctx.rotate((angle * Math.PI) / 180);
+  ctx.translate(-width / 2, -height / 2);
+
+  const spacing = Math.max(2, 200 / density);
+  const diagonal = Math.sqrt(width * width + height * height);
+  const startOffset = -diagonal / 2;
+  const endOffset = diagonal / 2;
+
+  ctx.globalAlpha = opacity;
+  ctx.lineWidth = lineWidth;
+
+  switch (pattern) {
+    case "lines":
+      for (let i = startOffset; i < endOffset; i += spacing) {
+        const colorIndex = Math.floor(Math.abs(i / spacing)) % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.beginPath();
+        ctx.moveTo(i + width / 2, 0);
+        ctx.lineTo(i + width / 2, height);
+        ctx.stroke();
+      }
       break;
-    case "breathe":
-      offset = params.overlayOffset + Math.sin(time * 0.002) * 10;
+
+    case "circles":
+      const maxRadius = diagonal;
+      for (let r = spacing; r < maxRadius; r += spacing) {
+        const colorIndex = Math.floor(r / spacing) % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, r + Math.sin(time * 0.001) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       break;
-    case "slide":
-      offset = params.overlayOffset + Math.sin(time * 0.001) * 20;
-      break;
-    case "morph":
-      rotation = time * params.rotationSpeed * 0.0005;
-      offset = params.overlayOffset + Math.sin(time * 0.0015) * 15;
-      break;
-  }
-  
-  // Draw base pattern
-  switch (params.patternType) {
-    case "concentric":
-      drawConcentricPattern(
-        ctx, centerX, centerY, maxRadius,
-        params.lineDensity, params.lineWidth, 0, 0,
-        params.colorScheme, false
-      );
-      drawConcentricPattern(
-        ctx, centerX, centerY, maxRadius,
-        params.lineDensity, params.lineWidth, offset, rotation,
-        params.colorScheme, true
-      );
-      break;
-      
-    case "radial":
-      drawRadialPattern(
-        ctx, centerX, centerY, maxRadius,
-        params.lineDensity, params.lineWidth, 0, 0,
-        params.colorScheme, false
-      );
-      drawRadialPattern(
-        ctx, centerX, centerY, maxRadius,
-        params.lineDensity, params.lineWidth, offset, rotation,
-        params.colorScheme, true
-      );
-      break;
-      
+
     case "grid":
-      drawGridPattern(
-        ctx, width, height,
-        params.lineDensity, params.lineWidth, 0, 0,
-        params.colorScheme, false
-      );
-      drawGridPattern(
-        ctx, width, height,
-        params.lineDensity, params.lineWidth, offset, rotation,
-        params.colorScheme, true
-      );
+      // Vertical lines
+      for (let i = startOffset; i < endOffset; i += spacing) {
+        const colorIndex = Math.floor(Math.abs(i / spacing)) % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.beginPath();
+        ctx.moveTo(i + width / 2, 0);
+        ctx.lineTo(i + width / 2, height);
+        ctx.stroke();
+      }
+      // Horizontal lines
+      for (let i = startOffset; i < endOffset; i += spacing) {
+        const colorIndex = Math.floor(Math.abs(i / spacing) + 1) % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.beginPath();
+        ctx.moveTo(0, i + height / 2);
+        ctx.lineTo(width, i + height / 2);
+        ctx.stroke();
+      }
       break;
-      
+
+    case "radial":
+      const numRays = Math.floor(density * 0.5);
+      for (let i = 0; i < numRays; i++) {
+        const angle = (i / numRays) * Math.PI * 2 + time * 0.0005;
+        const colorIndex = i % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.beginPath();
+        ctx.moveTo(width / 2, height / 2);
+        ctx.lineTo(
+          width / 2 + Math.cos(angle) * diagonal,
+          height / 2 + Math.sin(angle) * diagonal
+        );
+        ctx.stroke();
+      }
+      break;
+
     case "spiral":
-      drawSpiralPattern(
-        ctx, centerX, centerY, maxRadius,
-        params.lineDensity, params.lineWidth, 0, 0,
-        params.colorScheme, false
-      );
-      drawSpiralPattern(
-        ctx, centerX, centerY, maxRadius,
-        params.lineDensity, params.lineWidth, offset, rotation,
-        params.colorScheme, true
-      );
-      break;
-      
-    case "waves":
-      drawWavePattern(
-        ctx, width, height,
-        params.lineDensity, params.lineWidth, 0, 0,
-        params.colorScheme, false
-      );
-      drawWavePattern(
-        ctx, width, height,
-        params.lineDensity, params.lineWidth, offset, rotation,
-        params.colorScheme, true
-      );
+      const spirals = 3;
+      for (let s = 0; s < spirals; s++) {
+        const colorIndex = s % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.beginPath();
+        const spiralOffset = (s / spirals) * Math.PI * 2;
+        for (let t = 0; t < diagonal * 2; t += 0.5) {
+          const angle = t * 0.1 + spiralOffset + time * 0.0003;
+          const r = t * 0.3;
+          const x = width / 2 + Math.cos(angle) * r;
+          const y = height / 2 + Math.sin(angle) * r;
+          if (t === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      }
       break;
   }
-  
-  // Add interference highlight effect
-  if (params.interferenceIntensity > 0) {
-    ctx.save();
-    ctx.globalCompositeOperation = "overlay";
-    const gradient = ctx.createRadialGradient(
-      centerX, centerY, 0,
-      centerX, centerY, maxRadius
-    );
-    gradient.addColorStop(0, `rgba(255, 255, 255, ${0.1 * params.interferenceIntensity})`);
-    gradient.addColorStop(0.5, `rgba(255, 255, 255, ${0.05 * params.interferenceIntensity})`);
-    gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-    ctx.restore();
-  }
+
+  ctx.restore();
 }
 
 export const moirePattern: ArtGenerator = {
-  name: "Moiré Patterns",
-  description: 
-    "Interference patterns created by overlapping geometric structures. " +
-    "Two identical or similar patterns are overlaid with slight offset, rotation, or scale differences, " +
-    "creating emergent visual phenomena that appear to move and breathe. " +
-    "A mathematical exploration of how simple rules create complex optical illusions.",
-  params: {
-    patternType: {
-      name: "Pattern Type",
-      type: "select",
-      options: ["concentric", "radial", "grid", "spiral", "waves"],
-      default: "concentric",
+  name: "Moiré Pattern",
+  description:
+    "Optical interference patterns created by overlapping geometric patterns. Slight misalignments produce mesmerizing emergent visuals.",
+  params: defaultParams,
+  paramConfig: {
+    basePattern: {
+      type: ControlType.SELECT,
+      label: "Base Pattern",
+      options: [
+        { value: "lines", label: "Parallel Lines" },
+        { value: "circles", label: "Concentric Circles" },
+        { value: "grid", label: "Grid" },
+        { value: "radial", label: "Radial Rays" },
+        { value: "spiral", label: "Spiral" },
+      ],
     },
-    lineDensity: {
-      name: "Line Density",
-      type: "range",
+    overlayPattern: {
+      type: ControlType.SELECT,
+      label: "Overlay Pattern",
+      options: [
+        { value: "lines", label: "Parallel Lines" },
+        { value: "circles", label: "Concentric Circles" },
+        { value: "grid", label: "Grid" },
+        { value: "radial", label: "Radial Rays" },
+        { value: "spiral", label: "Spiral" },
+      ],
+    },
+    baseDensity: {
+      type: ControlType.SLIDER,
+      label: "Base Density",
       min: 10,
-      max: 80,
-      step: 5,
-      default: 30,
-    },
-    lineWidth: {
-      name: "Line Width",
-      type: "range",
-      min: 0.5,
-      max: 3,
-      step: 0.5,
-      default: 1,
-    },
-    overlayOffset: {
-      name: "Overlay Offset",
-      type: "range",
-      min: 0,
-      max: 30,
+      max: 100,
       step: 1,
-      default: 5,
     },
-    rotationSpeed: {
-      name: "Animation Speed",
-      type: "range",
+    overlayDensity: {
+      type: ControlType.SLIDER,
+      label: "Overlay Density",
+      min: 10,
+      max: 100,
+      step: 1,
+    },
+    baseAngle: {
+      type: ControlType.SLIDER,
+      label: "Base Angle",
       min: 0,
-      max: 2,
+      max: 180,
+      step: 1,
+    },
+    overlayAngle: {
+      type: ControlType.SLIDER,
+      label: "Overlay Angle",
+      min: 0,
+      max: 180,
+      step: 1,
+    },
+    animationSpeed: {
+      type: ControlType.SLIDER,
+      label: "Animation Speed",
+      min: 0,
+      max: 5,
       step: 0.1,
-      default: 0.5,
     },
     colorScheme: {
-      name: "Color Scheme",
-      type: "select",
-      options: ["monochrome", "gradient", "complementary", "rainbow", "gold"],
-      default: "monochrome",
+      type: ControlType.SELECT,
+      label: "Color Scheme",
+      options: [
+        { value: "monochrome", label: "Monochrome" },
+        { value: "rainbow", label: "Rainbow" },
+        { value: "ocean", label: "Ocean" },
+        { value: "sunset", label: "Sunset" },
+        { value: "matrix", label: "Matrix" },
+      ],
     },
-    interferenceIntensity: {
-      name: "Glow Effect",
-      type: "range",
-      min: 0,
-      max: 2,
+    lineWidth: {
+      type: ControlType.SLIDER,
+      label: "Line Width",
+      min: 0.5,
+      max: 5,
       step: 0.1,
-      default: 1,
     },
-    animationMode: {
-      name: "Animation Mode",
-      type: "select",
-      options: ["rotate", "breathe", "slide", "morph"],
-      default: "rotate",
+    opacity: {
+      type: ControlType.SLIDER,
+      label: "Opacity",
+      min: 0.1,
+      max: 1.0,
+      step: 0.05,
+    },
+    blendMode: {
+      type: ControlType.SELECT,
+      label: "Blend Mode",
+      options: [
+        { value: "normal", label: "Normal" },
+        { value: "multiply", label: "Multiply" },
+        { value: "screen", label: "Screen" },
+        { value: "overlay", label: "Overlay" },
+        { value: "difference", label: "Difference" },
+      ],
     },
   },
-  generate: renderMoirePattern,
-  meta: {
-    category: "geometric",
-    complexity: "moderate",
-    tags: ["animated", "geometric", "ordered", "minimal", "abstract"],
-    created: "2024-02-26",
+
+  generate: (ctx: CanvasRenderingContext2D, params: MoirePatternParams, seed: number): ArtPiece => {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const rng = seededRandom(seed);
+    const colors = COLOR_SCHEMES[params.colorScheme];
+
+    // Clear canvas
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw base pattern
+    drawPattern(
+      ctx,
+      params.basePattern,
+      params.baseDensity,
+      params.baseAngle,
+      width,
+      height,
+      0,
+      colors,
+      params.lineWidth,
+      params.opacity
+    );
+
+    // Draw overlay pattern with blend mode
+    ctx.globalCompositeOperation = getBlendMode(params.blendMode);
+    drawPattern(
+      ctx,
+      params.overlayPattern,
+      params.overlayDensity,
+      params.overlayAngle,
+      width,
+      height,
+      0,
+      colors,
+      params.lineWidth,
+      params.opacity
+    );
+
+    // Reset composite operation
+    ctx.globalCompositeOperation = "source-over";
+
+    return {
+      bounds: { x: 0, y: 0, width, height },
+    };
+  },
+
+  animate: (
+    ctx: CanvasRenderingContext2D,
+    params: MoirePatternParams,
+    seed: number,
+    time: number
+  ): ArtPiece => {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const colors = COLOR_SCHEMES[params.colorScheme];
+
+    // Animated angle offset
+    const timeOffset = time * params.animationSpeed * 0.01;
+    const animatedBaseAngle = params.baseAngle + timeOffset;
+    const animatedOverlayAngle = params.overlayAngle - timeOffset * 0.7;
+
+    // Clear canvas
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw base pattern
+    drawPattern(
+      ctx,
+      params.basePattern,
+      params.baseDensity,
+      animatedBaseAngle,
+      width,
+      height,
+      time,
+      colors,
+      params.lineWidth,
+      params.opacity
+    );
+
+    // Draw overlay pattern with blend mode
+    ctx.globalCompositeOperation = getBlendMode(params.blendMode);
+    drawPattern(
+      ctx,
+      params.overlayPattern,
+      params.overlayDensity,
+      animatedOverlayAngle,
+      width,
+      height,
+      time,
+      colors,
+      params.lineWidth,
+      params.opacity
+    );
+
+    // Reset composite operation
+    ctx.globalCompositeOperation = "source-over";
+
+    return {
+      bounds: { x: 0, y: 0, width, height },
+    };
   },
 };
