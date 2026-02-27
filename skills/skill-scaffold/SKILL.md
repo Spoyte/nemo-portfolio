@@ -10,25 +10,34 @@ Rapid scaffolding for OpenClaw skills. Creates consistent structure: SKILL.md do
 ## Quick Commands
 
 ```bash
-# Scaffold a new skill
-skill-new <kebab-name> "Descriptive Name"
+# Unified skill manager (recommended)
+skill new <kebab-name> "Descriptive Name"
+skill list              # List all skills
+skill show <name>       # Show skill details
+skill edit <name>       # Open skill in editor
+skill delete <name>     # Remove a skill
 
-# List all available skills
+# Legacy individual commands (still work)
+skill-new <name> "Description"
 skill-list
-skill-list -q          # Machine-readable (names only)
-skill-list -j          # JSON output
-
-# Remove a skill (safely)
 skill-delete <name>
-skill-delete -y <name> # Skip confirmation
-
-# Example:
-skill-new web-screenshot "Web Screenshot Utility"
 ```
+
+## Unified Interface: `skill`
+
+The `skill` command provides a cohesive interface for managing skills:
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `skill new` | Create a new skill | `skill new web-screenshot "Screenshot Tool"` |
+| `skill list` | List all skills | `skill list -q` (names only) |
+| `skill show` | Display skill details | `skill show memory-log` |
+| `skill edit` | Open skill in $EDITOR | `skill edit git-workflow` |
+| `skill delete` | Remove a skill | `skill delete -y temp-skill` |
 
 ## What It Creates
 
-For `skill-new web-screenshot "Web Screenshot Utility"`:
+For `skill new web-screenshot "Web Screenshot Utility"`:
 
 ```
 skills/
@@ -40,18 +49,18 @@ skills/
 
 ## Skill Discovery
 
-`skill-list` scans all skill directories and extracts:
+`skill list` scans all skill directories and extracts:
 - Skill name (from directory)
 - Description (from SKILL.md frontmatter)
 
 Output modes:
-- **Default**: Pretty table with colors
+- **Default**: Pretty table
 - **`-q`**: Names only (for scripts)
 - **`-j`**: JSON array (for automation)
 
 ## Skill Removal
 
-`skill-delete` safely removes skills with guardrails:
+`skill delete` safely removes skills with guardrails:
 - **Confirmation required** (unless `-y` flag)
 - **Uncommitted change warnings** — Alerts if skill has git changes
 - **Trash/archive pattern** — Moves to `.trash/` instead of deleting
@@ -82,7 +91,7 @@ Frontmatter + documentation sections:
 
 ## Design Principles
 
-1. **One command, one purpose** — Skills do one thing well
+1. **Unified interface** — One command for all skill operations
 2. **Self-documenting** — `--help` explains everything
 3. **Scripting-friendly** — Exit codes, quiet mode, JSON output
 4. **Consistent interface** — Same patterns across all skills
