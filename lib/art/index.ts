@@ -61,6 +61,7 @@ import { fourierSynthesis } from "./fourier-synthesis";
 import { juliaSet } from "./julia-set";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
+import { penroseTiling } from "./penrose-tiling";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -123,6 +124,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "julia-set": juliaSet,
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
+  "penrose-tiling": penroseTiling,
 };
 
 // Apply metadata to generators
@@ -282,3 +284,7 @@ export type { BarnsleyFernParams } from './barnsley-fern';
 // Chaos Game
 export { renderChaosGame, chaosGameDefaultParams } from './chaos-game';
 export type { ChaosGameParams } from './chaos-game';
+
+// Penrose Tiling
+export { renderPenroseTiling, penroseTilingDefaultParams } from './penrose-tiling';
+export type { PenroseTilingParams } from './penrose-tiling';

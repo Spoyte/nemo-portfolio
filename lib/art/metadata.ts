@@ -349,6 +349,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "colorful", "detailed"],
     created: "2024-02-27",
   },
+  "penrose-tiling": {
+    category: "geometric",
+    complexity: "complex",
+    tags: ["static", "geometric", "ordered", "colorful", "detailed"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -436,6 +442,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "julia-set",
   "barnsley-fern",
   "chaos-game",
+  "penrose-tiling",
   // Natural
   "aurora-borealis",
   "recursive-trees",
@@ -467,6 +474,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "phyllotaxis",
   "moire-pattern",
   "origami-tessellation",
+  "penrose-tiling",
   // Abstract
   "impossible-geometry",
   "metaballs",
@@ -539,7 +547,7 @@ export function validateMetadata(): {
     "cymatics", "prism-dispersion", "kinetic-typography", "magnetic-field",
     "plasma-arc", "slime-mold", "wave-tank", "solar-flare", "crystal-lattice",
     "kaleidoscope-chamber", "double-pendulum", "fourier-synthesis", "julia-set",
-    "barnsley-fern", "chaos-game",
+    "barnsley-fern", "chaos-game", "penrose-tiling",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 
