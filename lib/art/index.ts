@@ -56,6 +56,7 @@ import { waveTank } from "./wave-tank";
 import { solarFlare } from "./solar-flare";
 import { crystalLattice } from "./crystal-lattice";
 import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
+import { doublePendulum } from "./double-pendulum";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -113,6 +114,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "solar-flare": solarFlare,
   "crystal-lattice": crystalLattice,
   "kaleidoscope-chamber": kaleidoscopeChamber,
+  "double-pendulum": doublePendulum,
 };
 
 // Apply metadata to generators
@@ -251,3 +253,7 @@ export type { CrystalLatticeParams } from './crystal-lattice';
 // Kaleidoscope Chamber
 export { renderKaleidoscopeChamber, kaleidoscopeChamberDefaultParams } from './kaleidoscope-chamber';
 export type { KaleidoscopeChamberParams } from './kaleidoscope-chamber';
+
+// Double Pendulum
+export { renderDoublePendulum, doublePendulumDefaultParams } from './double-pendulum';
+export type { DoublePendulumParams } from './double-pendulum';

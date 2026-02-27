@@ -319,6 +319,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered", "colorful", "detailed"],
     created: "2024-02-27",
   },
+  "double-pendulum": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "chaotic", "colorful", "detailed", "futuristic"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -423,6 +429,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "plasma-arc",
   "wave-tank",
   "solar-flare",
+  "double-pendulum",
   // Geometric
   "geometric-mandala",
   "kaleidoscope",
