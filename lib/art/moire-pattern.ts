@@ -1,5 +1,11 @@
-import { ArtGenerator, ArtPiece, ControlType } from "./core";
-import { seededRandom } from "./seeded-random";
+import { ArtGenerator, ArtPiece } from "./core";
+import { SeededRandom } from "./seeded-random";
+
+// Control type enum for UI controls
+enum ControlType {
+  SLIDER = "slider",
+  SELECT = "select",
+}
 
 export interface MoirePatternParams {
   basePattern: "lines" | "circles" | "grid" | "radial" | "spiral";
@@ -263,7 +269,7 @@ export const moirePattern: ArtGenerator = {
   generate: (ctx: CanvasRenderingContext2D, params: MoirePatternParams, seed: number): ArtPiece => {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
-    const rng = seededRandom(seed);
+    const rng = new SeededRandom(seed);
     const colors = COLOR_SCHEMES[params.colorScheme];
 
     // Clear canvas

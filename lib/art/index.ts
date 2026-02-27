@@ -47,7 +47,7 @@ export {
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { juliaSet } from "./julia-set";
 import { strangeAttractor } from "./strange-attractor";
-import { lissajousCurves } from "./lissajous-curves";
+import { lissajousCurves } from "./lissajous-curves-generator";
 import { spirograph } from "./spirograph";
 import { harmonograph } from "./harmonograph";
 import { spaceFillingCurves } from "./space-filling-curves";
@@ -59,7 +59,7 @@ import { chaosGame } from "./chaos-game";
 import { auroraBorealis } from "./aurora-borealis";
 import { recursiveTrees } from "./recursive-trees";
 import { lsystemBotany } from "./lsystem-botany";
-import { lsystemFractals } from "./lsystem-fractals";
+import { lsystemFractals } from "./lsystem-fractals-generator";
 import { perlinTerrainGenerator as perlinTerrain } from "./perlin-terrain";
 import { dla } from "./dla";
 import { slimeMold } from "./slime-mold";
@@ -67,8 +67,8 @@ import { bioluminescentPlankton } from "./bioluminescent-plankton";
 
 // === PHYSICS (14) ===
 import { waveInterference } from "./wave-interference";
-import { orbitalMechanics } from "./orbital-mechanics";
-import { fluidSmoke } from "./fluid-smoke";
+import { orbitalMechanics } from "./orbital-mechanics-generator";
+import { fluidSmoke } from "./fluid-smoke-generator";
 import { particleSwarm } from "./particle-swarm";
 import { boidFlocking } from "./boid-flocking";
 import { chladniFigures } from "./chladni-figures";
@@ -79,7 +79,7 @@ import { plasmaArc } from "./plasma-arc";
 import { waveTank } from "./wave-tank";
 import { solarFlare } from "./solar-flare";
 import { doublePendulum } from "./double-pendulum";
-import { nBodyGravity } from "./n-body-gravity";
+import { nBodyGravity } from "./n-body-gravity-generator";
 
 // === GEOMETRIC (11) ===
 import { geometricMandala } from "./geometric-mandala";
@@ -106,6 +106,7 @@ import { neuralDreams } from "./neural-dreams";
 import { turingPatterns } from "./turing-patterns";
 import { lenia } from "./lenia";
 import { selfOrganizingMap } from "./self-organizing-map";
+import { langtonsAnt } from "./langtons-ant";
 
 // === TRADITIONAL (5) ===
 import { digitalWeave } from "./digital-weave";
@@ -118,7 +119,7 @@ import { crossHatchingSketch as crossHatching } from "./cross-hatching";
 import { kineticTypography } from "./kinetic-typography";
 
 // === 3D (3) ===
-import { lightCaverns } from "./light-caverns";
+import { lightCaverns } from "./light-caverns-generator";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
 
@@ -196,6 +197,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "turing-patterns": turingPatterns,
   "lenia": lenia,
   "self-organizing-map": selfOrganizingMap,
+  "langtons-ant": langtonsAnt,
 
   // === TRADITIONAL ===
   "digital-weave": digitalWeave,

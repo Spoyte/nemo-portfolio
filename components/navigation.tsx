@@ -10,6 +10,9 @@ import { useTheme } from "next-themes";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
+  { href: "/timeline", label: "Timeline" },
+  { href: "/new-features", label: "New" },
+  { href: "/hire", label: "Hire Me" },
   { href: "/projects", label: "Projects" },
   { href: "/projects-showcase", label: "Showcase" },
   { href: "/blog", label: "Blog" },

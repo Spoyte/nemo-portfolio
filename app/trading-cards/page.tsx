@@ -512,7 +512,7 @@ function TradingCard({
               </div>
               
               {/* Stats */}
-              <{card.unlocked && (
+              {card.unlocked && (
                 <div className="px-4 py-2">
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
@@ -532,7 +532,7 @@ function TradingCard({
               )}
               
               {/* Level & XP */}
-              <{card.unlocked && (
+              {card.unlocked && (
                 <div className="px-4 pb-4">
                   <div className="flex items-center justify-between text-[10px] mb-1">
                     <span className="font-medium">Level {card.level}</span>
@@ -547,7 +547,7 @@ function TradingCard({
               )}
               
               {/* Locked Overlay */}
-              <{!card.unlocked && (
+              {!card.unlocked && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                   <div className="text-center">
                     <Lock className="w-8 h-8 mx-auto mb-2 text-white/50" />
@@ -557,7 +557,7 @@ function TradingCard({
               )}
               
               {/* New Badge */}
-              <{isNew && (
+              {isNew && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -575,7 +575,7 @@ function TradingCard({
         <TooltipContent side="top" className="max-w-xs">
           <p className="font-semibold">{card.name}</p>
           <p className="text-xs text-muted-foreground">{card.description}</p>
-          <{card.unlocked && (
+          {card.unlocked && (
             <div className="mt-2">
               <p className="text-xs font-medium">Abilities:</p>
               <div className="flex flex-wrap gap-1 mt-1">
@@ -655,7 +655,7 @@ function CardDetailModal({ card, isOpen, onClose }: { card: SkillCard | null; is
               </div>
               
               {/* Level Progress */}
-              <<div>
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Level {card.level} / {card.maxLevel}</span>
                   <span className="text-sm text-muted-foreground">{card.xp} / {card.xpToNext} XP</span>
@@ -664,7 +664,7 @@ function CardDetailModal({ card, isOpen, onClose }: { card: SkillCard | null; is
               </div>
               
               {/* Abilities */}
-              <<div>
+              <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-yellow-400" />
                   Abilities
@@ -686,7 +686,7 @@ function CardDetailModal({ card, isOpen, onClose }: { card: SkillCard | null; is
               </div>
               
               {/* Usage Stats */}
-              <<div className="flex items-center justify-between p-4 rounded-lg bg-muted">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
                 <div className="flex items-center gap-2">
                   <Target className="w-5 h-5 text-muted-foreground" />
                   <span>Projects Used</span>

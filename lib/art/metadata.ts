@@ -202,6 +202,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "colorful", "futuristic"],
     created: "2024-02-22",
   },
+  "langtons-ant": {
+    category: "abstract",
+    complexity: "simple",
+    tags: ["animated", "minimal", "chaotic", "monochrome"],
+    created: "2026-02-28",
+  },
 
   // === TRADITIONAL ===
   "digital-weave": {

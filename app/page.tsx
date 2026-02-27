@@ -18,7 +18,12 @@ import {
   Lightbulb,
   Wind,
   Keyboard,
-  FileTerminal
+  FileTerminal,
+  CreditCard,
+  Brain,
+  BarChart3,
+  Music,
+  Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VisitorCounter } from "@/components/visitor-counter";
@@ -396,6 +401,175 @@ export default function Home() {
 
       {/* Interactive Testimonials */}
       <InteractiveTestimonials />
+
+      {/* New Features Showcase */}
+      <section className="py-20 border-y border-border/50 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Latest <span className="text-gradient-animated">Additions</span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Fresh features and interactive experiences added to the portfolio.
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Reveal delay={0}>
+              <TiltCard tiltAmount={5}>
+                <Link href="/new-features">
+                  <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all group h-full cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4"
+                    >
+                      <div className="inline-flex p-3 rounded-xl bg-primary/10 group-hover:scale-110 transition-transform"
+                      >
+                        <CreditCard className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1"
+                      >
+                        <h3 className="text-lg font-semibold mb-2">Holographic Business Card</h3>
+                        <p className="text-sm text-muted-foreground">
+                          An interactive 3D business card with holographic effects and flip animation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <TiltCard tiltAmount={5}>
+                <Link href="/new-features">
+                  <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all group h-full cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4"
+                    >
+                      <div className="inline-flex p-3 rounded-xl bg-primary/10 group-hover:scale-110 transition-transform"
+                      >
+                        <Brain className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1"
+                      >
+                        <h3 className="text-lg font-semibold mb-2">Memory Match Game</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Test your memory by matching tech stack pairs. Compete for the best time!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.2}>
+              <TiltCard tiltAmount={5}>
+                <Link href="/new-features">
+                  <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all group h-full cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4"
+                    >
+                      <div className="inline-flex p-3 rounded-xl bg-primary/10 group-hover:scale-110 transition-transform"
+                      >
+                        <BarChart3 className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1"
+                      >
+                        <h3 className="text-lg font-semibold mb-2">Productivity Dashboard</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Track tasks, build streaks, and level up your developer productivity.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.3}>
+              <TiltCard tiltAmount={5}>
+                <Link href="/new-features">
+                  <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all group h-full cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4"
+                    >
+                      <div className="inline-flex p-3 rounded-xl bg-primary/10 group-hover:scale-110 transition-transform"
+                      >
+                        <Music className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1"
+                      >
+                        <h3 className="text-lg font-semibold mb-2">Code Rhythm Visualizer</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Watch code come alive with this audio-reactive visualization.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.4}>
+              <TiltCard tiltAmount={5}>
+                <Link href="/timeline">
+                  <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all group h-full cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4"
+                    >
+                      <div className="inline-flex p-3 rounded-xl bg-primary/10 group-hover:scale-110 transition-transform"
+                      >
+                        <Zap className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1"
+                      >
+                        <h3 className="text-lg font-semibold mb-2">Interactive Timeline</h3>
+                        <p className="text-sm text-muted-foreground">
+                          A visual journey through my career, education, and achievements.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+
+            <Reveal delay={0.5}>
+              <TiltCard tiltAmount={5}>
+                <Link href="/hire">
+                  <div className="p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all group h-full cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4"
+                    >
+                      <div className="inline-flex p-3 rounded-xl bg-primary/10 group-hover:scale-110 transition-transform"
+                      >
+                        <Briefcase className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1"
+                      >
+                        <h3 className="text-lg font-semibold mb-2">Hire Me Page</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Services, pricing, and a contact form for potential collaborations.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </TiltCard>
+            </Reveal>
+          </div>
+
+          <Reveal className="text-center mt-10">
+            <Link href="/new-features">
+              <Button size="lg" variant="outline" className="group">
+                Explore All New Features
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </Reveal>
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-20">

@@ -525,6 +525,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderSelfOrganizingMap",
     importName: "selfOrganizingMap",
   },
+  {
+    id: "langtons-ant",
+    name: "Langton's Ant",
+    description: "Emergent highways from simple rules - a 2D Turing machine on a grid",
+    category: "abstract",
+    loader: () => import("./langtons-ant"),
+    renderFnName: "renderLangtonsAnt",
+    importName: "langtonsAnt",
+  },
 
   // === TRADITIONAL (6) ===
   {
