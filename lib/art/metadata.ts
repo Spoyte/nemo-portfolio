@@ -300,6 +300,13 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "chaotic", "colorful", "detailed", "futuristic"],
     created: "2024-02-27",
   },
+  "plasma-arc": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "colorful", "chaotic", "futuristic"],
+    created: "2024-02-27",
+    dependsOn: ["magnetic-field"],
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -370,5 +377,125 @@ export function getCollectionStats() {
     complexities,
     tagCount: allTags.size,
     animatedCount,
+  };
+}
+
+// List of all valid artwork IDs that have corresponding generator modules
+// This is used for validation - generators not in this list are considered "private" utilities
+export const VALID_ARTWORK_IDS = new Set([
+  // Mathematical
+  "mandelbrot-explorer",
+  "strange-attractor",
+  "lissajous-curves",
+  "spirograph",
+  "harmonograph",
+  "space-filling-curves",
+  // Natural
+  "aurora-borealis",
+  "recursive-trees",
+  "lsystem-botany",
+  "lsystem-fractals",
+  "perlin-terrain",
+  "dla",
+  "slime-mold",
+  // Physics
+  "wave-interference",
+  "orbital-mechanics",
+  "fluid-smoke",
+  "particle-swarm",
+  "boid-flocking",
+  "chladni-figures",
+  "cymatics",
+  "prism-dispersion",
+  "magnetic-field",
+  "plasma-arc",
+  "wave-tank",
+  "solar-flare",
+  // Geometric
+  "geometric-mandala",
+  "kaleidoscope",
+  "islamic-patterns",
+  "voronoi-organic",
+  "string-art",
+  "phyllotaxis",
+  "moire-pattern",
+  "origami-tessellation",
+  // Abstract
+  "impossible-geometry",
+  "metaballs",
+  "flow-field",
+  "reaction-diffusion",
+  "cellular-automata",
+  "quantum-field",
+  "fractal-flame",
+  "neural-dreams",
+  // Traditional
+  "digital-weave",
+  "stained-glass",
+  "watercolor-dreams",
+  "ascii-art",
+  "cross-hatching",
+  // Text
+  "kinetic-typography",
+  // 3D
+  "light-caverns",
+  "polyhedral-sculptures",
+  // Interactive
+  "particle-network",
+  "frequency-visualizer",
+  "topographic-flow",
+]);
+
+/**
+ * Validate that all artwork IDs in metadata have corresponding entries in VALID_ARTWORK_IDS
+ * and vice versa. Returns validation results for debugging.
+ */
+export function validateMetadata(): {
+  valid: boolean;
+  missingFromValidSet: string[];
+  missingFromMetadata: string[];
+  orphanedMetadata: string[];
+} {
+  const metadataIds = new Set(Object.keys(ARTWORK_METADATA));
+  const missingFromValidSet: string[] = [];
+  const missingFromMetadata: string[] = [];
+
+  // Check metadata IDs are in valid set
+  for (const id of metadataIds) {
+    if (!VALID_ARTWORK_IDS.has(id)) {
+      missingFromValidSet.push(id);
+    }
+  }
+
+  // Check valid IDs have metadata
+  for (const id of VALID_ARTWORK_IDS) {
+    if (!metadataIds.has(id)) {
+      missingFromMetadata.push(id);
+    }
+  }
+
+  // Find orphaned metadata (IDs in metadata but not exported from index)
+  const exportedIds = new Set([
+    "aurora-borealis", "flow-field", "geometric-mandala", "particle-network",
+    "recursive-trees", "wave-interference", "cellular-automata", "voronoi-organic",
+    "topographic-flow", "strange-attractor", "reaction-diffusion", "dla",
+    "lsystem-botany", "orbital-mechanics", "light-caverns", "fluid-smoke",
+    "particle-swarm", "mandelbrot-explorer", "perlin-terrain", "kaleidoscope",
+    "neural-dreams", "lsystem-fractals", "quantum-field", "boid-flocking",
+    "frequency-visualizer", "lissajous-curves", "spirograph", "digital-weave",
+    "string-art", "stained-glass", "fractal-flame", "polyhedral-sculptures",
+    "islamic-patterns", "impossible-geometry", "metaballs", "phyllotaxis",
+    "harmonograph", "watercolor-dreams", "ascii-art", "cross-hatching",
+    "moire-pattern", "chladni-figures", "space-filling-curves", "origami-tessellation",
+    "cymatics", "prism-dispersion", "kinetic-typography", "magnetic-field",
+    "plasma-arc", "slime-mold", "wave-tank", "solar-flare",
+  ]);
+  const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
+
+  return {
+    valid: missingFromValidSet.length === 0 && missingFromMetadata.length === 0,
+    missingFromValidSet,
+    missingFromMetadata,
+    orphanedMetadata,
   };
 }
