@@ -224,7 +224,7 @@ function calculateNormal(
   y: number,
   width: number,
   height: number
-): { nx: number; ny: number; nz: number } => {
+): { nx: number; ny: number; nz: number } {
   if (x <= 0 || x >= width - 1 || y <= 0 || y >= height - 1) {
     return { nx: 0, ny: 0, nz: 1 };
   }

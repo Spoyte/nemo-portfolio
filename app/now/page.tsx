@@ -1,335 +1,398 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Calendar, 
-  Briefcase, 
+  Zap, 
+  Coffee, 
+  Music, 
+  Code2, 
   BookOpen, 
-  Lightbulb, 
-  Target, 
-  Code2,
-  Music,
-  Github,
-  Coffee,
-  Zap,
-  Heart,
-  Radio,
-  Disc,
-  Headphones,
-  CheckCircle2,
-  Clock,
-  Activity,
+  Gamepad2,
+  Moon,
+  Sun,
+  Cloud,
+  Wind,
+  Droplets,
+  Flame,
   Sparkles,
+  Heart,
+  Brain,
+  Target,
+  Trophy,
+  Activity,
+  Radio,
+  Mic,
+  Send,
+  MoreHorizontal,
+  Timer,
+  Calendar,
+  MapPin,
+  Globe,
+  Wifi,
+  Battery,
+  Bell,
+  CheckCircle2,
+  XCircle,
+  Clock,
   TrendingUp,
-  ExternalLink
+  BarChart3,
+  PieChart,
+  LineChart
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useEffect, useState } from "react";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
-// Current status with animated indicator
-function CurrentStatus() {
-  const [status, setStatus] = useState<"coding" | "learning" | "building" | "resting">("coding");
-  
-  // Simulate status changes based on time (in real app, this would come from an API)
+// Activity types
+interface Activity {
+  id: string;
+  type: 'coding' | 'reading' | 'gaming' | 'music' | 'coffee' | 'break';
+  title: string;
+  startTime: Date;
+  duration: number;
+  icon: React.ReactNode;
+  color: string;
+}
+
+// Mood types
+interface MoodEntry {
+  mood: 'energetic' | 'focused' | 'tired' | 'creative' | 'chill';
+  timestamp: Date;
+  note?: string;
+}
+
+// Current status data
+const currentStatus = {
+  location: "Shanghai, China",
+  weather: {
+    condition: "Clear",
+    temp: 22,
+    humidity: 65,
+    windSpeed: 12
+  },
+  currentlyDoing: {
+    activity: "Building portfolio features",
+    project: "Code Cinema & Trading Cards",
+    tech: ["Next.js", "TypeScript", "Framer Motion"]
+  },
+  dailyGoals: [
+    { id: 1, text: "Ship new portfolio features", completed: true, icon: Code2 },
+    { id: 2, text: "Read 30 mins", completed: false, icon: BookOpen },
+    { id: 3, text: "Exercise", completed: true, icon: Activity },
+    { id: 4, text: "Meditate", completed: false, icon: Brain }
+  ],
+  streaks: {
+    coding: 45,
+    reading: 12,
+    exercise: 7
+  },
+  focusTime: {
+    today: 4.5,
+    week: 28.5,
+    month: 124
+  }
+};
+
+// Activity feed
+const activityFeed: Activity[] = [
+  { id: "1", type: "coding", title: "Working on Code Cinema", startTime: new Date(Date.now() - 1000 * 60 * 45), duration: 45, icon: <Code2 className="w-4 h-4" />, color: "bg-blue-500" },
+  { id: "2", type: "coffee", title: "Coffee break", startTime: new Date(Date.now() - 1000 * 60 * 60), duration: 15, icon: <Coffee className="w-4 h-4" />, color: "bg-amber-600" },
+  { id: "3", type: "music", title: "Listening to Lo-fi", startTime: new Date(Date.now() - 1000 * 60 * 90), duration: 30, icon: <Music className="w-4 h-4" />, color: "bg-purple-500" },
+  { id: "4", type: "reading", title: "Reading 'Clean Code'", startTime: new Date(Date.now() - 1000 * 60 * 60 * 3), duration: 30, icon: <BookOpen className="w-4 h-4" />, color: "bg-green-500" },
+];
+
+// Mood history
+const moodHistory: MoodEntry[] = [
+  { mood: "energetic", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), note: "Great morning!" },
+  { mood: "focused", timestamp: new Date(Date.now() - 1000 * 60 * 45) },
+  { mood: "creative", timestamp: new Date() },
+];
+
+// Mood config
+const moodConfig = {
+  energetic: { icon: Zap, color: "text-yellow-400", bg: "bg-yellow-500/20", label: "Energetic" },
+  focused: { icon: Target, color: "text-blue-400", bg: "bg-blue-500/20", label: "Focused" },
+  tired: { icon: Moon, color: "text-purple-400", bg: "bg-purple-500/20", label: "Tired" },
+  creative: { icon: Sparkles, color: "text-pink-400", bg: "bg-pink-500/20", label: "Creative" },
+  chill: { icon: Coffee, color: "text-green-400", bg: "bg-green-500/20", label: "Chill" }
+};
+
+// Activity type config
+const activityConfig = {
+  coding: { icon: Code2, color: "text-blue-400", label: "Coding" },
+  reading: { icon: BookOpen, color: "text-green-400", label: "Reading" },
+  gaming: { icon: Gamepad2, color: "text-purple-400", label: "Gaming" },
+  music: { icon: Music, color: "text-pink-400", label: "Music" },
+  coffee: { icon: Coffee, color: "text-amber-400", label: "Coffee" },
+  break: { icon: Wind, color: "text-cyan-400", label: "Break" }
+};
+
+// Live clock component
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+
   useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 9 && hour < 18) {
-      setStatus("coding");
-    } else if (hour >= 18 && hour < 22) {
-      setStatus("learning");
-    } else if (hour >= 22 || hour < 1) {
-      setStatus("building");
-    } else {
-      setStatus("resting");
-    }
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  const statusConfig = {
-    coding: { 
-      label: "Coding", 
-      color: "bg-emerald-500", 
-      icon: Code2,
-      description: "Working on new features"
-    },
-    learning: { 
-      label: "Learning", 
-      color: "bg-blue-500", 
-      icon: BookOpen,
-      description: "Exploring new technologies"
-    },
-    building: { 
-      label: "Building", 
-      color: "bg-purple-500", 
-      icon: Zap,
-      description: "Shipping side projects"
-    },
-    resting: { 
-      label: "Resting", 
-      color: "bg-orange-500", 
-      icon: Coffee,
-      description: "Recharging batteries"
-    },
-  };
-
-  const current = statusConfig[status];
-  const Icon = current.icon;
-
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className={`w-16 h-16 rounded-full ${current.color} flex items-center justify-center`}>
-              <Icon className="h-8 w-8 text-white" />
-            </div>
-            <span className="absolute -bottom-1 -right-1 flex h-5 w-5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${current.color} opacity-75`}></span>
-              <span className={`relative inline-flex rounded-full h-5 w-5 ${current.color}`}></span>
-            </span>
-          </div>
-          
-          <div className="flex-1">
-            <p className="text-sm text-muted-foreground">Currently</p>
-            <h3 className="text-2xl font-bold">{current.label}</h3>
-            <p className="text-sm text-muted-foreground">{current.description}</p>
-          </div>
-          
-          <div className="text-right hidden sm:block">
-            <p className="text-sm text-muted-foreground">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-            <Badge variant="secondary">Active Now</Badge>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="text-center">
+      <div className="text-5xl font-bold tabular-nums tracking-tight">
+        {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+        <span className="text-2xl text-muted-foreground ml-1">
+          :{time.toLocaleTimeString('en-US', { second: '2-digit' })}
+        </span>
+      </div>
+      <p className="text-muted-foreground mt-1">
+        {time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+      </p>
+    </div>
   );
 }
 
-// Spotify-style Now Playing Widget
-function NowPlaying() {
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(35);
+// Live activity tracker
+function LiveActivityTracker() {
+  const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
+  const [elapsed, setElapsed] = useState(0);
 
-  // Simulate progress
   useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 0 : p + 0.5));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+    // Simulate current activity
+    setCurrentActivity({
+      id: "current",
+      type: "coding",
+      title: "Building portfolio features",
+      startTime: new Date(Date.now() - 1000 * 60 * 45),
+      duration: 0,
+      icon: <Code2 className="w-5 h-5" />,
+      color: "bg-blue-500"
+    });
+  }, []);
 
-  const track = {
-    title: "Midnight City",
-    artist: "M83",
-    album: "Hurry Up, We're Dreaming",
-    cover: "🌃",
+  useEffect(() => {
+    if (!currentActivity) return;
+    
+    const timer = setInterval(() => {
+      const diff = Math.floor((Date.now() - currentActivity.startTime.getTime()) / 1000);
+      setElapsed(diff);
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [currentActivity]);
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours > 0 ? `${hours}:` : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (!currentActivity) return null;
+
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Disc className="h-4 w-4 text-green-500" />
-          Now Playing
-        </CardTitle>
-      </CardHeader>
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <motion.div 
-            className="w-20 h-20 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-4xl shadow-lg"
-            animate={{ rotate: isPlaying ? 360 : 0 }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
-          >
-            {track.cover}
-          </motion.div>
-          
-          <div className="flex-1 min-w-0">
-            <motion.h4 
-              className="font-semibold truncate"
-              animate={{ x: isPlaying ? [0, -10, 0] : 0 }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {track.title}
-            </motion.h4>
-            <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
-            <p className="text-xs text-muted-foreground truncate">{track.album}</p>
-            
-            <div className="mt-3">
-              <div className="h-1 bg-muted rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-green-500 rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>{Math.floor((progress / 100) * 243 / 60)}:{String(Math.floor((progress / 100) * 243 % 60)).padStart(2, '0')}</span>
-                <span>4:03</span>
-              </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${currentActivity.color} text-white`}>
+              {currentActivity.icon}
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Currently</p>
+              <h3 className="font-semibold text-lg">{currentActivity.title}</h3>
             </div>
           </div>
+          <div className="text-right">
+            <p className="text-3xl font-bold tabular-nums">{formatDuration(elapsed)}</p>
+            <div className="flex items-center gap-1 justify-end text-green-500 text-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Live
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-4 flex gap-2">
+          {Object.entries(activityConfig).map(([key, config]) => (
+            <Button
+              key={key}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => setCurrentActivity({
+                ...currentActivity,
+                type: key as Activity['type'],
+                title: key === 'coding' ? 'Building portfolio features' : 
+                       key === 'reading' ? 'Reading documentation' :
+                       key === 'music' ? 'Listening to music' :
+                       key === 'coffee' ? 'Coffee break' :
+                       key === 'gaming' ? 'Gaming session' : 'Taking a break',
+                startTime: new Date(),
+                icon: <config.icon className="w-4 h-4" />,
+                color: key === 'coding' ? 'bg-blue-500' :
+                       key === 'reading' ? 'bg-green-500' :
+                       key === 'music' ? 'bg-purple-500' :
+                       key === 'coffee' ? 'bg-amber-500' :
+                       key === 'gaming' ? 'bg-pink-500' : 'bg-cyan-500'
+              })}
+            >
+              <config.icon className="w-3 h-3 mr-1" />
+              {config.label}
+            </Button>
+          ))}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// Reading List with Progress
-function ReadingList() {
-  const books = [
-    {
-      title: "The Pragmatic Programmer",
-      author: "Andrew Hunt & David Thomas",
-      progress: 75,
-      cover: "📘",
-      status: "reading",
-    },
-    {
-      title: "Designing Data-Intensive Applications",
-      author: "Martin Kleppmann",
-      progress: 30,
-      cover: "📗",
-      status: "reading",
-    },
-    {
-      title: "Clean Architecture",
-      author: "Robert C. Martin",
-      progress: 0,
-      cover: "📕",
-      status: "queued",
-    },
-  ];
+// Mood tracker component
+function MoodTracker() {
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [moodNote, setMoodNote] = useState("");
+  const [moods, setMoods] = useState<MoodEntry[]>(moodHistory);
+
+  const handleMoodSubmit = () => {
+    if (!selectedMood) return;
+    
+    const newMood: MoodEntry = {
+      mood: selectedMood as MoodEntry['mood'],
+      timestamp: new Date(),
+      note: moodNote
+    };
+    
+    setMoods([newMood, ...moods]);
+    setSelectedMood(null);
+    setMoodNote("");
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
-          Reading List
+          <Heart className="w-5 h-5 text-red-500" />
+          How are you feeling?
         </CardTitle>
-        <CardDescription>Books I'm currently reading or plan to read</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {books.map((book, index) => (
-          <motion.div
-            key={book.title}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-          >
-            <div className="text-3xl">{book.cover}</div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium truncate">{book.title}</h4>
-              <p className="text-sm text-muted-foreground truncate">{book.author}</p>
-              <div className="mt-2">
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${book.progress}%` }}
-                    transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-                    className={`h-full rounded-full ${
-                      book.status === 'reading' ? 'bg-primary' : 'bg-muted-foreground'
-                    }`}
-                  />
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {book.progress > 0 ? `${book.progress}% complete` : 'Not started'}
-                  </span>
-                  {book.status === 'reading' && (
-                    <Badge variant="secondary" className="text-xs">Reading</Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-// Monthly Goals Tracker
-function MonthlyGoals() {
-  const goals = [
-    { text: "Contribute to 5 open source projects", completed: 3, target: 5, icon: Github },
-    { text: "Learn Rust to proficiency", completed: 1, target: 3, icon: Code2 },
-    { text: "Write 12 technical blog posts", completed: 8, target: 12, icon: BookOpen },
-    { text: "Speak at a tech conference", completed: 0, target: 1, icon: Target },
-  ];
-
-  const month = new Date().toLocaleString('default', { month: 'long' });
-  const year = new Date().getFullYear();
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="h-5 w-5 text-primary" />
-          {month} {year} Goals
-        </CardTitle>
-        <CardDescription>Tracking progress on this month's objectives</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {goals.map((goal, index) => {
-            const Icon = goal.icon;
-            const progress = (goal.completed / goal.target) * 100;
-            
+        <div className="grid grid-cols-5 gap-2">
+          {Object.entries(moodConfig).map(([mood, config]) => {
+            const Icon = config.icon;
             return (
-              <motion.div
-                key={goal.text}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="space-y-2"
+              <button
+                key={mood}
+                onClick={() => setSelectedMood(mood)}
+                className={`p-3 rounded-xl transition-all ${
+                  selectedMood === mood 
+                    ? `${config.bg} ring-2 ring-offset-2 ring-offset-background` 
+                    : 'hover:bg-muted'
+                }`}
+                style={{ ringColor: selectedMood === mood ? config.color.replace('text-', '') : undefined }}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    progress >= 100 ? 'bg-green-500/10 text-green-500' : 'bg-muted'
-                  }`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <span className={`flex-1 ${progress >= 100 ? 'line-through text-muted-foreground' : ''}`}>
-                    {goal.text}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {goal.completed}/{goal.target}
-                  </span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden ml-11">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 1, delay: 0.3 + index * 0.1 }}
-                    className={`h-full rounded-full ${
-                      progress >= 100 ? 'bg-green-500' : 'bg-primary'
-                    }`}
-                  />
-                </div>
-              </motion.div>
+                <Icon className={`w-6 h-6 mx-auto mb-1 ${config.color}`} />
+                <span className="text-xs block text-center">{config.label}</span>
+              </button>
             );
           })}
         </div>
         
-        <div className="mt-6 pt-6 border-t">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Overall Progress</span>            <span className="font-bold">
-              {Math.round(goals.reduce((acc, g) => acc + (g.completed / g.target), 0) / goals.length * 100)}%
-            </span>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden mt-2">
+        <AnimatePresence>
+          {selectedMood && (
             <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${goals.reduce((acc, g) => acc + (g.completed / g.target), 0) / goals.length * 100}%` }}
-              transition={{ duration: 1, delay: 0.5 }}
-              className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
-            />
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-2"
+            >
+              <Input
+                placeholder="Add a note (optional)..."
+                value={moodNote}
+                onChange={(e) => setMoodNote(e.target.value)}
+              />
+              <Button onClick={handleMoodSubmit} className="w-full">
+                <Send className="w-4 h-4 mr-2" />
+                Log Mood
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Recent moods */}
+        <div className="space-y-2 pt-4 border-t">
+          <p className="text-sm font-medium text-muted-foreground">Recent</p>
+          {moods.slice(0, 3).map((mood, i) => {
+            const config = moodConfig[mood.mood];
+            const Icon = config.icon;
+            return (
+              <div key={i} className="flex items-center gap-3 text-sm">
+                <Icon className={`w-4 h-4 ${config.color}`} />
+                <span>{config.label}</span>
+                <span className="text-muted-foreground ml-auto">
+                  {new Date(mood.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Focus stats component
+function FocusStats() {
+  const stats = [
+    { label: "Today", value: currentStatus.focusTime.today, icon: Sun, color: "text-yellow-500" },
+    { label: "This Week", value: currentStatus.focusTime.week, icon: Calendar, color: "text-blue-500" },
+    { label: "This Month", value: currentStatus.focusTime.month, icon: BarChart3, color: "text-purple-500" }
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary" />
+          Focus Time
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 gap-4">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div key={stat.label} className="text-center">
+                <Icon className={`w-6 h-6 mx-auto mb-2 ${stat.color}`} />
+                <p className="text-2xl font-bold">{stat.value}h</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="mt-6 space-y-3">
+          <p className="text-sm font-medium">Daily Goal Progress</p>
+          <div className="space-y-2">
+            {currentStatus.dailyGoals.map((goal) => {
+              const Icon = goal.icon;
+              return (
+                <div key={goal.id} className="flex items-center gap-3">
+                  <div className={`p-1.5 rounded-lg ${goal.completed ? 'bg-green-500/20 text-green-500' : 'bg-muted'}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className={`flex-1 text-sm ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                    {goal.text}
+                  </span>
+                  {goal.completed ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </CardContent>
@@ -337,108 +400,189 @@ function MonthlyGoals() {
   );
 }
 
-// GitHub Activity Feed
-function GitHubActivity() {
-  const activities = [
-    { type: 'commit', repo: 'nemo-portfolio', message: 'feat: add interactive skills visualization', time: '2 hours ago' },
-    { type: 'pr', repo: 'awesome-react-hooks', message: 'docs: update useDebounce documentation', time: '5 hours ago' },
-    { type: 'star', repo: 'vercel/next.js', message: 'Starred vercel/next.js', time: '1 day ago' },
-    { type: 'issue', repo: 'tailwindlabs/tailwindcss', message: 'fix: dark mode toggle not persisting', time: '2 days ago' },
+// Streaks component
+function Streaks() {
+  const streaks = [
+    { label: "Coding", days: currentStatus.streaks.coding, icon: Code2, color: "from-blue-500 to-cyan-500" },
+    { label: "Reading", days: currentStatus.streaks.reading, icon: BookOpen, color: "from-green-500 to-emerald-500" },
+    { label: "Exercise", days: currentStatus.streaks.exercise, icon: Activity, color: "from-orange-500 to-red-500" }
   ];
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'commit': return '💻';
-      case 'pr': return '🔄';
-      case 'star': return '⭐';
-      case 'issue': return '🐛';
-      default: return '📝';
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Flame className="w-5 h-5 text-orange-500" />
+          Streaks
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {streaks.map((streak) => {
+            const Icon = streak.icon;
+            return (
+              <div key={streak.label} className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${streak.color} text-white`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium">{streak.label}</span>
+                    <span className="text-2xl font-bold">{streak.days}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (streak.days / 100) * 100)}%` }}
+                      transition={{ duration: 1, delay: 0.2 }}
+                      className={`h-full bg-gradient-to-r ${streak.color}`}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {streak.days >= 30 ? '🔥 On fire!' : streak.days >= 7 ? '💪 Keep it up!' : '🌱 Building habit'}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Activity timeline
+function ActivityTimeline() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="w-5 h-5" />
+          Recent Activity
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {activityFeed.map((activity, index) => (
+            <motion.div
+              key={activity.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="flex items-start gap-4"
+            >
+              <div className={`p-2 rounded-lg ${activity.color} text-white shrink-0`}>
+                {activity.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{activity.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  {activity.duration} min • {new Date(activity.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Weather widget
+function WeatherWidget() {
+  const getWeatherIcon = () => {
+    switch (currentStatus.weather.condition.toLowerCase()) {
+      case 'clear': return <Sun className="w-8 h-8 text-yellow-500" />;
+      case 'cloudy': return <Cloud className="w-8 h-8 text-gray-400" />;
+      case 'rain': return <Droplets className="w-8 h-8 text-blue-400" />;
+      default: return <Sun className="w-8 h-8 text-yellow-500" />;
     }
   };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Github className="h-5 w-5 text-primary" />
-          Recent GitHub Activity
-        </CardTitle>
-        <CardDescription>My latest contributions and interactions</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <span className="text-xl">{getIcon(activity.type)}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm">
-                  <span className="font-medium">{activity.repo}</span>
-                </p>
-                <p className="text-sm text-muted-foreground truncate">{activity.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-              </div>
-            </motion.div>
-          ))}
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {getWeatherIcon()}
+            <div>
+              <p className="text-3xl font-bold">{currentStatus.weather.temp}°C</p>
+              <p className="text-muted-foreground">{currentStatus.weather.condition}</p>
+            </div>
+          </div>
+          <div className="text-right text-sm text-muted-foreground space-y-1">
+            <p className="flex items-center gap-1">
+              <Droplets className="w-3 h-3" />
+              {currentStatus.weather.humidity}%
+            </p>
+            <p className="flex items-center gap-1">
+              <Wind className="w-3 h-3" />
+              {currentStatus.weather.windSpeed} km/h
+            </p>
+          </div>
         </div>
-        
-        <Button variant="outline" className="w-full mt-4" asChild>
-          <a href="https://github.com/nemodev" target="_blank" rel="noopener noreferrer">
-            View GitHub Profile
-            <ExternalLink className="h-4 w-4 ml-2" />
-          </a>
-        </Button>
+        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <MapPin className="w-4 h-4" />
+          {currentStatus.location}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-// Learning Progress
-function LearningProgress() {
-  const learning = [
-    { name: "Rust", level: 40, description: "Systems programming and WebAssembly", category: "Backend" },
-    { name: "Three.js", level: 60, description: "3D web graphics and animations", category: "Frontend" },
-    { name: "AI/ML", level: 25, description: "Machine learning fundamentals", category: "Backend" },
-  ];
+// Now playing widget
+function NowPlaying() {
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [progress, setProgress] = useState(35);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setProgress(p => (p + 0.5) % 100);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-primary" />
-          Learning
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {learning.map((item, index) => (
-          <motion.div
-            key={item.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+    <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/20">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            <Music className="w-8 h-8 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-muted-foreground">Now Playing</p>
+            <p className="font-semibold truncate">Lo-Fi Study Beats</p>
+            <p className="text-sm text-muted-foreground truncate">Chillhop Music</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsPlaying(!isPlaying)}
           >
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <h3 className="font-semibold">{item.name}</h3>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
+            {isPlaying ? (
+              <div className="flex gap-0.5">
+                <motion.div animate={{ scaleY: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-1 h-4 bg-primary rounded-full" />
+                <motion.div animate={{ scaleY: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.1 }} className="w-1 h-4 bg-primary rounded-full" />
+                <motion.div animate={{ scaleY: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.2 }} className="w-1 h-4 bg-primary rounded-full" />
               </div>
-              <Badge variant="outline">{item.category}</Badge>
-            </div>            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${item.level}%` }}
-                transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-                className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{item.level}% complete</p>
-          </motion.div>
-        ))}
+            ) : (
+              <div className="w-0 h-0 border-t-4 border-b-4 border-l-8 border-t-transparent border-b-transparent border-l-primary ml-1" />
+            )}
+          </Button>
+        </div>
+        <div className="mt-4">
+          <div className="h-1 bg-muted rounded-full overflow-hidden">
+            <motion.div 
+              className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>1:24</span>
+            <span>3:45</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -447,150 +591,79 @@ function LearningProgress() {
 export default function NowPage() {
   return (
     <div className="min-h-screen pt-24 pb-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="text-center mb-12"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
-          >
-            <Activity className="h-4 w-4" />
-            <span className="text-sm font-medium">What I'm Up To</span>
-          </motion.div>
-          
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">Now</h1>
-          <p className="text-muted-foreground text-lg">
-            What I'm currently working on, learning, and thinking about.{" "}
-            <span className="text-sm">(Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})</span>
+          <Badge variant="secondary" className="mb-4">
+            <Zap className="w-3 h-3 mr-1" />
+            Live Status
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">What I'm Doing Now</h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            A real-time glimpse into my current activities, focus, and state of mind.
           </p>
         </motion.div>
 
-        {/* Status and Now Playing */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <CurrentStatus />
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <NowPlaying />
-          </motion.div>
-        </div>
+        {/* Live Clock */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <LiveClock />
+        </motion.div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.2 }}
             >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Briefcase className="h-5 w-5 text-primary" />
-                    Currently Working On
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-muted/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold">Building a SaaS Platform</h3>
-                        <Badge>In Progress</Badge>
-                      </div>
-                      <p className="text-muted-foreground mb-4">
-                        Developing a comprehensive project management tool for remote teams 
-                        with real-time collaboration features.
-                      </p>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Progress</span>
-                          <span className="font-medium">65%</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: '65%' }}
-                            transition={{ duration: 1, delay: 0.5 }}
-                            className="h-full bg-primary rounded-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-xl border hover:border-primary/50 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Code2 className="h-4 w-4 text-primary" />
-                          <h4 className="font-medium">CLI Tool</h4>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          A command-line utility for automating daily development tasks.
-                        </p>
-                        <div className="flex gap-2 mt-3">
-                          <Badge variant="secondary" className="text-xs">Rust</Badge>
-                          <Badge variant="secondary" className="text-xs">Clap</Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 rounded-xl border hover:border-primary/50 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Zap className="h-4 w-4 text-primary" />
-                          <h4 className="font-medium">Browser Extension</h4>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Productivity extension for managing browser tabs and sessions.
-                        </p>
-                        <div className="flex gap-2 mt-3">
-                          <Badge variant="secondary" className="text-xs">TypeScript</Badge>
-                          <Badge variant="secondary" className="text-xs">Plasmo</Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <LiveActivityTracker />
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <MonthlyGoals />
-            </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <FocusStats />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Streaks />
+              </motion.div>
+            </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <GitHubActivity />
+              <ActivityTimeline />
             </motion.div>
           </div>
 
           {/* Right Column */}
-          <div className="space-y-8">            <motion.div
+          <div className="space-y-6">
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <ReadingList />
+              <WeatherWidget />
             </motion.div>
 
             <motion.div
@@ -598,7 +671,7 @@ export default function NowPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <LearningProgress />
+              <NowPlaying />
             </motion.div>
 
             <motion.div
@@ -606,26 +679,66 @@ export default function NowPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
+              <MoodTracker />
+            </motion.div>
+
+            {/* Quick Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
               <Card>
                 <CardContent className="p-6">
-                  <div className="text-center">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center text-3xl">
-                      👋
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 rounded-lg bg-muted">
+                      <Wifi className="w-5 h-5 mx-auto mb-1 text-green-500" />
+                      <p className="text-lg font-bold">Online</p>
+                      <p className="text-xs text-muted-foreground">Status</p>
                     </div>
-                    <h3 className="font-semibold mb-2">Let&apos;s Connect</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Always open to interesting conversations and collaborations.
-                    </p>
-                    
-                    <Button className="w-full" asChild>
-                      <a href="/contact">Get in Touch</a>
-                    </Button>
+                    <div className="text-center p-3 rounded-lg bg-muted">
+                      <Battery className="w-5 h-5 mx-auto mb-1 text-green-500" />
+                      <p className="text-lg font-bold">87%</p>
+                      <p className="text-xs text-muted-foreground">Battery</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
         </div>
+
+        {/* Current Project Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-8"
+        >
+          <Card className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-orange-500/10 border-primary/20">
+            <CardContent className="p-8">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="p-4 rounded-2xl bg-primary/20">
+                  <Code2 className="w-12 h-12 text-primary" />
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <p className="text-sm text-muted-foreground mb-1">Currently Building</p>
+                  <h2 className="text-2xl font-bold mb-2">{currentStatus.currentlyDoing.project}</h2>
+                  <p className="text-muted-foreground mb-4">{currentStatus.currentlyDoing.activity}</p>
+                  <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                    {currentStatus.currentlyDoing.tech.map(tech => (
+                      <Badge key={tech} variant="secondary">{tech}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <Button size="lg" className="group">
+                  View Project
+                  <TrendingUp className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

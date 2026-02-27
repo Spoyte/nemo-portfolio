@@ -1,36 +1,47 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Smile,
-  Zap,
-  Moon,
-  Sun,
+  Palette, 
+  Moon, 
+  Sun, 
+  Sparkles, 
+  Cloud, 
+  Flame,
+  Droplets,
+  Leaf,
   Coffee,
   Music,
   BookOpen,
   Gamepad2,
-  Sparkles,
-  Palette,
-  Type,
-  Layout,
+  Heart,
+  Zap,
+  Wind,
+  Mountain,
+  Rainbow,
+  Star,
+  Ghost,
   Check,
+  RotateCcw,
+  Download,
+  Share2,
+  Wand2,
   RefreshCw
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
+// Mood theme definitions
 interface MoodTheme {
   id: string;
   name: string;
-  emoji: string;
   description: string;
-  icon: React.ElementType;
+  icon: React.ReactNode;
   colors: {
     primary: string;
     secondary: string;
@@ -38,565 +49,673 @@ interface MoodTheme {
     background: string;
     foreground: string;
     muted: string;
+    border: string;
   };
-  font: string;
-  borderRadius: number;
-  animations: 'subtle' | 'playful' | 'calm' | 'energetic';
-  particleEffect?: 'none' | 'bubbles' | 'stars' | 'leaves';
+  gradients: {
+    hero: string;
+    card: string;
+    button: string;
+  };
+  animations: {
+    speed: 'slow' | 'normal' | 'fast';
+    intensity: 'subtle' | 'medium' | 'intense';
+  };
+  particleEffect?: string;
+  soundscape?: string;
 }
 
 const moodThemes: MoodTheme[] = [
   {
-    id: "focused",
-    name: "Deep Focus",
-    emoji: "🎯",
-    description: "Minimal distractions, maximum productivity",
-    icon: Coffee,
+    id: "midnight",
+    name: "Midnight Focus",
+    description: "Deep concentration with dark, calming tones",
+    icon: <Moon className="w-5 h-5" />,
     colors: {
       primary: "#6366f1",
-      secondary: "#8b5cf6",
-      accent: "#a78bfa",
-      background: "#0f0f1a",
+      secondary: "#1e1b4b",
+      accent: "#818cf8",
+      background: "#020617",
       foreground: "#e2e8f0",
-      muted: "#1e1e2e"
+      muted: "#1e293b",
+      border: "#334155"
     },
-    font: "Inter",
-    borderRadius: 4,
-    animations: 'subtle',
-    particleEffect: 'none'
+    gradients: {
+      hero: "from-indigo-950 via-slate-950 to-black",
+      card: "from-indigo-900/20 to-slate-900/20",
+      button: "from-indigo-600 to-violet-600"
+    },
+    animations: { speed: 'slow', intensity: 'subtle' },
+    particleEffect: 'stars',
+    soundscape: 'ambient'
   },
   {
-    id: "creative",
-    name: "Creative Flow",
-    emoji: "🎨",
-    description: "Vibrant colors to spark inspiration",
-    icon: Palette,
-    colors: {
-      primary: "#ec4899",
-      secondary: "#f97316",
-      accent: "#fbbf24",
-      background: "#1a0f1a",
-      foreground: "#fef3c7",
-      muted: "#2d1f2d"
-    },
-    font: "Georgia",
-    borderRadius: 16,
-    animations: 'playful',
-    particleEffect: 'stars'
-  },
-  {
-    id: "calm",
-    name: "Zen Mode",
-    emoji: "🧘",
-    description: "Soft tones for peaceful browsing",
-    icon: Moon,
-    colors: {
-      primary: "#14b8a6",
-      secondary: "#06b6d4",
-      accent: "#22d3ee",
-      background: "#0f1f1f",
-      foreground: "#ccfbf1",
-      muted: "#1e2e2e"
-    },
-    font: "System",
-    borderRadius: 24,
-    animations: 'calm',
-    particleEffect: 'bubbles'
-  },
-  {
-    id: "energetic",
-    name: "High Energy",
-    emoji: "⚡",
-    description: "Bold and dynamic for active sessions",
-    icon: Zap,
-    colors: {
-      primary: "#fbbf24",
-      secondary: "#f59e0b",
-      accent: "#ef4444",
-      background: "#1a0f0f",
-      foreground: "#fef2f2",
-      muted: "#2d1f1f"
-    },
-    font: "Impact",
-    borderRadius: 8,
-    animations: 'energetic',
-    particleEffect: 'leaves'
-  },
-  {
-    id: "cozy",
-    name: "Cozy Evening",
-    emoji: "🕯️",
-    description: "Warm tones for relaxed reading",
-    icon: BookOpen,
+    id: "sunrise",
+    name: "Sunrise Energy",
+    description: "Fresh, optimistic vibes for morning productivity",
+    icon: <Sun className="w-5 h-5" />,
     colors: {
       primary: "#f97316",
-      secondary: "#fb923c",
-      accent: "#fdba74",
-      background: "#1f1510",
-      foreground: "#ffedd5",
-      muted: "#2d2520"
+      secondary: "#fef3c7",
+      accent: "#fbbf24",
+      background: "#fffbeb",
+      foreground: "#451a03",
+      muted: "#fde68a",
+      border: "#fcd34d"
     },
-    font: "Georgia",
-    borderRadius: 12,
-    animations: 'calm',
-    particleEffect: 'none'
+    gradients: {
+      hero: "from-orange-100 via-amber-50 to-yellow-50",
+      card: "from-orange-100/50 to-amber-100/50",
+      button: "from-orange-500 to-amber-500"
+    },
+    animations: { speed: 'normal', intensity: 'medium' },
+    particleEffect: 'sunrays',
+    soundscape: 'upbeat'
   },
   {
-    id: "playful",
-    name: "Playground",
-    emoji: "🎮",
-    description: "Fun and colorful for exploration",
-    icon: Gamepad2,
+    id: "forest",
+    name: "Forest Calm",
+    description: "Nature-inspired serenity for mindful work",
+    icon: <Leaf className="w-5 h-5" />,
     colors: {
-      primary: "#8b5cf6",
-      secondary: "#ec4899",
-      accent: "#06b6d4",
-      background: "#0f0a1f",
-      foreground: "#faf5ff",
-      muted: "#1e1a2e"
+      primary: "#16a34a",
+      secondary: "#dcfce7",
+      accent: "#4ade80",
+      background: "#f0fdf4",
+      foreground: "#14532d",
+      muted: "#bbf7d0",
+      border: "#86efac"
     },
-    font: "Comic Sans MS",
-    borderRadius: 20,
-    animations: 'playful',
-    particleEffect: 'bubbles'
+    gradients: {
+      hero: "from-green-100 via-emerald-50 to-teal-50",
+      card: "from-green-100/50 to-emerald-100/50",
+      button: "from-green-600 to-emerald-600"
+    },
+    animations: { speed: 'slow', intensity: 'subtle' },
+    particleEffect: 'leaves',
+    soundscape: 'nature'
+  },
+  {
+    id: "ocean",
+    name: "Ocean Flow",
+    description: "Fluid, deep blues for creative flow states",
+    icon: <Droplets className="w-5 h-5" />,
+    colors: {
+      primary: "#0ea5e9",
+      secondary: "#e0f2fe",
+      accent: "#38bdf8",
+      background: "#f0f9ff",
+      foreground: "#0c4a6e",
+      muted: "#bae6fd",
+      border: "#7dd3fc"
+    },
+    gradients: {
+      hero: "from-sky-100 via-cyan-50 to-blue-50",
+      card: "from-sky-100/50 to-cyan-100/50",
+      button: "from-sky-600 to-cyan-600"
+    },
+    animations: { speed: 'normal', intensity: 'medium' },
+    particleEffect: 'bubbles',
+    soundscape: 'waves'
+  },
+  {
+    id: "cosmic",
+    name: "Cosmic Dreams",
+    description: "Purple nebula vibes for imaginative exploration",
+    icon: <Sparkles className="w-5 h-5" />,
+    colors: {
+      primary: "#a855f7",
+      secondary: "#f3e8ff",
+      accent: "#c084fc",
+      background: "#faf5ff",
+      foreground: "#581c87",
+      muted: "#e9d5ff",
+      border: "#d8b4fe"
+    },
+    gradients: {
+      hero: "from-purple-100 via-fuchsia-50 to-pink-50",
+      card: "from-purple-100/50 to-fuchsia-100/50",
+      button: "from-purple-600 to-fuchsia-600"
+    },
+    animations: { speed: 'slow', intensity: 'intense' },
+    particleEffect: 'nebula',
+    soundscape: 'ethereal'
+  },
+  {
+    id: "cyberpunk",
+    name: "Cyberpunk Neon",
+    description: "High-contrast neon for intense coding sessions",
+    icon: <Zap className="w-5 h-5" />,
+    colors: {
+      primary: "#ec4899",
+      secondary: "#1a0b2e",
+      accent: "#22d3ee",
+      background: "#0f0518",
+      foreground: "#e879f9",
+      muted: "#2d1b4e",
+      border: "#4c1d95"
+    },
+    gradients: {
+      hero: "from-fuchsia-950 via-purple-950 to-black",
+      card: "from-fuchsia-900/20 to-cyan-900/20",
+      button: "from-fuchsia-600 to-cyan-600"
+    },
+    animations: { speed: 'fast', intensity: 'intense' },
+    particleEffect: 'glitch',
+    soundscape: 'synthwave'
+  },
+  {
+    id: "minimal",
+    name: "Pure Minimal",
+    description: "Clean, distraction-free monochrome",
+    icon: <Mountain className="w-5 h-5" />,
+    colors: {
+      primary: "#171717",
+      secondary: "#f5f5f5",
+      accent: "#525252",
+      background: "#ffffff",
+      foreground: "#171717",
+      muted: "#e5e5e5",
+      border: "#d4d4d4"
+    },
+    gradients: {
+      hero: "from-neutral-100 to-white",
+      card: "from-neutral-100/50 to-gray-100/50",
+      button: "from-neutral-800 to-neutral-900"
+    },
+    animations: { speed: 'normal', intensity: 'subtle' },
+    particleEffect: 'none',
+    soundscape: 'silence'
+  },
+  {
+    id: "autumn",
+    name: "Autumn Warmth",
+    description: "Cozy, warm tones for comfortable browsing",
+    icon: <Flame className="w-5 h-5" />,
+    colors: {
+      primary: "#dc2626",
+      secondary: "#fef2f2",
+      accent: "#f87171",
+      background: "#fef9f3",
+      foreground: "#7f1d1d",
+      muted: "#fecaca",
+      border: "#fca5a5"
+    },
+    gradients: {
+      hero: "from-red-100 via-orange-50 to-amber-50",
+      card: "from-red-100/50 to-orange-100/50",
+      button: "from-red-600 to-orange-600"
+    },
+    animations: { speed: 'slow', intensity: 'subtle' },
+    particleEffect: 'leaves',
+    soundscape: 'lofi'
   }
 ];
 
-function ParticleEffect({ type }: { type: string }) {
-  if (type === 'none') return null;
-  
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 20 + 10,
-    duration: Math.random() * 10 + 10,
-    delay: Math.random() * 5
-  }));
-  
-  const getParticleContent = () => {
-    switch (type) {
-      case 'bubbles': return '○';
-      case 'stars': return '✦';
-      case 'leaves': return '🍃';
-      default: return '•';
-    }
-  };
-  
+// Activity presets
+const activityPresets = [
+  { id: 'coding', name: 'Deep Coding', icon: <Zap className="w-4 h-4" />, theme: 'midnight', music: 'ambient' },
+  { id: 'reading', name: 'Reading', icon: <BookOpen className="w-4 h-4" />, theme: 'forest', music: 'nature' },
+  { id: 'creative', name: 'Creative Work', icon: <Palette className="w-4 h-4" />, theme: 'cosmic', music: 'ethereal' },
+  { id: 'gaming', name: 'Gaming', icon: <Gamepad2 className="w-4 h-4" />, theme: 'cyberpunk', music: 'synthwave' },
+  { id: 'relaxing', name: 'Relaxing', icon: <Coffee className="w-4 h-4" />, theme: 'autumn', music: 'lofi' },
+  { id: 'morning', name: 'Morning Routine', icon: <Sun className="w-4 h-4" />, theme: 'sunrise', music: 'upbeat' }
+];
+
+// Preview card component
+function ThemePreview({ theme, isActive, onClick }: { theme: MoodTheme; isActive: boolean; onClick: () => void }) {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute text-white/10"
-          style={{
-            left: `${p.x}%`,
-            fontSize: p.size,
-          }}
-          initial={{ y: '100vh', opacity: 0 }}
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`relative w-full p-4 rounded-xl border-2 transition-all text-left ${
+        isActive 
+          ? 'border-primary ring-2 ring-primary/20' 
+          : 'border-border hover:border-primary/50'
+      }`}
+      style={{ backgroundColor: theme.colors.background }}
+    >
+      {isActive && (
+        <div className="absolute top-2 right-2">
+          <Badge className="bg-primary text-primary-foreground">
+            <Check className="w-3 h-3 mr-1" />
+            Active
+          </Badge>
+        </div>
+      )}
+      
+      <div className="flex items-start gap-3">
+        <div 
+          className="p-3 rounded-xl"
+          style={{ backgroundColor: theme.colors.muted }}
+        >
+          <span style={{ color: theme.colors.primary }}>{theme.icon}</span>
+        </div>
+        <div className="flex-1">
+          <h3 
+            className="font-semibold mb-1"
+            style={{ color: theme.colors.foreground }}
+          >
+            {theme.name}
+          </h3>
+          <p 
+            className="text-sm"
+            style={{ color: theme.colors.foreground, opacity: 0.7 }}
+          >
+            {theme.description}
+          </p>
+          
+          <div className="flex flex-wrap gap-1 mt-2">
+            <Badge 
+              variant="secondary" 
+              className="text-xs"
+              style={{ 
+                backgroundColor: theme.colors.muted,
+                color: theme.colors.foreground
+              }}
+            >
+              {theme.animations.speed} animations
+            </Badge>
+            <Badge 
+              variant="secondary" 
+              className="text-xs"
+              style={{ 
+                backgroundColor: theme.colors.muted,
+                color: theme.colors.foreground
+              }}
+            >
+              {theme.particleEffect}
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Color preview */}
+      <div className="flex gap-1 mt-3">
+        {Object.entries(theme.colors).slice(0, 4).map(([key, color]) => (
+          <div
+            key={key}
+            className="w-6 h-6 rounded-full border border-black/10"
+            style={{ backgroundColor: color }}
+            title={key}
+          />
+        ))}
+      </div>
+    </motion.button>
+  );
+}
+
+// Live preview component
+function LivePreview({ theme }: { theme: MoodTheme }) {
+  return (
+    <div 
+      className="rounded-xl overflow-hidden border-2"
+      style={{ 
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.background
+      }}
+    >
+      {/* Mock header */}
+      <div 
+        className="p-4 flex items-center justify-between"
+        style={{ backgroundColor: theme.colors.muted }}
+      >
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-8 h-8 rounded-lg flex items-center justify-center font-bold"
+            style={{ 
+              backgroundColor: theme.colors.primary,
+              color: theme.colors.background
+            }}
+          >
+            N
+          </div>
+          <span style={{ color: theme.colors.foreground }}>Nemo</span>
+        </div>
+        <div className="flex gap-2">
+          <div 
+            className="w-8 h-8 rounded-full"
+            style={{ backgroundColor: theme.colors.border }}
+          />
+          <div 
+            className="w-8 h-8 rounded-full"
+            style={{ backgroundColor: theme.colors.border }}
+          />
+        </div>
+      </div>
+
+      {/* Mock hero */}
+      <div 
+        className={`p-8 bg-gradient-to-br ${theme.gradients.hero}`}
+      >
+        <motion.h1 
+          className="text-2xl font-bold mb-2"
+          style={{ color: theme.colors.foreground }}
           animate={{ 
-            y: '-10vh', 
-            opacity: [0, 0.3, 0.3, 0],
-            x: [0, Math.random() * 50 - 25, 0]
+            opacity: theme.animations.intensity === 'intense' ? [1, 0.8, 1] : 1 
           }}
-          transition={{
-            duration: p.duration,
-            delay: p.delay,
-            repeat: Infinity,
-            ease: "linear"
+          transition={{ 
+            duration: theme.animations.speed === 'slow' ? 3 : theme.animations.speed === 'fast' ? 1 : 2,
+            repeat: Infinity
           }}
         >
-          {getParticleContent()}
-        </motion.div>
-      ))}
+          Hello, I'm Nemo
+        </motion.h1>
+        <p style={{ color: theme.colors.foreground, opacity: 0.7 }}>
+          Creative Developer
+        </p>
+
+        <div className="flex gap-2 mt-4">
+          <motion.button
+            className="px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ 
+              backgroundColor: theme.colors.primary,
+              color: theme.colors.background
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            View Work
+          </motion.button>
+          <button
+            className="px-4 py-2 rounded-lg text-sm font-medium border"
+            style={{ 
+              borderColor: theme.colors.border,
+              color: theme.colors.foreground
+            }}
+          >
+            Contact
+          </button>
+        </div>
+      </div>
+
+      {/* Mock cards */}
+      <div className="p-4 grid grid-cols-2 gap-3">
+        {[1, 2].map((i) => (
+          <div
+            key={i}
+            className="p-4 rounded-lg border"
+            style={{ 
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.muted
+            }}
+          >
+            <div 
+              className="w-8 h-8 rounded-lg mb-2"
+              style={{ backgroundColor: theme.colors.accent }}
+            />
+            <div 
+              className="h-4 w-20 rounded mb-1"
+              style={{ backgroundColor: theme.colors.foreground, opacity: 0.2 }}
+            />
+            <div 
+              className="h-3 w-full rounded"
+              style={{ backgroundColor: theme.colors.foreground, opacity: 0.1 }}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function MoodThemesPage() {
-  const [selectedMood, setSelectedMood] = useState<MoodTheme>(moodThemes[0]);
-  const [intensity, setIntensity] = useState(50);
+  const [activeTheme, setActiveTheme] = useState<MoodTheme>(moodThemes[0]);
+  const [customizing, setCustomizing] = useState(false);
+  const [animationSpeed, setAnimationSpeed] = useState(50);
+  const [particleIntensity, setParticleIntensity] = useState(50);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [highContrast, setHighContrast] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
-  
-  const applyTheme = (mood: MoodTheme) => {
-    setSelectedMood(mood);
-    
-    // Apply CSS variables
-    const root = document.documentElement;
-    root.style.setProperty('--mood-primary', mood.colors.primary);
-    root.style.setProperty('--mood-secondary', mood.colors.secondary);
-    root.style.setProperty('--mood-accent', mood.colors.accent);
-    root.style.setProperty('--mood-radius', `${mood.borderRadius}px`);
-    root.style.setProperty('--mood-font', mood.font);
-    
-    // Apply animation class
-    document.body.className = document.body.className.replace(/mood-animation-\w+/, '');
-    document.body.classList.add(`mood-animation-${mood.animations}`);
+
+  const applyTheme = (theme: MoodTheme) => {
+    setActiveTheme(theme);
+    // In a real implementation, this would update CSS variables or context
+    document.documentElement.style.setProperty('--primary', theme.colors.primary);
+    document.documentElement.style.setProperty('--background', theme.colors.background);
+    document.documentElement.style.setProperty('--foreground', theme.colors.foreground);
   };
-  
-  useEffect(() => {
-    applyTheme(selectedMood);
-  }, [selectedMood]);
+
+  const applyPreset = (preset: typeof activityPresets[0]) => {
+    const theme = moodThemes.find(t => t.id === preset.theme);
+    if (theme) {
+      applyTheme(theme);
+    }
+  };
 
   return (
-    <div 
-      className="min-h-screen pt-24 pb-16 transition-all duration-700"
-      style={{
-        background: `linear-gradient(135deg, ${selectedMood.colors.background} 0%, ${selectedMood.colors.muted} 100%)`,
-        color: selectedMood.colors.foreground,
-        fontFamily: selectedMood.font
-      }}
-    >
-      <ParticleEffect type={selectedMood.particleEffect || 'none'} />
-      
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-            style={{ 
-              backgroundColor: `${selectedMood.colors.primary}20`,
-              color: selectedMood.colors.primary 
-            }}
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Set Your Vibe</span>
-          </motion.div>
-          
-          <h1 
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6"
-            style={{ color: selectedMood.colors.foreground }}
-          >
-            Mood <span style={{ color: selectedMood.colors.primary }}>Themes</span>
-          </h1>
-          
-          <p className="text-xl max-w-2xl mx-auto" style={{ color: `${selectedMood.colors.foreground}99` }}>
-            Transform your browsing experience based on how you feel.
-            Each theme is carefully crafted to match your mood.
+          <Badge variant="secondary" className="mb-4">
+            <Palette className="w-3 h-3 mr-1" />
+            Personalization
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Mood Themes</h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Transform your browsing experience with curated color palettes designed for different moods and activities.
           </p>
         </motion.div>
 
-        {/* Current Mood Display */}
+        {/* Quick Presets */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
         >
-          <Card 
-            className="overflow-hidden border-0 shadow-2xl"
-            style={{ 
-              backgroundColor: selectedMood.colors.muted,
-              borderRadius: selectedMood.borderRadius * 2
-            }}
-          >
-            <CardContent className="p-8 md:p-12">
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <motion.div
-                  animate={{ 
-                    rotate: selectedMood.animations === 'playful' ? [0, 10, -10, 0] : 0,
-                    scale: selectedMood.animations === 'energetic' ? [1, 1.1, 1] : 1
-                  }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="text-8xl"
-                >
-                  {selectedMood.emoji}
-                </motion.div>
-                
-                <div className="text-center md:text-left flex-1">
-                  <h2 
-                    className="text-3xl md:text-4xl font-bold mb-2"
-                    style={{ color: selectedMood.colors.foreground }}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Quick Activity Presets
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {activityPresets.map((preset) => (
+                  <Button
+                    key={preset.id}
+                    variant={activeTheme.id === preset.theme ? 'default' : 'outline'}
+                    className="flex-col h-auto py-4 gap-2"
+                    onClick={() => applyPreset(preset)}
                   >
-                    {selectedMood.name}
-                  </h2>
-                  <p style={{ color: `${selectedMood.colors.foreground}99` }}>
-                    {selectedMood.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
-                    <Badge 
-                      variant="secondary"
-                      style={{ 
-                        backgroundColor: `${selectedMood.colors.primary}30`,
-                        color: selectedMood.colors.primary
-                      }}
-                    >
-                      {selectedMood.font}
-                    </Badge>
-                    <Badge 
-                      variant="secondary"
-                      style={{ 
-                        backgroundColor: `${selectedMood.colors.secondary}30`,
-                        color: selectedMood.colors.secondary
-                      }}
-                    >
-                      {selectedMood.animations} animations
-                    </Badge>
-                    {selectedMood.particleEffect !== 'none' && (
-                      <Badge 
-                        variant="secondary"
-                        style={{ 
-                          backgroundColor: `${selectedMood.colors.accent}30`,
-                          color: selectedMood.colors.accent
-                        }}
-                      >
-                        {selectedMood.particleEffect} particles
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Color Preview */}
-                <div className="flex gap-2">
-                  {Object.entries(selectedMood.colors).slice(0, 4).map(([key, color]) => (
-                    <div
-                      key={key}
-                      className="w-12 h-12 rounded-lg shadow-lg"
-                      style={{ backgroundColor: color }}
-                      title={key}
-                    />
-                  ))}
-                </div>
+                    {preset.icon}
+                    <span className="text-xs">{preset.name}</span>
+                  </Button>
+                ))}
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Mood Selection Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-12"
-        >
-          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <Smile className="h-5 w-5" style={{ color: selectedMood.colors.primary }} />
-            Choose Your Mood
-          </h3>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {moodThemes.map((mood, index) => {
-              const Icon = mood.icon;
-              const isActive = mood.id === selectedMood.id;
-              
-              return (
-                <motion.button
-                  key={mood.id}
-                  onClick={() => applyTheme(mood)}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                  className={`p-4 rounded-xl text-center transition-all ${
-                    isActive 
-                      ? 'ring-2 ring-offset-2' 
-                      : 'hover:shadow-lg'
-                  }`}
-                  style={{
-                    backgroundColor: isActive ? mood.colors.primary : mood.colors.muted,
-                    color: isActive ? '#fff' : mood.colors.foreground,
-                    borderRadius: mood.borderRadius,
-                    ringColor: isActive ? mood.colors.primary : 'transparent'
-                  }}
-                >
-                  <div className="text-3xl mb-2">{mood.emoji}</div>
-                  <div className="font-semibold text-sm">{mood.name}</div>
-                  {isActive && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Theme Grid */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="themes">
+              <TabsList className="mb-6">
+                <TabsTrigger value="themes">Themes</TabsTrigger>
+                <TabsTrigger value="custom">Customize</TabsTrigger>
+                <TabsTrigger value="saved">Saved</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="themes">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {moodThemes.map((theme, index) => (
                     <motion.div
-                      layoutId="activeIndicator"
-                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: mood.colors.accent }}
+                      key={theme.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
                     >
-                      <Check className="h-4 w-4 text-white" />
+                      <ThemePreview
+                        theme={theme}
+                        isActive={activeTheme.id === theme.id}
+                        onClick={() => applyTheme(theme)}
+                      />
                     </motion.div>
-                  )}
-                </motion.button>
-              );
-            })}
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="custom">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Advanced Customization</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Animation Speed
+                        </label>
+                        <Slider
+                          value={[animationSpeed]}
+                          onValueChange={([v]) => setAnimationSpeed(v)}
+                          max={100}
+                          step={1}
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>Slow</span>
+                          <span>Fast</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Particle Intensity
+                        </label>
+                        <Slider
+                          value={[particleIntensity]}
+                          onValueChange={([v]) => setParticleIntensity(v)}
+                          max={100}
+                          step={1}
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>Subtle</span>
+                          <span>Intense</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Reduced Motion</label>
+                        <Switch
+                          checked={reducedMotion}
+                          onCheckedChange={setReducedMotion}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Sound Effects</label>
+                        <Switch defaultChecked />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Background Music</label>
+                        <Switch />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button className="flex-1">
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Apply Changes
+                      </Button>
+                      <Button variant="outline">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reset
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="saved">
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                      <Heart className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="font-semibold mb-2">No Saved Themes</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Customize a theme and save it for later
+                    </p>
+                    <Button variant="outline">
+                      <Download className="w-4 h-4 mr-2" />
+                      Save Current Theme
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
-        </motion.div>
 
-        {/* Customization Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Intensity Slider */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card style={{ backgroundColor: selectedMood.colors.muted }}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5" style={{ color: selectedMood.colors.primary }} />
-                  Intensity
-                </CardTitle>
-                <CardDescription style={{ color: `${selectedMood.colors.foreground}99` }}>
-                  Adjust how strongly the theme affects the interface
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Slider
-                  value={[intensity]}
-                  onValueChange={([v]) => setIntensity(v)}
-                  max={100}
-                  step={1}
-                />
-                <div className="flex justify-between mt-2 text-sm" style={{ color: `${selectedMood.colors.foreground}99` }}>
-                  <span>Subtle</span>
-                  <span>{intensity}%</span>
-                  <span>Intense</span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          {/* Live Preview */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <RefreshCw className="w-5 h-5" />
+                    Live Preview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LivePreview theme={activeTheme} />
 
-          {/* Accessibility Options */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card style={{ backgroundColor: selectedMood.colors.muted }}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Layout className="h-5 w-5" style={{ color: selectedMood.colors.primary }} />
-                  Accessibility
-                </CardTitle>
-                <CardDescription style={{ color: `${selectedMood.colors.foreground}99` }}>
-                  Customize for your comfort
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="reduced-motion">Reduced Motion</Label>
-                  <Switch
-                    id="reduced-motion"
-                    checked={reducedMotion}
-                    onCheckedChange={setReducedMotion}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="high-contrast">High Contrast</Label>
-                  <Switch
-                    id="high-contrast"
-                    checked={highContrast}
-                    onCheckedChange={setHighContrast}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Current Theme</span>
+                      <span className="font-medium">{activeTheme.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Element</span>
+                      <span className="font-medium capitalize">{activeTheme.element}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Animation</span>
+                      <span className="font-medium capitalize">{activeTheme.animations.speed}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <Button className="flex-1">
+                      <Check className="w-4 h-4 mr-2" />
+                      Apply Theme
+                    </Button>
+                    <Button variant="outline" size="icon">
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Theme Info */}
+              <Card className="mt-4">
+                <CardContent className="p-4">
+                  <h4 className="font-semibold mb-2">About This Theme</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {activeTheme.description}
+                  </p>
+                  
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Sparkles className="w-4 h-4 text-muted-foreground" />
+                      <span>{activeTheme.particleEffect} particles</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Music className="w-4 h-4 text-muted-foreground" />
+                      <span>{activeTheme.soundscape} soundscape</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-
-        {/* Preview Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12"
-        >
-          <h3 className="text-xl font-semibold mb-6">Preview Components</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Button Preview */}
-            <Card style={{ backgroundColor: selectedMood.colors.muted }}>
-              <CardHeader>
-                <CardTitle className="text-sm">Buttons</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  className="w-full"
-                  style={{ 
-                    backgroundColor: selectedMood.colors.primary,
-                    borderRadius: selectedMood.borderRadius
-                  }}
-                >
-                  Primary Action
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  style={{ 
-                    borderColor: selectedMood.colors.primary,
-                    color: selectedMood.colors.primary,
-                    borderRadius: selectedMood.borderRadius
-                  }}
-                >
-                  Secondary
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Card Preview */}
-            <Card style={{ backgroundColor: selectedMood.colors.muted }}>
-              <CardHeader>
-                <CardTitle className="text-sm">Card Component</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-3" style={{ color: `${selectedMood.colors.foreground}99` }}>
-                  This is how cards appear with the current mood theme.
-                </p>
-                <div className="flex gap-2">
-                  <Badge style={{ backgroundColor: selectedMood.colors.primary }}>
-                    Tag 1
-                  </Badge>
-                  <Badge style={{ backgroundColor: selectedMood.colors.secondary }}>
-                    Tag 2
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Typography Preview */}
-            <Card style={{ backgroundColor: selectedMood.colors.muted }}>
-              <CardHeader>
-                <CardTitle className="text-sm">Typography</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <h4 style={{ color: selectedMood.colors.foreground }}>Heading Text</h4>
-                <p className="text-sm" style={{ color: `${selectedMood.colors.foreground}99` }}>
-                  Body text appears with adjusted contrast for readability.
-                </p>
-                <a 
-                  href="#" 
-                  className="text-sm"
-                  style={{ color: selectedMood.colors.primary }}
-                  onClick={(e) => e.preventDefault()}
-                >
-                  Link text
-                </a>
-              </CardContent>
-            </Card>
-          </div>
-        </motion.div>
-
-        {/* Reset Button */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-12 text-center"
-        >
-          <Button
-            variant="outline"
-            onClick={() => applyTheme(moodThemes[0])}
-            style={{ borderColor: selectedMood.colors.primary }}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset to Default
-          </Button>
-        </motion.div>
       </div>
     </div>
   );

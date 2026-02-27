@@ -1,4 +1,4 @@
-import { ArtGenerator, ArtParams, ParamType } from "./core";
+import { ArtGenerator, ArtParams } from "./core";
 
 // Lenia - Continuous Cellular Automata
 // A generalization of Conway's Game of Life with continuous states
