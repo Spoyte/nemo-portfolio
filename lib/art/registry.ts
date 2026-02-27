@@ -51,7 +51,7 @@ interface ParamMapping {
 // ============================================================================
 
 /**
- * Central registry of all 51 art generators
+ * Central registry of all 52 art generators
  * This single source of truth replaces scattered imports across index.ts
  */
 export const GENERATOR_REGISTRY: GeneratorEntry[] = [
@@ -111,6 +111,14 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     category: "mathematical",
     loader: () => import("./fourier-synthesis"),
     renderFnName: "renderFourierSynthesis",
+  },
+  {
+    id: "julia-set",
+    name: "Julia Set Explorer",
+    description: "Explore Julia sets - the Mandelbrot's complex sibling with orbit visualization",
+    category: "mathematical",
+    loader: () => import("./julia-set"),
+    renderFnName: "renderJuliaSet",
   },
 
   // === NATURAL (7) ===
@@ -724,7 +732,7 @@ export function validateRegistry(): {
  * 6. ⬜ Document the new generator addition process
  *
  * Benefits:
- * - Single source of truth for all 51 generators
+ * - Single source of truth for all 52 generators
  * - No more scattered import statements
  * - Automatic param config generation
  * - Lazy loading support for code splitting
