@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generative Art Gallery — 64 Algorithms</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg-elevated: #141414;
+      --bg-card: #1a1a1a;
+      --text: #f5f5f5;
+      --text-muted: #888;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --border: #2a2a2a;
+      --radius: 8px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,10,0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      padding: 1.5rem 2rem;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .brand span {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+
+    /* Search & Filter */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex: 1;
+      justify-content: flex-end;
+      max-width: 600px;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.625rem 1rem 0.625rem 2.5rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-box::before {
+      content: "🔍";
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.5;
+    }
+
+    .filter-btn {
+      padding: 0.625rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: none;
+    }
+
+    .filter-panel.open {
+      display: block;
+    }
+
+    .filter-section {
+      margin-bottom: 1rem;
+    }
+
+    .filter-section h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .filter-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .filter-tag {
+      padding: 0.375rem 0.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-tag:hover {
+      border-color: var(--accent);
+    }
+
+    .filter-tag.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      gap: 2rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stats-bar strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Main Content */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Category Section */
+    .category {
+      margin-bottom: 3rem;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .category-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+    }
+
+    .category h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .category-count {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: var(--accent);
+    }
+
+    .card-preview {
+      aspect-ratio: 4/3;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-preview::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(59,130,246,0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover .card-preview::before {
+      opacity: 1;
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      border-radius: 4px;
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .card-content {
+      padding: 1rem;
+    }
+
+    .card h3 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .complexity {
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .complexity.simple { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .complexity.moderate { background: rgba(234,179,8,0.15); color: #facc15; }
+    .complexity.complex { background: rgba(249,115,22,0.15); color: #fb923c; }
+    .complexity.expert { background: rgba(239,68,68,0.15); color: #f87171; }
+
+    .tag {
+      color: var(--text-muted);
+    }
+
+    /* No Results */
+    .no-results {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .no-results-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem;
+      }
+
+      .header-content {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .controls {
+        max-width: none;
+        width: 100%;
+      }
+
+      main {
+        padding: 1rem;
+      }
+
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      }
+
+      .stats-bar {
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+    }
+
+    /* Category Colors */
+    .cat-mathematical { background: rgba(168,85,247,0.15); color: #c084fc; }
+    .cat-natural { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .cat-physics { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .cat-geometric { background: rgba(249,115,22,0.15); color: #fb923c; }
+    .cat-abstract { background: rgba(236,72,153,0.15); color: #f472b6; }
+    .cat-traditional { background: rgba(234,179,8,0.15); color: #facc15; }
+    .cat-3d { background: rgba(6,182,212,0.15); color: #22d3ee; }
+    .cat-text { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .cat-interactive { background: rgba(244,63,94,0.15); color: #fb7185; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">✨</div>
+        <div>
+          <h1>Generative Art Gallery</h1>
+          <span>64 algorithmic artworks</span>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="search-box">
+          <input type="text" id="search" placeholder="Search artworks..." autocomplete="off">
+        </div>
+        <button class="filter-btn" id="filterToggle">Filters</button>
+      </div>
+    </div>
+    <div class="filter-panel" id="filterPanel">
+      <div class="filter-section">
+        <h3>Category</h3>
+        <div class="filter-tags" id="categoryFilters"></div>
+      </div>
+      <div class="filter-section">
+        <h3>Complexity</h3>
+        <div class="filter-tags" id="complexityFilters"></div>
+      </div>
+      <div class="filter-section">
+        <h3>Tags</h3>
+        <div class="filter-tags" id="tagFilters"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <span><strong id="totalCount">64</strong> artworks</span>
+    <span><strong id="filteredCount">64</strong> showing</span>
+    <span id="activeFilters"></span>
+  </div>
+
+  <main id="gallery"></main>
+
+  <footer>
+    <p>Created with code. Infinitely variable. Mathematically beautiful.</p>
+    <p style="margin-top: 0.5rem; font-size: 0.75rem;">Part of the <a href="https://github.com/nemo/portfolio">nemo-portfolio</a> project</p>
+  </footer>
+
+  <script>
+    // Artwork Data
+    const artworks = [
+      // MATHEMATICAL
+      { id: "mandelbrot-explorer", name: "Mandelbrot Explorer", description: "Infinite complexity from simple iteration. Zoom into the boundary between chaos and order.", category: "mathematical", complexity: "complex", tags: ["animated", "colorful", "detailed"], icon: "🌀" },
+      { id: "strange-attractor", name: "Strange Attractor", description: "Lorenz and other chaotic systems visualized. Order emerging from deterministic chaos.", category: "mathematical", complexity: "moderate", tags: ["animated", "chaotic", "monochrome"], icon: "🦋" },
+      { id: "lissajous-curves", name: "Lissajous Curves", description: "Harmonic motion visualized. The beautiful patterns of orthogonal oscillations.", category: "mathematical", complexity: "simple", tags: ["animated", "geometric", "ordered"], icon: "∞" },
+      { id: "spirograph", name: "Spirograph", description: "Rolling circles create intricate patterns. Childhood toy meets mathematical precision.", category: "mathematical", complexity: "moderate", tags: ["geometric", "ordered", "colorful"], icon: "🎯" },
+      { id: "julia-set", name: "Julia Set", description: "Sister to the Mandelbrot, each point a different universe of fractal beauty.", category: "mathematical", complexity: "complex", tags: ["animated", "colorful", "detailed"], icon: "❄️" },
+      { id: "barnsley-fern", name: "Barnsley Fern", description: "Iterated function systems create nature-like structures. Math becomes botany.", category: "mathematical", complexity: "moderate", tags: ["static", "organic", "nature"], icon: "🌿" },
+      { id: "chaos-game", name: "Chaos Game", description: "Randomness creates order. The Sierpinski triangle from simple rules.", category: "mathematical", complexity: "simple", tags: ["animated", "geometric", "ordered"], icon: "🔺" },
+      { id: "fourier-synthesis", name: "Fourier Synthesis", description: "Build any shape from rotating circles. The math behind JPEG and MP3.", category: "mathematical", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "📊" },
+      { id: "harmonograph", name: "Harmonograph", description: "Pendulums drawing patterns. Victorian physics toy producing elegant curves.", category: "mathematical", complexity: "moderate", tags: ["animated", "geometric", "detailed"], icon: "🎼" },
+      { id: "space-filling-curves", name: "Space-Filling Curves", description: "Hilbert, Peano, and other curves that visit every point. Infinite length in finite space.", category: "mathematical", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "📈" },
+
+      // NATURAL
+      { id: "aurora-borealis", name: "Aurora Borealis", description: "Northern lights simulation. Charged particles dancing in Earth's magnetic field.", category: "natural", complexity: "complex", tags: ["animated", "organic", "nature"], icon: "🌌" },
+      { id: "recursive-trees", name: "Recursive Trees", description: "Fractal branching structures. Nature's recursive algorithm for growth.", category: "natural", complexity: "moderate", tags: ["static", "organic", "nature"], icon: "🌳" },
+      { id: "lsystem-botany", name: "L-System Botany", description: "Formal grammars generate plants. String rewriting becomes organic form.", category: "natural", complexity: "complex", tags: ["static", "organic", "nature"], icon: "🌱" },
+      { id: "lsystem-fractals", name: "L-System Fractals", description: "Dragon curve, Koch snowflake, and more. Simple rules, complex shapes.", category: "natural", complexity: "complex", tags: ["animated", "geometric", "nature"], icon: "🐉" },
+      { id: "perlin-terrain", name: "Perlin Terrain", description: "Procedural landscape generation. Noise becomes mountains and valleys.", category: "natural", complexity: "moderate", tags: ["static", "organic", "nature"], icon: "⛰️" },
+      { id: "dla", name: "DLA Cluster", description: "Diffusion-limited aggregation. Particles stick, fractals form.", category: "natural", complexity: "moderate", tags: ["animated", "organic", "nature"], icon: "⚡" },
+      { id: "phyllotaxis", name: "Phyllotaxis", description: "Golden angle spiral packing. The mathematics of sunflower seeds and pinecones.", category: "natural", complexity: "moderate", tags: ["animated", "geometric", "nature"], icon: "🌻" },
+      { id: "slime-mold", name: "Slime Mold", description: "Physarum simulation. Nature's network optimization algorithm.", category: "natural", complexity: "complex", tags: ["animated", "organic", "chaotic"], icon: "🍄" },
+      { id: "bioluminescent-plankton", name: "Bioluminescent Plankton", description: "Evolution simulation with glowing organisms. Life finds a way, beautifully.", category: "natural", complexity: "complex", tags: ["animated", "organic", "nature"], icon: "✨" },
+
+      // PHYSICS
+      { id: "wave-interference", name: "Wave Interference", description: "Ripple tank simulation. Constructive and destructive interference patterns.", category: "physics", complexity: "moderate", tags: ["animated", "organic", "ordered"], icon: "〰️" },
+      { id: "orbital-mechanics", name: "Orbital Mechanics", description: "Gravity and motion. Planets, moons, and the dance of celestial bodies.", category: "physics", complexity: "moderate", tags: ["animated", "geometric", "ordered"], icon: "🪐" },
+      { id: "fluid-smoke", name: "Fluid Smoke", description: "Navier-Stokes simulation. Turbulence, vortices, and flowing dynamics.", category: "physics", complexity: "expert", tags: ["animated", "organic", "chaotic"], icon: "💨" },
+      { id: "particle-swarm", name: "Particle Swarm", description: "Emergent behavior from simple rules. Flocking without birds.", category: "physics", complexity: "moderate", tags: ["animated", "organic", "chaotic"], icon: "✦" },
+      { id: "boid-flocking", name: "Boid Flocking", description: "Craig Reynolds' classic. Separation, alignment, cohesion.", category: "physics", complexity: "complex", tags: ["animated", "organic", "chaotic"], icon: "🐦" },
+      { id: "double-pendulum", name: "Double Pendulum", description: "Chaotic motion from simple mechanics. Deterministic yet unpredictable.", category: "physics", complexity: "moderate", tags: ["animated", "chaotic", "ordered"], icon: "⚖️" },
+      { id: "magnetic-field", name: "Magnetic Field", description: "Field lines and charged particles. Invisible forces made visible.", category: "physics", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "🧲" },
+      { id: "plasma-arc", name: "Plasma Arc", description: "Electric discharge simulation. Lightning in a bottle.", category: "physics", complexity: "complex", tags: ["animated", "chaotic", "colorful"], icon: "⚡" },
+      { id: "wave-tank", name: "Wave Tank", description: "Shallow water equations. Tsunamis, ripples, and interference.", category: "physics", complexity: "complex", tags: ["animated", "organic", "detailed"], icon: "🌊" },
+      { id: "n-body-gravity", name: "N-Body Gravity", description: "Many bodies attracting each other. The complexity of universal gravitation.", category: "physics", complexity: "complex", tags: ["animated", "chaotic", "ordered"], icon: "🌌" },
+      { id: "cymatics", name: "Cymatics", description: "Sound made visible. Resonant patterns from vibrating plates.", category: "physics", complexity: "moderate", tags: ["animated", "geometric", "ordered"], icon: "🎵" },
+      { id: "chladni-figures", name: "Chladni Figures", description: "Sand patterns on vibrating plates. Nodes and antinodes visualized.", category: "physics", complexity: "complex", tags: ["animated", "geometric", "ordered"], icon: "🎼" },
+      { id: "prism-dispersion", name: "Prism Dispersion", description: "Light splitting into colors. Snell's law and Cauchy's equation in action.", category: "physics", complexity: "complex", tags: ["animated", "colorful", "ordered"], icon: "🌈" },
+
+      // GEOMETRIC
+      { id: "geometric-mandala", name: "Geometric Mandala", description: "Sacred geometry patterns. Symmetry and repetition creating beauty.", category: "geometric", complexity: "moderate", tags: ["static", "geometric", "ordered"], icon: "🔮" },
+      { id: "kaleidoscope", name: "Kaleidoscope", description: "Mirror symmetry creates endless patterns. Childhood wonder, mathematically.", category: "geometric", complexity: "moderate", tags: ["animated", "geometric", "ordered"], icon: "🔷" },
+      { id: "islamic-patterns", name: "Islamic Patterns", description: "Geometric art from Islamic tradition. Tiling, stars, and arabesques.", category: "geometric", complexity: "complex", tags: ["static", "geometric", "ordered"], icon: "☪️" },
+      { id: "voronoi-organic", name: "Voronoi Organic", description: "Natural neighbor regions. Cells, cracks, and territorial boundaries.", category: "geometric", complexity: "moderate", tags: ["animated", "organic", "geometric"], icon: "🧩" },
+      { id: "string-art", name: "String Art", description: "Threads connecting points create curves. Straight lines become parabolas.", category: "geometric", complexity: "moderate", tags: ["static", "geometric", "ordered"], icon: "🧵" },
+      { id: "penrose-tiling", name: "Penrose Tiling", description: "Aperiodic tiles cover the plane. Infinite pattern without repetition.", category: "geometric", complexity: "complex", tags: ["static", "geometric", "ordered"], icon: "🔲" },
+      { id: "origami-tessellation", name: "Origami Tessellation", description: "Folded paper patterns. Miura-ori and other mathematical folds.", category: "geometric", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "📄" },
+      { id: "sacred-geometry", name: "Sacred Geometry", description: "Ancient mathematical patterns. Flower of Life, Metatron's Cube, Sri Yantra.", category: "geometric", complexity: "moderate", tags: ["animated", "geometric", "ordered"], icon: "⬡" },
+      { id: "turing-patterns", name: "Turing Patterns", description: "Reaction-diffusion creates nature's textures. Stripes, spots, and labyrinth.", category: "geometric", complexity: "complex", tags: ["animated", "organic", "detailed"], icon: "🐆" },
+
+      // ABSTRACT
+      { id: "impossible-geometry", name: "Impossible Geometry", description: "Escher-like illusions. Penrose triangle and impossible objects.", category: "abstract", complexity: "moderate", tags: ["animated", "geometric", "monochrome"], icon: "🔀" },
+      { id: "metaballs", name: "Metaballs", description: "Soft organic shapes merging. Blobs that flow into each other.", category: "abstract", complexity: "moderate", tags: ["animated", "organic", "colorful"], icon: "💧" },
+      { id: "flow-field", name: "Flow Field", description: "Perlin noise guides particles. Streams of color following invisible currents.", category: "abstract", complexity: "moderate", tags: ["animated", "organic", "colorful"], icon: "🌊" },
+      { id: "reaction-diffusion", name: "Reaction-Diffusion", description: "Gray-Scott model. Chemical patterns mimicking nature.", category: "abstract", complexity: "complex", tags: ["animated", "organic", "chaotic"], icon: "🧪" },
+      { id: "cellular-automata", name: "Cellular Automata", description: "Conway's Game of Life and beyond. Simple rules, complex behavior.", category: "abstract", complexity: "moderate", tags: ["animated", "ordered", "chaotic"], icon: "🦠" },
+      { id: "quantum-field", name: "Quantum Field", description: "Probability amplitudes visualized. The uncertainty of quantum mechanics.", category: "abstract", complexity: "complex", tags: ["animated", "chaotic", "futuristic"], icon: "⚛️" },
+      { id: "fractal-flame", name: "Fractal Flame", description: "Iterated function systems with color. Organic fractal imagery.", category: "abstract", complexity: "expert", tags: ["animated", "chaotic", "detailed"], icon: "🔥" },
+      { id: "neural-dreams", name: "Neural Dreams", description: "Activation patterns of artificial neurons. AI's imagination.", category: "abstract", complexity: "complex", tags: ["animated", "chaotic", "futuristic"], icon: "🧠" },
+      { id: "self-organizing-map", name: "Self-Organizing Map", description: "Kohonen network learning. Unsupervised learning visualized.", category: "abstract", complexity: "complex", tags: ["animated", "ordered", "futuristic"], icon: "🗺️" },
+      { id: "lenia", name: "Lenia", description: "Continuous cellular automata. Smooth life beyond the grid.", category: "abstract", complexity: "complex", tags: ["animated", "organic", "chaotic"], icon: "🌊" },
+      { id: "kaleidoscope-chamber", name: "Kaleidoscope Chamber", description: "3D mirror reflections. Infinite recursive spaces.", category: "abstract", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "🔮" },
+      { id: "topographic-flow", name: "Topographic Flow", description: "Contour lines animated. Maps that breathe and pulse.", category: "abstract", complexity: "moderate", tags: ["animated", "geometric", "ordered"], icon: "🗺️" },
+      { id: "moire-pattern", name: "Moiré Pattern", description: "Interference from overlapping grids. Accidental beauty from alignment.", category: "abstract", complexity: "simple", tags: ["animated", "geometric", "monochrome"], icon: "〰️" },
+      { id: "solar-flare", name: "Solar Flare", description: "Turbulent plasma simulation. The sun's chaotic energy.", category: "abstract", complexity: "complex", tags: ["animated", "chaotic", "colorful"], icon: "☀️" },
+
+      // TRADITIONAL
+      { id: "watercolor-dreams", name: "Watercolor Dreams", description: "Flowing pigments on virtual paper. The unpredictable beauty of water and color.", category: "traditional", complexity: "complex", tags: ["animated", "organic", "colorful"], icon: "🎨" },
+      { id: "ascii-art", name: "ASCII Art", description: "Characters create images. Density becomes grayscale.", category: "traditional", complexity: "moderate", tags: ["static", "monochrome", "retro"], icon: "📰" },
+      { id: "cross-hatching", name: "Cross-Hatching Sketch", description: "Lines create tone and texture. Traditional illustration technique.", category: "traditional", complexity: "complex", tags: ["static", "monochrome", "detailed"], icon: "✏️" },
+      { id: "stained-glass", name: "Stained Glass", description: "Voronoi cells with lead lines. Cathedral windows, algorithmically.", category: "traditional", complexity: "moderate", tags: ["static", "geometric", "colorful"], icon: "🪟" },
+      { id: "digital-weave", name: "Digital Weave", description: "Textile patterns from code. Loom logic in JavaScript.", category: "traditional", complexity: "moderate", tags: ["static", "geometric", "ordered"], icon: "🧶" },
+
+      // 3D
+      { id: "polyhedral-sculptures", name: "Polyhedral Sculptures", description: "Platonic and Archimedean solids. Perfect geometry in 3D.", category: "3d", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "💎" },
+      { id: "crystal-lattice", name: "Crystal Lattice", description: "Atomic structures visualized. The geometry of matter.", category: "3d", complexity: "complex", tags: ["animated", "geometric", "detailed"], icon: "💠" },
+      { id: "light-caverns", name: "Light Caverns", description: "Raymarched tunnels. Procedural cave systems with volumetric light.", category: "3d", complexity: "complex", tags: ["animated", "organic", "detailed"], icon: "🕯️" },
+
+      // TYPOGRAPHY
+      { id: "kinetic-typography", name: "Kinetic Typography", description: "Text in motion. Letters dance and transform.", category: "text", complexity: "moderate", tags: ["animated", "geometric", "futuristic"], icon: "📝" },
+
+      // INTERACTIVE
+      { id: "frequency-visualizer", name: "Frequency Visualizer", description: "Audio-reactive graphics. Sound becomes sight.", category: "interactive", complexity: "moderate", tags: ["animated", "colorful", "futuristic"], icon: "🎧" },
+      { id: "particle-network", name: "Particle Network", description: "Mouse-responsive connections. Distance creates bonds.", category: "interactive", complexity: "simple", tags: ["animated", "geometric", "futuristic"], icon: "🕸️" },
+      { id: "abelian-sandpile", name: "Abelian Sandpile", description: "Self-organized criticality. Grains topple, patterns emerge.", category: "interactive", complexity: "moderate", tags: ["interactive", "geometric", "ordered"], icon: "🏖️" },
+    ];
+
+    // Category Config
+    const categories = {
+      mathematical: { label: "Mathematical", icon: "🔢", description: "Pure mathematical beauty: fractals, curves, and geometric forms" },
+      natural: { label: "Natural Systems", icon: "🌿", description: "Nature-inspired algorithms: trees, terrain, organic growth" },
+      physics: { label: "Physics", icon: "⚡", description: "Physical simulations: fluids, particles, waves, and forces" },
+      geometric: { label: "Geometric", icon: "📐", description: "Patterns and symmetry: mandalas, tessellations, Islamic patterns" },
+      abstract: { label: "Abstract", icon: "🎨", description: "Abstract expressions: fields, reaction-diffusion, noise art" },
+      traditional: { label: "Traditional", icon: "🖌️", description: "Traditional media: cross-hatching, stained glass, weaving" },
+      "3d": { label: "3D", icon: "🧊", description: "Three-dimensional: wireframes, raymarching, sculptures" },
+      text: { label: "Typography", icon: "🔤", description: "Text-based art: ASCII, kinetic typography" },
+      interactive: { label: "Interactive", icon: "👆", description: "Interactive experiences: audio-reactive, mouse-responsive" }
+    };
+
+    // State
+    let searchQuery = "";
+    let selectedCategory = "all";
+    let selectedComplexity = "all";
+    let selectedTags = [];
+
+    // DOM Elements
+    const gallery = document.getElementById('gallery');
+    const searchInput = document.getElementById('search');
+    const filterToggle = document.getElementById('filterToggle');
+    const filterPanel = document.getElementById('filterPanel');
+    const categoryFilters = document.getElementById('categoryFilters');
+    const complexityFilters = document.getElementById('complexityFilters');
+    const tagFilters = document.getElementById('tagFilters');
+    const filteredCount = document.getElementById('filteredCount');
+    const activeFilters = document.getElementById('activeFilters');
+
+    // Initialize Filters
+    function initFilters() {
+      // Category filters
+      categoryFilters.innerHTML = `
+        <button class="filter-tag ${selectedCategory === 'all' ? 'active' : ''}" data-category="all">All</button>
+        ${Object.entries(categories).map(([key, cat]) => `
+          <button class="filter-tag ${selectedCategory === key ? 'active' : ''}" data-category="${key}">${cat.icon} ${cat.label}</button>
+        `).join('')}
+      `;
+
+      // Complexity filters
+      const complexities = ['simple', 'moderate', 'complex', 'expert'];
+      complexityFilters.innerHTML = `
+        <button class="filter-tag ${selectedComplexity === 'all' ? 'active' : ''}" data-complexity="all">All</button>
+        ${complexities.map(c => `
+          <button class="filter-tag ${selectedComplexity === c ? 'active' : ''}" data-complexity="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</button>
+        `).join('')}
+      `;
+
+      // Tag filters
+      const allTags = [...new Set(artworks.flatMap(a => a.tags))].sort();
+      tagFilters.innerHTML = allTags.map(tag => `
+        <button class="filter-tag ${selectedTags.includes(tag) ? 'active' : ''}" data-tag="${tag}">${tag}</button>
+      `).join('');
+    }
+
+    // Filter Artworks
+    function filterArtworks() {
+      return artworks.filter(art => {
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          if (!art.name.toLowerCase().includes(q) && !art.description.toLowerCase().includes(q)) {
+            return false;
+          }
+        }
+        if (selectedCategory !== 'all' && art.category !== selectedCategory) return false;
+        if (selectedComplexity !== 'all' && art.complexity !== selectedComplexity) return false;
+        if (selectedTags.length > 0 && !selectedTags.every(t => art.tags.includes(t))) return false;
+        return true;
+      });
+    }
+
+    // Render Gallery
+    function renderGallery() {
+      const filtered = filterArtworks();
+      filteredCount.textContent = filtered.length;
+
+      // Update active filters text
+      const active = [];
+      if (selectedCategory !== 'all') active.push(categories[selectedCategory].label);
+      if (selectedComplexity !== 'all') active.push(selectedComplexity);
+      if (selectedTags.length > 0) active.push(...selectedTags);
+      activeFilters.textContent = active.length > 0 ? `Filters: ${active.join(', ')}` : '';
+
+      if (filtered.length === 0) {
+        gallery.innerHTML = `
+          <div class="no-results">
+            <div class="no-results-icon">🔍</div>
+            <h3>No artworks found</h3>
+            <p>Try adjusting your filters or search query</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by category if showing all
+      if (selectedCategory === 'all' && !searchQuery && selectedTags.length === 0 && selectedComplexity === 'all') {
+        const grouped = {};
+        filtered.forEach(art => {
+          if (!grouped[art.category]) grouped[art.category] = [];
+          grouped[art.category].push(art);
+        });
+
+        gallery.innerHTML = Object.entries(grouped).map(([cat, items]) => {
+          const config = categories[cat];
+          return `
+            <section class="category">
+              <div class="category-header">
+                <div class="category-icon cat-${cat}">${config.icon}</div>
+                <h2>${config.label}</h2>
+                <span class="category-count">${items.length}</span>
+              </div>
+              <div class="grid">
+                ${items.map(art => renderCard(art)).join('')}
+              </div>
+            </section>
+          `;
+        }).join('');
+      } else {
+        // Flat grid for filtered results
+        gallery.innerHTML = `<div class="grid">${filtered.map(art => renderCard(art)).join('')}</div>`;
+      }
+    }
+
+    // Render Card
+    function renderCard(art) {
+      return `
+        <a class="card" href="art.html?piece=${art.id}">
+          <div class="card-preview">
+            <span>${art.icon}</span>
+            <span class="card-badge cat-${art.category}">${categories[art.category].label}</span>
+          </div>
+          <div class="card-content">
+            <h3>${art.name}</h3>
+            <p>${art.description}</p>
+            <div class="card-meta">
+              <span class="complexity ${art.complexity}">${art.complexity}</span>
+              ${art.tags.slice(0, 2).map(t => `<span class="tag">#${t}</span>`).join('')}
+            </div>
+          </div>
+        </a>
+      `;
+    }
+
+    // Event Listeners
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderGallery();
+    });
+
+    filterToggle.addEventListener('click', () => {
+      filterPanel.classList.toggle('open');
+      filterToggle.classList.toggle('active');
+    });
+
+    categoryFilters.addEventListener('click', (e) => {
+      if (e.target.dataset.category) {
+        selectedCategory = e.target.dataset.category;
+        initFilters();
+        renderGallery();
+      }
+    });
+
+    complexityFilters.addEventListener('click', (e) => {
+      if (e.target.dataset.complexity) {
+        selectedComplexity = e.target.dataset.complexity;
+        initFilters();
+        renderGallery();
+      }
+    });
+
+    tagFilters.addEventListener('click', (e) => {
+      if (e.target.dataset.tag) {
+        const tag = e.target.dataset.tag;
+        if (selectedTags.includes(tag)) {
+          selectedTags = selectedTags.filter(t => t !== tag);
+        } else {
+          selectedTags.push(tag);
+        }
+        initFilters();
+        renderGallery();
+      }
+    });
+
+    // Initialize
+    initFilters();
+    renderGallery();
+  </script>
+</body>
+</html>
