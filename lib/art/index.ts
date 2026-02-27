@@ -63,6 +63,7 @@ import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
 import { penroseTiling } from "./penrose-tiling";
 import { lenia } from "./lenia";
+import { bioluminescentPlanktonGenerator } from "./bioluminescent-plankton-generator";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -127,6 +128,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "chaos-game": chaosGame,
   "penrose-tiling": penroseTiling,
   "lenia": lenia,
+  "bioluminescent-plankton": bioluminescentPlanktonGenerator,
 };
 
 // Apply metadata to generators
@@ -294,3 +296,7 @@ export type { PenroseTilingParams } from './penrose-tiling';
 // Lenia
 export { renderLenia, leniaDefaultParams } from './lenia';
 export type { LeniaParams } from './lenia';
+
+// Bioluminescent Plankton
+export { renderBioluminescentPlankton, bioluminescentPlanktonDefaultParams } from './bioluminescent-plankton';
+export type { PlanktonParams } from './bioluminescent-plankton';

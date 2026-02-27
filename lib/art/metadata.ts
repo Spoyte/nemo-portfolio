@@ -361,6 +361,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "chaotic", "colorful", "detailed", "futuristic"],
     created: "2024-02-27",
   },
+  "bioluminescent-plankton": {
+    category: "natural",
+    complexity: "complex",
+    tags: ["animated", "organic", "nature", "colorful", "detailed", "futuristic"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -450,6 +456,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "chaos-game",
   "penrose-tiling",
   "lenia",
+  "bioluminescent-plankton",
   // Natural
   "aurora-borealis",
   "recursive-trees",
