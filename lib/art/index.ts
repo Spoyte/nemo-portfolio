@@ -68,6 +68,7 @@ import { selfOrganizingMap } from "./self-organizing-map";
 import { abelianSandpile } from "./abelian-sandpile";
 import { turingPatterns } from "./turing-patterns";
 import { nBodyGravity } from "./n-body-gravity-generator";
+import { sacredGeometry } from "./sacred-geometry";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -137,6 +138,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "abelian-sandpile": abelianSandpile,
   "turing-patterns": turingPatterns,
   "n-body-gravity": nBodyGravity,
+  "sacred-geometry": sacredGeometry,
 };
 
 // Apply metadata to generators
@@ -324,3 +326,7 @@ export type { TuringParams } from './turing-patterns';
 // N-Body Gravity
 export { renderNBodyGravity, nBodyGravityDefaultParams } from './n-body-gravity';
 export type { NBodyGravityParams } from './n-body-gravity';
+
+// Sacred Geometry
+export { renderSacredGeometry, sacredGeometry, sacredGeometryDefaultParams } from './sacred-geometry';
+export type { SacredGeometryParams } from './sacred-geometry';
