@@ -66,6 +66,7 @@ import { lenia } from "./lenia";
 import { bioluminescentPlanktonGenerator } from "./bioluminescent-plankton-generator";
 import { selfOrganizingMap } from "./self-organizing-map";
 import { abelianSandpile } from "./abelian-sandpile";
+import { turingPatterns } from "./turing-patterns";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -133,6 +134,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "bioluminescent-plankton": bioluminescentPlanktonGenerator,
   "self-organizing-map": selfOrganizingMap,
   "abelian-sandpile": abelianSandpile,
+  "turing-patterns": turingPatterns,
 };
 
 // Apply metadata to generators
@@ -312,3 +314,7 @@ export type { SOMParams } from './self-organizing-map';
 // Abelian Sandpile
 export { renderAbelianSandpile, abelianSandpile, defaultParams as abelianSandpileDefaultParams } from './abelian-sandpile';
 export type { SandpileParams } from './abelian-sandpile';
+
+// Turing Patterns
+export { renderTuringPatterns, turingPatterns, turingPatternsDefaultParams } from './turing-patterns';
+export type { TuringParams } from './turing-patterns';
