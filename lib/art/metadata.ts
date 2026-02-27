@@ -288,6 +288,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "nature", "chaotic", "detailed"],
     created: "2024-02-27",
   },
+  "wave-tank": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "organic", "nature", "colorful", "detailed"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {

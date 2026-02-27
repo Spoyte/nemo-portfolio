@@ -52,6 +52,7 @@ import { kineticTypography } from "./kinetic-typography";
 import { magneticField } from "./magnetic-field";
 import { plasmaArc } from "./plasma-arc";
 import { slimeMold } from "./slime-mold";
+import { waveTank } from "./wave-tank";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -105,6 +106,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "magnetic-field": magneticField,
   "plasma-arc": plasmaArc,
   "slime-mold": slimeMold,
+  "wave-tank": waveTank,
 };
 
 // Apply metadata to generators
@@ -227,3 +229,7 @@ export type { PlasmaArcParams } from './plasma-arc';
 // Slime Mold
 export { renderSlimeMold, slimeMoldDefaultParams } from './slime-mold';
 export type { SlimeMoldParams } from './slime-mold';
+
+// Wave Tank
+export { renderWaveTank, waveTankDefaultParams } from './wave-tank';
+export type { WaveTankParams } from './wave-tank';
