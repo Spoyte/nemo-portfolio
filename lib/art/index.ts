@@ -59,6 +59,7 @@ import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 import { doublePendulum } from "./double-pendulum";
 import { fourierSynthesis } from "./fourier-synthesis";
 import { juliaSet } from "./julia-set";
+import { barnsleyFern } from "./barnsley-fern";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -119,6 +120,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "double-pendulum": doublePendulum,
   "fourier-synthesis": fourierSynthesis,
   "julia-set": juliaSet,
+  "barnsley-fern": barnsleyFern,
 };
 
 // Apply metadata to generators
@@ -270,3 +272,7 @@ export type { FourierSynthesisParams } from './fourier-synthesis';
 // Julia Set
 export { renderJuliaSet, juliaSetDefaultParams, JULIA_SEEDS } from './julia-set';
 export type { JuliaSetParams } from './julia-set';
+
+// Barnsley Fern
+export { renderBarnsleyFern, barnsleyFernDefaultParams } from './barnsley-fern';
+export type { BarnsleyFernParams } from './barnsley-fern';

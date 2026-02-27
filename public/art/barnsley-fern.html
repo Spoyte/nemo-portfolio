@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barnsley Fern - Iterated Function System</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #canvas {
+      flex: 1;
+      display: block;
+    }
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 15px 25px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+      max-width: 90vw;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+    }
+    select, input[type="range"] {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    select {
+      min-width: 120px;
+    }
+    input[type="range"] {
+      width: 100px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    .info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 15px 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-width: 300px;
+    }
+    .info h1 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .info p {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #aaa;
+    }
+    .stats {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      color: #888;
+      font-family: 'SF Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div class="info">
+    <h1>Barnsley Fern</h1>
+    <p>An iterated function system (IFS) that generates natural fern shapes through affine transformations. Each point is calculated by randomly selecting one of four transformations, creating the self-similar structure of a fern frond.</p>
+  </div>
+
+  <div class="stats" id="stats">Points: 0</div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Color Scheme</label>
+      <select id="colorScheme">
+        <option value="natural">Natural Green</option>
+        <option value="autumn">Autumn</option>
+        <option value="neon">Neon</option>
+        <option value="monochrome">Monochrome</option>
+        <option value="rainbow">Rainbow</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Iterations</label>
+      <input type="range" id="iterations" min="1000" max="100000" value="50000" step="1000">
+    </div>
+    <div class="control-group">
+      <label>Point Size</label>
+      <input type="range" id="pointSize" min="0.5" max="3" value="1" step="0.5">
+    </div>
+    <div class="control-group">
+      <label>Rotation</label>
+      <input type="range" id="rotation" min="-180" max="180" value="0" step="5">
+    </div>
+    <button id="regenerate">Regenerate</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statsEl = document.getElementById('stats');
+
+    // Resize canvas
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', () => {
+      resize();
+      render();
+    });
+
+    // Barnsley fern transformations
+    // Each: [probability, a, b, c, d, e, f, type]
+    const transforms = [
+      { prob: 0.01, a: 0, b: 0, c: 0, d: 0.16, e: 0, f: 0, type: 'stem' },
+      { prob: 0.85, a: 0.85, b: 0.04, c: -0.04, d: 0.85, e: 0, f: 1.6, type: 'successive' },
+      { prob: 0.07, a: 0.2, b: -0.26, c: 0.23, d: 0.22, e: 0, f: 1.6, type: 'left' },
+      { prob: 0.07, a: -0.15, b: 0.28, c: 0.26, d: 0.24, e: 0, f: 0.44, type: 'right' },
+    ];
+
+    function selectTransform(random) {
+      let cumulative = 0;
+      for (const t of transforms) {
+        cumulative += t.prob;
+        if (random < cumulative) return t;
+      }
+      return transforms[transforms.length - 1];
+    }
+
+    function applyTransform(x, y, t) {
+      return {
+        x: t.a * x + t.b * y + t.e,
+        y: t.c * x + t.d * y + t.f,
+        type: t.type
+      };
+    }
+
+    function rotatePoint(x, y, angleRad) {
+      const cos = Math.cos(angleRad);
+      const sin = Math.sin(angleRad);
+      return {
+        x: x * cos - y * sin,
+        y: x * sin + y * cos
+      };
+    }
+
+    const colorSchemes = {
+      natural: (y) => {
+        const green = Math.floor(100 + (y / 10) * 80);
+        const red = Math.floor(34 + (y / 10) * 20);
+        const blue = Math.floor(20 + (y / 10) * 10);
+        return `rgba(${red}, ${green}, ${blue}, 0.8)`;
+      },
+      autumn: (y) => {
+        const ratio = y / 10;
+        if (ratio < 0.3) return 'rgba(139, 69, 19, 0.8)';
+        if (ratio < 0.6) return 'rgba(255, 140, 0, 0.8)';
+        if (ratio < 0.8) return 'rgba(255, 215, 0, 0.8)';
+        return 'rgba(220, 20, 60, 0.8)';
+      },
+      neon: (y, time) => {
+        const hue = ((y / 10) * 120 + time * 50) % 360;
+        return `hsla(${hue}, 100%, 60%, 0.8)`;
+      },
+      monochrome: (y) => {
+        const brightness = Math.floor(50 + (y / 10) * 150);
+        return `rgba(${brightness}, ${brightness}, ${brightness}, 0.6)`;
+      },
+      rainbow: (y) => {
+        const hue = ((y / 10) * 360) % 360;
+        return `hsla(${hue}, 80%, 50%, 0.7)`;
+      }
+    };
+
+    let animationId = null;
+    let renderedPoints = 0;
+
+    function render() {
+      // Cancel any ongoing animation
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const colorScheme = document.getElementById('colorScheme').value;
+      const iterations = parseInt(document.getElementById('iterations').value);
+      const pointSize = parseFloat(document.getElementById('pointSize').value);
+      const rotation = parseInt(document.getElementById('rotation').value);
+
+      // Clear canvas
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+
+      // Fern dimensions
+      const fernWidth = 6;
+      const fernHeight = 10.5;
+
+      // Calculate scale
+      const padding = 60;
+      const availableWidth = width - padding * 2;
+      const availableHeight = height - padding * 2;
+      const scaleX = availableWidth / fernWidth;
+      const scaleY = availableHeight / fernHeight;
+      const scale = Math.min(scaleX, scaleY);
+
+      const centerX = width / 2;
+      const centerY = height - padding;
+      const rotationRad = (rotation * Math.PI) / 180;
+
+      // Initialize point
+      let x = 0;
+      let y = 0;
+
+      // Settling period
+      for (let i = 0; i < 20; i++) {
+        const t = selectTransform(Math.random());
+        const result = applyTransform(x, y, t);
+        x = result.x;
+        y = result.y;
+      }
+
+      renderedPoints = 0;
+      const batchSize = 1000;
+      let currentBatch = 0;
+      const totalBatches = Math.ceil(iterations / batchSize);
+
+      function renderBatch() {
+        const startIdx = currentBatch * batchSize;
+        const endIdx = Math.min(startIdx + batchSize, iterations);
+
+        for (let i = startIdx; i < endIdx; i++) {
+          const t = selectTransform(Math.random());
+          const result = applyTransform(x, y, t);
+          x = result.x;
+          y = result.y;
+
+          // Map to canvas
+          let canvasX = x * scale;
+          let canvasY = -y * scale;
+
+          // Apply rotation
+          const rotated = rotatePoint(canvasX, canvasY, rotationRad);
+          canvasX = rotated.x + centerX;
+          canvasY = rotated.y + centerY;
+
+          // Draw point
+          const colorFn = colorSchemes[colorScheme] || colorSchemes.natural;
+          ctx.fillStyle = colorFn(y, currentBatch / totalBatches);
+          ctx.beginPath();
+          ctx.arc(canvasX, canvasY, pointSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        renderedPoints += (endIdx - startIdx);
+        statsEl.textContent = `Points: ${renderedPoints.toLocaleString()}`;
+
+        currentBatch++;
+
+        if (currentBatch < totalBatches) {
+          animationId = requestAnimationFrame(renderBatch);
+        }
+      }
+
+      renderBatch();
+    }
+
+    // Event listeners
+    document.getElementById('regenerate').addEventListener('click', render);
+    document.getElementById('colorScheme').addEventListener('change', render);
+    document.getElementById('iterations').addEventListener('change', render);
+    document.getElementById('pointSize').addEventListener('change', render);
+    document.getElementById('rotation').addEventListener('input', render);
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
