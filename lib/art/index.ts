@@ -1,144 +1,222 @@
+// Unified art index - Clean, minimal exports using the registry system
+// All generator metadata and loading is centralized in unified-registry.ts
+
 import { ArtGenerator } from "./core";
 import { ARTWORK_METADATA } from "./metadata";
+import {
+  GENERATOR_REGISTRY,
+  GeneratorId,
+  getGeneratorEntry,
+  getGeneratorIdsByCategory,
+  getCategoryStats,
+  loadGenerator,
+  validateRegistry,
+} from "./unified-registry";
 
-// Import all generators
-import { auroraBorealis } from "./aurora-borealis";
-import { flowField } from "./flow-field";
-import { geometricMandala } from "./geometric-mandala";
-import { particleNetwork } from "./particle-network";
-import { recursiveTrees } from "./recursive-trees";
-import { waveInterference } from "./wave-interference";
-import { cellularAutomata } from "./cellular-automata";
-import { voronoiOrganic } from "./voronoi-organic";
-import { topographicFlow } from "./topographic-flow";
-import { strangeAttractor } from "./strange-attractor";
-import { reactionDiffusion } from "./reaction-diffusion";
-import { dla } from "./dla";
-import { lsystemBotany } from "./lsystem-botany";
-import { orbitalMechanics } from "./orbital-mechanics-generator";
-import { lightCaverns } from "./light-caverns-generator";
-import { fluidSmoke } from "./fluid-smoke-generator";
-import { particleSwarm } from "./particle-swarm-generator";
+// Re-export core types
+export * from "./core";
+export * from "./metadata";
+export * from "./statistics";
+
+// Re-export registry system
+export {
+  GENERATOR_REGISTRY,
+  type GeneratorId,
+  type GeneratorEntry,
+  type LoadedGenerator,
+  getGeneratorEntry,
+  getGeneratorIdsByCategory,
+  getGeneratorsByCategory,
+  getCategoryStats,
+  getGeneratorMetadata,
+  loadGenerator,
+  validateRegistry,
+  isValidGeneratorId,
+  TOTAL_GENERATORS,
+  GENERATOR_IDS,
+  CATEGORIES,
+} from "./unified-registry";
+
+// ============================================================================
+// STATIC IMPORTS - Eagerly loaded generators (all 70+)
+// These are imported statically to maintain backward compatibility
+// and enable tree-shaking for unused generators
+// ============================================================================
+
+// === MATHEMATICAL (10) ===
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
-import { perlinTerrainGenerator } from "./perlin-terrain";
-import { kaleidoscopeSymmetry } from "./kaleidoscope-symmetry";
-import { neuralDreams } from "./neural-dreams";
-import { lsystemFractals } from "./lsystem-fractals-generator";
-import { quantumField } from "./quantum-field";
-import { boidFlocking } from "./boid-flocking";
-import { frequencyVisualizer } from "./frequency-visualizer";
-import { lissajousCurves } from "./lissajous-curves-generator";
-import { spirograph } from "./spirograph";
-import { digitalWeave } from "./digital-weave";
-import { stringArt } from "./string-art";
-import { stainedGlass } from "./stained-glass";
-import { fractalFlame } from "./fractal-flame";
-import { polyhedralSculptures } from "./polyhedral-sculptures";
-import { islamicPatterns } from "./islamic-patterns";
-import { impossibleGeometry } from "./impossible-geometry";
-import { metaballs } from "./metaballs";
-import { phyllotaxis } from "./phyllotaxis";
-import { harmonograph } from "./harmonograph";
-import { watercolorDreams } from "./watercolor-dreams";
-import { asciiArtGenerator } from "./ascii-art";
-import { crossHatchingSketch } from "./cross-hatching";
-import { moirePattern } from "./moire-pattern";
-import { chladniFigures } from "./chladni-figures";
-import { spaceFillingCurves } from "./space-filling-curves";
-import { origamiTessellation } from "./origami-tessellation";
-import { cymatics } from "./cymatics";
-import { prismDispersion } from "./prism-dispersion";
-import { kineticTypography } from "./kinetic-typography";
-import { magneticField } from "./magnetic-field";
-import { plasmaArc } from "./plasma-arc";
-import { slimeMold } from "./slime-mold";
-import { waveTank } from "./wave-tank";
-import { solarFlare } from "./solar-flare";
-import { crystalLattice } from "./crystal-lattice";
-import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
-import { doublePendulum } from "./double-pendulum";
-import { fourierSynthesis } from "./fourier-synthesis";
 import { juliaSet } from "./julia-set";
+import { strangeAttractor } from "./strange-attractor";
+import { lissajousCurves } from "./lissajous-curves";
+import { spirograph } from "./spirograph";
+import { harmonograph } from "./harmonograph";
+import { spaceFillingCurves } from "./space-filling-curves";
+import { fourierSynthesis } from "./fourier-synthesis";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
+
+// === NATURAL (8) ===
+import { auroraBorealis } from "./aurora-borealis";
+import { recursiveTrees } from "./recursive-trees";
+import { lsystemBotany } from "./lsystem-botany";
+import { lsystemFractals } from "./lsystem-fractals";
+import { perlinTerrainGenerator as perlinTerrain } from "./perlin-terrain";
+import { dla } from "./dla";
+import { slimeMold } from "./slime-mold";
+import { bioluminescentPlankton } from "./bioluminescent-plankton";
+
+// === PHYSICS (14) ===
+import { waveInterference } from "./wave-interference";
+import { orbitalMechanics } from "./orbital-mechanics";
+import { fluidSmoke } from "./fluid-smoke";
+import { particleSwarm } from "./particle-swarm";
+import { boidFlocking } from "./boid-flocking";
+import { chladniFigures } from "./chladni-figures";
+import { cymatics } from "./cymatics";
+import { prismDispersion } from "./prism-dispersion";
+import { magneticField } from "./magnetic-field";
+import { plasmaArc } from "./plasma-arc";
+import { waveTank } from "./wave-tank";
+import { solarFlare } from "./solar-flare";
+import { doublePendulum } from "./double-pendulum";
+import { nBodyGravity } from "./n-body-gravity";
+
+// === GEOMETRIC (11) ===
+import { geometricMandala } from "./geometric-mandala";
+import { kaleidoscopeSymmetry as kaleidoscope } from "./kaleidoscope-symmetry";
+import { islamicPatterns } from "./islamic-patterns";
+import { voronoiOrganic } from "./voronoi-organic";
+import { stringArt } from "./string-art";
+import { phyllotaxis } from "./phyllotaxis";
+import { moirePattern } from "./moire-pattern";
+import { origamiTessellation } from "./origami-tessellation";
+import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 import { penroseTiling } from "./penrose-tiling";
-import { lenia } from "./lenia";
-import { bioluminescentPlanktonGenerator } from "./bioluminescent-plankton-generator";
-import { selfOrganizingMap } from "./self-organizing-map";
-import { abelianSandpile } from "./abelian-sandpile";
-import { turingPatterns } from "./turing-patterns";
-import { nBodyGravity } from "./n-body-gravity-generator";
 import { sacredGeometry } from "./sacred-geometry";
 
-// Raw generators map - only include existing modules
+// === ABSTRACT (11) ===
+import { impossibleGeometry } from "./impossible-geometry";
+import { metaballs } from "./metaballs";
+import { flowField } from "./flow-field";
+import { reactionDiffusion } from "./reaction-diffusion";
+import { cellularAutomata } from "./cellular-automata";
+import { quantumField } from "./quantum-field";
+import { fractalFlame } from "./fractal-flame";
+import { neuralDreams } from "./neural-dreams";
+import { turingPatterns } from "./turing-patterns";
+import { lenia } from "./lenia";
+import { selfOrganizingMap } from "./self-organizing-map";
+
+// === TRADITIONAL (5) ===
+import { digitalWeave } from "./digital-weave";
+import { stainedGlass } from "./stained-glass";
+import { watercolorDreams } from "./watercolor-dreams";
+import { asciiArtGenerator as asciiArt } from "./ascii-art";
+import { crossHatchingSketch as crossHatching } from "./cross-hatching";
+
+// === TEXT (1) ===
+import { kineticTypography } from "./kinetic-typography";
+
+// === 3D (3) ===
+import { lightCaverns } from "./light-caverns";
+import { polyhedralSculptures } from "./polyhedral-sculptures";
+import { crystalLattice } from "./crystal-lattice";
+
+// === INTERACTIVE (4) ===
+import { particleNetwork } from "./particle-network";
+import { frequencyVisualizer } from "./frequency-visualizer";
+import { topographicFlow } from "./topographic-flow";
+import { abelianSandpile } from "./abelian-sandpile";
+
+// ============================================================================
+// GENERATORS MAP - Connects IDs to implementations
+// ============================================================================
+
 const rawGenerators: Record<string, ArtGenerator> = {
-  "aurora-borealis": auroraBorealis,
-  "flow-field": flowField,
-  "geometric-mandala": geometricMandala,
-  "particle-network": particleNetwork,
-  "recursive-trees": recursiveTrees,
-  "wave-interference": waveInterference,
-  "cellular-automata": cellularAutomata,
-  "voronoi-organic": voronoiOrganic,
-  "topographic-flow": topographicFlow,
-  "strange-attractor": strangeAttractor,
-  "reaction-diffusion": reactionDiffusion,
-  "dla": dla,
-  "lsystem-botany": lsystemBotany,
-  "orbital-mechanics": orbitalMechanics,
-  "light-caverns": lightCaverns,
-  "fluid-smoke": fluidSmoke,
-  "particle-swarm": particleSwarm,
+  // === MATHEMATICAL ===
   "mandelbrot-explorer": mandelbrotExplorer,
-  "perlin-terrain": perlinTerrainGenerator,
-  "kaleidoscope": kaleidoscopeSymmetry,
-  "neural-dreams": neuralDreams,
-  "lsystem-fractals": lsystemFractals,
-  "quantum-field": quantumField,
-  "boid-flocking": boidFlocking,
-  "frequency-visualizer": frequencyVisualizer,
+  "julia-set": juliaSet,
+  "strange-attractor": strangeAttractor,
   "lissajous-curves": lissajousCurves,
   "spirograph": spirograph,
-  "digital-weave": digitalWeave,
-  "string-art": stringArt,
-  "stained-glass": stainedGlass,
-  "fractal-flame": fractalFlame,
-  "polyhedral-sculptures": polyhedralSculptures,
-  "islamic-patterns": islamicPatterns,
-  "impossible-geometry": impossibleGeometry,
-  "metaballs": metaballs,
-  "phyllotaxis": phyllotaxis,
   "harmonograph": harmonograph,
-  "watercolor-dreams": watercolorDreams,
-  "ascii-art": asciiArtGenerator,
-  "cross-hatching": crossHatchingSketch,
-  "moire-pattern": moirePattern,
-  "chladni-figures": chladniFigures,
   "space-filling-curves": spaceFillingCurves,
-  "origami-tessellation": origamiTessellation,
-  "cymatics": cymatics,
-  "prism-dispersion": prismDispersion,
-  "kinetic-typography": kineticTypography,
-  "magnetic-field": magneticField,
-  "plasma-arc": plasmaArc,
-  "slime-mold": slimeMold,
-  "wave-tank": waveTank,
-  "solar-flare": solarFlare,
-  "crystal-lattice": crystalLattice,
-  "kaleidoscope-chamber": kaleidoscopeChamber,
-  "double-pendulum": doublePendulum,
   "fourier-synthesis": fourierSynthesis,
-  "julia-set": juliaSet,
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
-  "penrose-tiling": penroseTiling,
-  "lenia": lenia,
-  "bioluminescent-plankton": bioluminescentPlanktonGenerator,
-  "self-organizing-map": selfOrganizingMap,
-  "abelian-sandpile": abelianSandpile,
-  "turing-patterns": turingPatterns,
+
+  // === NATURAL ===
+  "aurora-borealis": auroraBorealis,
+  "recursive-trees": recursiveTrees,
+  "lsystem-botany": lsystemBotany,
+  "lsystem-fractals": lsystemFractals,
+  "perlin-terrain": perlinTerrain,
+  "dla": dla,
+  "slime-mold": slimeMold,
+  "bioluminescent-plankton": bioluminescentPlankton,
+
+  // === PHYSICS ===
+  "wave-interference": waveInterference,
+  "orbital-mechanics": orbitalMechanics,
+  "fluid-smoke": fluidSmoke,
+  "particle-swarm": particleSwarm,
+  "boid-flocking": boidFlocking,
+  "chladni-figures": chladniFigures,
+  "cymatics": cymatics,
+  "prism-dispersion": prismDispersion,
+  "magnetic-field": magneticField,
+  "plasma-arc": plasmaArc,
+  "wave-tank": waveTank,
+  "solar-flare": solarFlare,
+  "double-pendulum": doublePendulum,
   "n-body-gravity": nBodyGravity,
+
+  // === GEOMETRIC ===
+  "geometric-mandala": geometricMandala,
+  "kaleidoscope": kaleidoscope,
+  "islamic-patterns": islamicPatterns,
+  "voronoi-organic": voronoiOrganic,
+  "string-art": stringArt,
+  "phyllotaxis": phyllotaxis,
+  "moire-pattern": moirePattern,
+  "origami-tessellation": origamiTessellation,
+  "kaleidoscope-chamber": kaleidoscopeChamber,
+  "penrose-tiling": penroseTiling,
   "sacred-geometry": sacredGeometry,
+
+  // === ABSTRACT ===
+  "impossible-geometry": impossibleGeometry,
+  "metaballs": metaballs,
+  "flow-field": flowField,
+  "reaction-diffusion": reactionDiffusion,
+  "cellular-automata": cellularAutomata,
+  "quantum-field": quantumField,
+  "fractal-flame": fractalFlame,
+  "neural-dreams": neuralDreams,
+  "turing-patterns": turingPatterns,
+  "lenia": lenia,
+  "self-organizing-map": selfOrganizingMap,
+
+  // === TRADITIONAL ===
+  "digital-weave": digitalWeave,
+  "stained-glass": stainedGlass,
+  "watercolor-dreams": watercolorDreams,
+  "ascii-art": asciiArt,
+  "cross-hatching": crossHatching,
+
+  // === TEXT ===
+  "kinetic-typography": kineticTypography,
+
+  // === 3D ===
+  "light-caverns": lightCaverns,
+  "polyhedral-sculptures": polyhedralSculptures,
+  "crystal-lattice": crystalLattice,
+
+  // === INTERACTIVE ===
+  "particle-network": particleNetwork,
+  "frequency-visualizer": frequencyVisualizer,
+  "topographic-flow": topographicFlow,
+  "abelian-sandpile": abelianSandpile,
 };
 
 // Apply metadata to generators
@@ -156,177 +234,32 @@ Object.entries(rawGenerators).forEach(([id, generator]) => {
   };
 });
 
-export * from "./core";
-export * from "./metadata";
-export * from "./statistics";
+// ============================================================================
+// CONVENIENCE EXPORTS
+// ============================================================================
 
-// Re-export individual functions for backward compatibility
-export { renderAuroraBorealis, auroraBorealisDefaultParams } from './aurora-borealis';
-export type { AuroraParams } from './aurora-borealis';
-export { renderOrbitalMechanics, orbitalMechanicsDefaultParams } from './orbital-mechanics';
-export type { OrbitalMechanicsParams } from './orbital-mechanics';
-export { renderLightCaverns, lightCavernsDefaultParams } from './light-caverns';
-export type { LightCavernsParams } from './light-caverns';
-export { renderFluidSmoke, fluidSmokeDefaultParams } from './fluid-smoke';
-export type { FluidSmokeParams } from './fluid-smoke';
-export { renderParticleSwarm, particleSwarmDefaultParams } from './particle-swarm';
-export type { ParticleSwarmParams } from './particle-swarm';
-export { renderMandelbrot, mandelbrotDefaultParams, MANDELBROT_LOCATIONS } from './mandelbrot';
-export type { MandelbrotParams } from './mandelbrot';
-export { renderTerrain } from './perlin-terrain';
-export { renderNeuralDreams, neuralDreamsDefaultParams } from './neural-dreams';
-export type { NeuralDreamsParams } from './neural-dreams';
-export { renderLsystemFractals, lsystemFractalsDefaultParams } from './lsystem-fractals';
-export type { LsystemFractalsParams } from './lsystem-fractals';
-export { renderQuantumField, quantumFieldDefaultParams } from './quantum-field';
-export type { QuantumFieldParams } from './quantum-field';
-export { renderLissajousCurves, lissajousCurvesDefaultParams } from './lissajous-curves';
-export type { LissajousCurvesParams } from './lissajous-curves';
-export { renderSpirograph, spirographDefaultParams } from './spirograph';
-export type { SpirographParams } from './spirograph';
-export { renderDigitalWeave, digitalWeaveDefaultParams } from './digital-weave';
-export type { DigitalWeaveParams } from './digital-weave';
-export { renderStringArt, stringArtDefaultParams } from './string-art';
-export type { StringArtParams } from './string-art';
-export { renderStainedGlass, stainedGlassDefaultParams } from './stained-glass';
-export type { StainedGlassParams } from './stained-glass';
-export { renderFractalFlame, fractalFlameDefaultParams } from './fractal-flame';
-export type { FractalFlameParams } from './fractal-flame';
-export { renderPolyhedralSculptures, polyhedralSculpturesDefaultParams } from './polyhedral-sculptures';
-export type { PolyhedralSculpturesParams } from './polyhedral-sculptures';
-export { renderIslamicPatterns, islamicPatternsDefaultParams } from './islamic-patterns';
-export type { IslamicPatternParams } from './islamic-patterns';
-export { renderImpossibleGeometry, impossibleGeometryDefaultParams } from './impossible-geometry';
-export type { ImpossibleGeometryParams } from './impossible-geometry';
+/** Get a generator by ID */
+export function getGenerator(id: string): ArtGenerator | undefined {
+  return artGenerators[id];
+}
 
-// Metaballs
-export { renderMetaballs, metaballsDefaultParams } from './metaballs';
-export type { MetaballsParams } from './metaballs';
+/** Get all generator IDs */
+export function getAllGeneratorIds(): string[] {
+  return Object.keys(artGenerators);
+}
 
-// Phyllotaxis
-export { renderPhyllotaxis, phyllotaxisDefaultParams } from './phyllotaxis';
-export type { PhyllotaxisParams } from './phyllotaxis';
+/** Check if a generator exists */
+export function hasGenerator(id: string): boolean {
+  return id in artGenerators;
+}
 
-// Harmonograph
-export { renderHarmonograph, harmonographDefaultParams } from './harmonograph';
-export type { HarmonographParams } from './harmonograph';
+// ============================================================================
+// VALIDATION (run at module init in development)
+// ============================================================================
 
-// Watercolor Dreams
-export { renderWatercolorDreams, watercolorDreamsDefaultParams } from './watercolor-dreams';
-export type { WatercolorParams } from './watercolor-dreams';
-
-// ASCII Art
-export { renderAsciiArt, asciiArtDefaultParams } from './ascii-art';
-export type { AsciiArtParams } from './ascii-art';
-
-// Cross-Hatching Sketch
-export { renderCrossHatching, crossHatchingDefaultParams } from './cross-hatching';
-export type { CrossHatchingParams } from './cross-hatching';
-
-// Moiré Pattern
-export { renderMoirePattern, moirePatternDefaultParams } from './moire-pattern';
-export type { MoirePatternParams } from './moire-pattern';
-
-// Chladni Figures
-export { renderChladniFigures, chladniFiguresDefaultParams } from './chladni-figures';
-export type { ChladniFiguresParams } from './chladni-figures';
-
-// Space-Filling Curves
-export { renderSpaceFillingCurves, spaceFillingCurvesDefaultParams } from './space-filling-curves';
-export type { SpaceFillingCurvesParams } from './space-filling-curves';
-
-// Origami Tessellation
-export { renderOrigamiTessellation, origamiTessellationDefaultParams } from './origami-tessellation';
-export type { OrigamiTessellationParams } from './origami-tessellation';
-
-// Cymatics
-export { renderCymatics, cymaticsDefaultParams } from './cymatics';
-
-// Kinetic Typography
-export { renderKineticTypography, kineticTypographyDefaultParams } from './kinetic-typography';
-export type { KineticTypographyParams } from './kinetic-typography';
-export type { CymaticsParams } from './cymatics';
-
-// Prism Dispersion
-export { renderPrismDispersion, prismDispersionDefaultParams } from './prism-dispersion';
-export type { PrismDispersionParams } from './prism-dispersion';
-
-// Magnetic Field
-export { renderMagneticField, magneticFieldDefaultParams } from './magnetic-field';
-export type { MagneticFieldParams } from './magnetic-field';
-
-// Plasma Arc
-export { renderPlasmaArc, plasmaArcDefaultParams } from './plasma-arc';
-export type { PlasmaArcParams } from './plasma-arc';
-
-// Slime Mold
-export { renderSlimeMold, slimeMoldDefaultParams } from './slime-mold';
-export type { SlimeMoldParams } from './slime-mold';
-
-// Wave Tank
-export { renderWaveTank, waveTankDefaultParams } from './wave-tank';
-export type { WaveTankParams } from './wave-tank';
-
-// Solar Flare
-export { renderSolarFlare, solarFlareDefaultParams } from './solar-flare';
-export type { SolarFlareParams } from './solar-flare';
-
-// Crystal Lattice
-export { renderCrystalLattice, crystalLatticeDefaultParams } from './crystal-lattice';
-export type { CrystalLatticeParams } from './crystal-lattice';
-
-// Kaleidoscope Chamber
-export { renderKaleidoscopeChamber, kaleidoscopeChamberDefaultParams } from './kaleidoscope-chamber';
-export type { KaleidoscopeChamberParams } from './kaleidoscope-chamber';
-
-// Double Pendulum
-export { renderDoublePendulum, doublePendulumDefaultParams } from './double-pendulum';
-export type { DoublePendulumParams } from './double-pendulum';
-
-// Fourier Synthesis
-export { renderFourierSynthesis, fourierSynthesisDefaultParams } from './fourier-synthesis';
-export type { FourierSynthesisParams } from './fourier-synthesis';
-
-// Julia Set
-export { renderJuliaSet, juliaSetDefaultParams, JULIA_SEEDS } from './julia-set';
-export type { JuliaSetParams } from './julia-set';
-
-// Barnsley Fern
-export { renderBarnsleyFern, barnsleyFernDefaultParams } from './barnsley-fern';
-export type { BarnsleyFernParams } from './barnsley-fern';
-
-// Chaos Game
-export { renderChaosGame, chaosGameDefaultParams } from './chaos-game';
-export type { ChaosGameParams } from './chaos-game';
-
-// Penrose Tiling
-export { renderPenroseTiling, penroseTilingDefaultParams } from './penrose-tiling';
-export type { PenroseTilingParams } from './penrose-tiling';
-
-// Lenia
-export { renderLenia, leniaDefaultParams } from './lenia';
-export type { LeniaParams } from './lenia';
-
-// Bioluminescent Plankton
-export { renderBioluminescentPlankton, bioluminescentPlanktonDefaultParams } from './bioluminescent-plankton';
-export type { PlanktonParams } from './bioluminescent-plankton';
-
-// Self-Organizing Map
-export { renderSelfOrganizingMap, selfOrganizingMap, defaultParams as selfOrganizingMapDefaultParams } from './self-organizing-map';
-export type { SOMParams } from './self-organizing-map';
-
-// Abelian Sandpile
-export { renderAbelianSandpile, abelianSandpile, defaultParams as abelianSandpileDefaultParams } from './abelian-sandpile';
-export type { SandpileParams } from './abelian-sandpile';
-
-// Turing Patterns
-export { renderTuringPatterns, turingPatterns, turingPatternsDefaultParams } from './turing-patterns';
-export type { TuringParams } from './turing-patterns';
-
-// N-Body Gravity
-export { renderNBodyGravity, nBodyGravityDefaultParams } from './n-body-gravity';
-export type { NBodyGravityParams } from './n-body-gravity';
-
-// Sacred Geometry
-export { renderSacredGeometry, sacredGeometry, sacredGeometryDefaultParams } from './sacred-geometry';
-export type { SacredGeometryParams } from './sacred-geometry';
+if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {
+  const validation = validateRegistry();
+  if (!validation.valid) {
+    console.warn("[art/index] Registry validation issues:", validation);
+  }
+}
