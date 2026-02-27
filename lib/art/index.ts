@@ -60,6 +60,7 @@ import { doublePendulum } from "./double-pendulum";
 import { fourierSynthesis } from "./fourier-synthesis";
 import { juliaSet } from "./julia-set";
 import { barnsleyFern } from "./barnsley-fern";
+import { chaosGame } from "./chaos-game";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -121,6 +122,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "fourier-synthesis": fourierSynthesis,
   "julia-set": juliaSet,
   "barnsley-fern": barnsleyFern,
+  "chaos-game": chaosGame,
 };
 
 // Apply metadata to generators
@@ -276,3 +278,7 @@ export type { JuliaSetParams } from './julia-set';
 // Barnsley Fern
 export { renderBarnsleyFern, barnsleyFernDefaultParams } from './barnsley-fern';
 export type { BarnsleyFernParams } from './barnsley-fern';
+
+// Chaos Game
+export { renderChaosGame, chaosGameDefaultParams } from './chaos-game';
+export type { ChaosGameParams } from './chaos-game';
