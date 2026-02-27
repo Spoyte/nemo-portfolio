@@ -136,6 +136,7 @@ Object.entries(rawGenerators).forEach(([id, generator]) => {
 
 export * from "./core";
 export * from "./metadata";
+export * from "./statistics";
 
 // Re-export individual functions for backward compatibility
 export { renderAuroraBorealis, auroraBorealisDefaultParams } from './aurora-borealis';
