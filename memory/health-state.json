@@ -1,0 +1,20 @@
+{
+  "history": [
+    {
+      "timestamp": "2026-02-28 03:57:45",
+      "healthy": false,
+      "ok": 8,
+      "warnings": 2,
+      "critical": 0
+    },
+    {
+      "timestamp": "2026-02-28 03:57:47",
+      "healthy": false,
+      "ok": 8,
+      "warnings": 2,
+      "critical": 0
+    }
+  ],
+  "last_run": "2026-02-28 03:57:47",
+  "last_status": "issues"
+}

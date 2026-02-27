@@ -447,6 +447,223 @@ def check_skills_consistency(workspace: str) -> CheckResult:
         )
 
 
+@registry.workspace
+def check_skill_gaps(workspace: str) -> CheckResult:
+    """Check for scripts that could be formalized as skills."""
+    try:
+        skills_dir = Path(workspace) / "skills"
+        skill_names = {d.name.lower() for d in skills_dir.iterdir() if d.is_dir()} if skills_dir.exists() else set()
+        
+        # Keywords that suggest skill-worthy scripts
+        keywords = {
+            "backup": "backup|restore|archive",
+            "deploy": "deploy|release|publish",
+            "sync": "sync|mirror|replicate",
+            "build": "build|compile|bundle",
+            "test": "test|check|verify",
+            "lint": "lint|format|style",
+            "clean": "clean|prune|purge"
+        }
+        
+        candidates = []
+        for folder in [Path(workspace) / "bin", Path(workspace) / "scripts"]:
+            if not folder.exists():
+                continue
+            for script in folder.iterdir():
+                if not script.is_file() or script.name.startswith("."):
+                    continue
+                name = script.name.lower()
+                for skill, pattern in keywords.items():
+                    if skill in skill_names:
+                        continue  # Already have this skill
+                    if any(p in name for p in pattern.split("|")):
+                        candidates.append((skill, script.name))
+                        break
+        
+        if len(candidates) > 2:
+            return CheckResult(
+                name="workspace.skill_gaps",
+                status=Status.WARNING,
+                message=f"{len(candidates)} scripts could be skills: {', '.join(c[1] for c in candidates[:3])}",
+                value=f"{len(candidates)} candidates",
+                fixable=False
+            )
+        elif candidates:
+            return CheckResult(
+                name="workspace.skill_gaps",
+                status=Status.OK,
+                message=f"{len(candidates)} potential skill(s): {', '.join(c[1] for c in candidates)}",
+                value=f"{len(candidates)} candidates"
+            )
+        
+        return CheckResult(
+            name="workspace.skill_gaps",
+            status=Status.OK,
+            message="No obvious skill gaps detected"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.skill_gaps",
+            status=Status.UNKNOWN,
+            message=f"Could not check skill gaps: {e}"
+        )
+
+
+@registry.workspace
+def check_all_repos(workspace: str) -> CheckResult:
+    """Check git status across all repositories in workspace."""
+    try:
+        repos = list(Path(workspace).rglob(".git"))
+        dirty = []
+        
+        for git_dir in repos:
+            repo = git_dir.parent
+            # Skip node_modules and other common non-project dirs
+            if any(part.startswith(".") or part in ["node_modules", "vendor", "__pycache__"] 
+                   for part in repo.parts):
+                continue
+                
+            try:
+                status = subprocess.run(
+                    ["git", "status", "--porcelain"],
+                    cwd=repo,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                ahead = subprocess.run(
+                    ["git", "rev-list", "--count", "@{u}..HEAD"],
+                    cwd=repo,
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                
+                uncommitted = len([l for l in status.stdout.splitlines() if l.strip()])
+                unpushed = int(ahead.stdout.strip() or 0) if ahead.returncode == 0 else 0
+                
+                if uncommitted or unpushed:
+                    dirty.append((repo.relative_to(workspace), uncommitted, unpushed))
+            except Exception:
+                continue
+        
+        if dirty:
+            main_repo_dirty = any(str(d[0]) == "." for d in dirty)
+            others = [d for d in dirty if str(d[0]) != "."]
+            
+            if main_repo_dirty:
+                msg = f"Main repo + {len(others)} other(s) need attention"
+            else:
+                msg = f"{len(dirty)} repo(s) need attention"
+            
+            return CheckResult(
+                name="workspace.repos",
+                status=Status.WARNING if not main_repo_dirty else Status.CRITICAL,
+                message=msg,
+                value=f"{len(dirty)} dirty",
+                fixable=False  # Too risky to auto-fix multiple repos
+            )
+        
+        return CheckResult(
+            name="workspace.repos",
+            status=Status.OK,
+            message=f"All {len(repos)} repositories clean"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.repos",
+            status=Status.UNKNOWN,
+            message=f"Could not check repos: {e}"
+        )
+
+
+# =============================================================================
+# STATE PERSISTENCE
+# =============================================================================
+
+STATE_FILE = Path("/root/.openclaw/workspace/memory/health-state.json")
+
+
+def load_state() -> dict:
+    """Load persisted health state."""
+    if STATE_FILE.exists():
+        return json.loads(STATE_FILE.read_text())
+    return {}
+
+
+def save_state(report: HealthReport) -> None:
+    """Persist health state for tracking trends."""
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Load existing history
+    state = load_state()
+    if "history" not in state:
+        state["history"] = []
+    
+    # Add current run
+    entry = {
+        "timestamp": report.timestamp,
+        "healthy": report.is_healthy,
+        "ok": report.ok_count,
+        "warnings": report.warning_count,
+        "critical": report.critical_count
+    }
+    state["history"].append(entry)
+    
+    # Keep last 100 entries
+    state["history"] = state["history"][-100:]
+    
+    # Update current status
+    state["last_run"] = report.timestamp
+    state["last_status"] = "healthy" if report.is_healthy else "issues"
+    
+    STATE_FILE.write_text(json.dumps(state, indent=2))
+
+
+@registry.workspace
+def check_health_trend(workspace: str) -> CheckResult:
+    """Check if health is improving or degrading over time."""
+    try:
+        state = load_state()
+        history = state.get("history", [])
+        
+        if len(history) < 3:
+            return CheckResult(
+                name="workspace.trend",
+                status=Status.OK,
+                message="Not enough history for trend analysis"
+            )
+        
+        # Look at last 5 runs
+        recent = history[-5:]
+        healthy_runs = sum(1 for h in recent if h["healthy"])
+        
+        if healthy_runs == len(recent):
+            return CheckResult(
+                name="workspace.trend",
+                status=Status.OK,
+                message=f"Healthy for last {len(recent)} runs 🎉"
+            )
+        elif healthy_runs >= len(recent) // 2:
+            return CheckResult(
+                name="workspace.trend",
+                status=Status.WARNING,
+                message=f"Mixed health: {healthy_runs}/{len(recent)} recent runs healthy"
+            )
+        else:
+            return CheckResult(
+                name="workspace.trend",
+                status=Status.CRITICAL,
+                message=f"Declining health: only {healthy_runs}/{len(recent)} recent runs healthy"
+            )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.trend",
+            status=Status.UNKNOWN,
+            message=f"Could not analyze trend: {e}"
+        )
+
+
 # =============================================================================
 # FIXERS - Auto-resolve issues where safe
 # =============================================================================
@@ -689,7 +906,10 @@ Examples:
         # Re-run checks to get updated status
         checks = [p(args.workspace_path) for p in plugins]
         report.checks = checks
-    
+
+    # Persist state
+    save_state(report)
+
     # Output
     if args.quiet:
         if report.has_critical:
