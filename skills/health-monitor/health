@@ -622,7 +622,7 @@ def save_state(report: HealthReport) -> None:
 
 @registry.workspace
 def check_health_trend(workspace: str) -> CheckResult:
-    """Check if health is improving or degrading over time."""
+    """Check if health is improving or degrading over time (tracks critical issues only)."""
     try:
         state = load_state()
         history = state.get("history", [])
@@ -635,33 +635,33 @@ def check_health_trend(workspace: str) -> CheckResult:
                 message=f"Building history ({len(history)}/5 runs)"
             )
         
-        # Look at last 5 runs
+        # Look at last 5 runs - focus on CRITICAL issues (warnings are normal)
         recent = history[-5:]
-        healthy_runs = sum(1 for h in recent if h["healthy"])
+        runs_with_critical = sum(1 for h in recent if h.get("critical", 0) > 0)
         
-        if healthy_runs == len(recent):
+        if runs_with_critical == 0:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.OK,
-                message=f"Healthy for last {len(recent)} runs 🎉"
+                message=f"No critical issues in last {len(recent)} runs 🎉"
             )
-        elif healthy_runs >= len(recent) // 2 + 1:
-            return CheckResult(
-                name="workspace.trend",
-                status=Status.OK,
-                message=f"Mostly healthy: {healthy_runs}/{len(recent)} recent runs"
-            )
-        elif healthy_runs >= len(recent) // 2:
+        elif runs_with_critical == 1:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.WARNING,
-                message=f"Mixed health: {healthy_runs}/{len(recent)} recent runs healthy"
+                message=f"1 recent run had critical issues (was transient)"
+            )
+        elif runs_with_critical <= len(recent) // 2:
+            return CheckResult(
+                name="workspace.trend",
+                status=Status.WARNING,
+                message=f"{runs_with_critical}/{len(recent)} recent runs had critical issues"
             )
         else:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.CRITICAL,
-                message=f"Declining health: only {healthy_runs}/{len(recent)} recent runs healthy"
+                message=f"Declining health: {runs_with_critical}/{len(recent)} recent runs had critical issues"
             )
     except Exception as e:
         return CheckResult(

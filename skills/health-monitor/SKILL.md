@@ -61,7 +61,20 @@ def check_git(workspace: str) -> CheckResult:
 - `workspace.backup` — Backup freshness (fixable: creates dir)
 - `workspace.skills` — SKILL.md consistency
 - `workspace.skill_gaps` — Scripts that could be skills
-- `workspace.trend` — Health trend over time
+- `workspace.trend` — Health trend over time (tracks critical issues only)
+
+## Trend Analysis
+
+The `workspace.trend` check analyzes recent health history to detect patterns:
+
+- **Tracks critical issues only** — Warnings are normal and expected
+- **5-run window** — Needs 5 runs before meaningful analysis
+- **Status thresholds:**
+  - ✅ OK: No critical issues in recent runs
+  - ⚠️ Warning: Some recent runs had critical issues
+  - ❌ Critical: Most recent runs had critical issues
+
+This prevents the circular dependency where warnings (like "no backups") would cause the trend check to fail, which would make future trend checks fail.
 
 ## State Persistence
 
