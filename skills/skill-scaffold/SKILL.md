@@ -18,6 +18,10 @@ skill-list
 skill-list -q          # Machine-readable (names only)
 skill-list -j          # JSON output
 
+# Remove a skill (safely)
+skill-delete <name>
+skill-delete -y <name> # Skip confirmation
+
 # Example:
 skill-new web-screenshot "Web Screenshot Utility"
 ```
@@ -44,6 +48,14 @@ Output modes:
 - **Default**: Pretty table with colors
 - **`-q`**: Names only (for scripts)
 - **`-j`**: JSON array (for automation)
+
+## Skill Removal
+
+`skill-delete` safely removes skills with guardrails:
+- **Confirmation required** (unless `-y` flag)
+- **Uncommitted change warnings** — Alerts if skill has git changes
+- **Trash/archive pattern** — Moves to `.trash/` instead of deleting
+- **Recoverable** — Easy restore from `.trash/name-TIMESTAMP/`
 
 ## Skill Structure Convention
 
@@ -75,6 +87,7 @@ Frontmatter + documentation sections:
 3. **Scripting-friendly** — Exit codes, quiet mode, JSON output
 4. **Consistent interface** — Same patterns across all skills
 5. **Low friction** — Scaffold in 30 seconds, not 10 minutes
+6. **Safe deletion** — Trash pattern prevents accidental data loss
 
 ## Post-Scaffold Steps
 

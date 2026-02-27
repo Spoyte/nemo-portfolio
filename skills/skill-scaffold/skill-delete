@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+#
+# skill-delete — Safely remove an OpenClaw skill
+#
+# Usage: skill-delete <skill-name>
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GRAY='\033[0;90m'
+NC='\033[0m'
+
+# Configuration
+SKILLS_DIR="${SKILLS_DIR:-$HOME/.openclaw/workspace/skills}"
+
+# Help
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "skill-delete — Safely remove an OpenClaw skill"
+    echo ""
+    echo "Usage: skill-delete <skill-name>"
+    echo "       skill-delete -y <skill-name>  # Skip confirmation"
+    echo ""
+    echo "Examples:"
+    echo "  skill-delete my-old-skill"
+    echo "  skill-delete -y temp-experiment"
+    echo ""
+    echo "Safety features:"
+    echo "  • Requires confirmation (unless -y)"
+    echo "  • Checks for uncommitted changes"
+    echo "  • Archives to .trash/ instead of permanent deletion"
+    exit 0
+fi
+
+# Parse arguments
+FORCE=false
+SKILL_NAME=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes)
+            FORCE=true
+            shift
+            ;;
+        -*)
+            echo -e "${RED}Unknown option: $1${NC}" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$SKILL_NAME" ]]; then
+                SKILL_NAME="$1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate skill name
+if [[ -z "$SKILL_NAME" ]]; then
+    echo -e "${RED}Error: No skill name provided${NC}" >&2
+    echo "Usage: skill-delete <skill-name>" >&2
+    exit 1
+fi
+
+SKILL_DIR="$SKILLS_DIR/$SKILL_NAME"
+
+# Check if skill exists
+if [[ ! -d "$SKILL_DIR" ]]; then
+    echo -e "${RED}Error: Skill '$SKILL_NAME' not found${NC}" >&2
+    echo ""
+    echo -e "${GRAY}Available skills:${NC}"
+    skill-list -q 2>/dev/null || ls -1 "$SKILLS_DIR" 2>/dev/null || echo "  (none)"
+    exit 1
+fi
+
+# Check if it's actually a skill (has SKILL.md)
+if [[ ! -f "$SKILL_DIR/SKILL.md" ]]; then
+    echo -e "${YELLOW}Warning: '$SKILL_NAME' doesn't look like a skill (no SKILL.md)${NC}"
+    echo "Directory: $SKILL_DIR"
+    echo ""
+    read -p "Continue anyway? [y/N] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cancelled."
+        exit 0
+    fi
+fi
+
+# Check for uncommitted changes in git
+if git -C "$SKILLS_DIR" status --porcelain "$SKILL_NAME" 2>/dev/null | grep -q .; then
+    echo -e "${YELLOW}⚠️  Warning: Skill has uncommitted changes${NC}"
+    git -C "$SKILLS_DIR" status --short "$SKILL_NAME"
+    echo ""
+fi
+
+# Show what will be removed
+echo -e "${BLUE}Skill to remove: $SKILL_NAME${NC}"
+echo ""
+echo -e "${GRAY}Contents:${NC}"
+find "$SKILL_DIR" -type f | head -10 | sed 's/^/  /'
+FILE_COUNT=$(find "$SKILL_DIR" -type f | wc -l)
+if [[ $FILE_COUNT -gt 10 ]]; then
+    echo "  ... and $((FILE_COUNT - 10)) more files"
+fi
+echo ""
+
+# Confirmation
+if [[ "$FORCE" != "true" ]]; then
+    echo -e "${YELLOW}This will move the skill to .trash/ (recoverable)${NC}"
+    read -p "Delete '$SKILL_NAME'? [y/N] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cancelled."
+        exit 0
+    fi
+fi
+
+# Create trash directory
+TRASH_DIR="$SKILLS_DIR/.trash"
+mkdir -p "$TRASH_DIR"
+
+# Generate timestamped backup name
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_NAME="${SKILL_NAME}-${TIMESTAMP}"
+
+# Move to trash
+mv "$SKILL_DIR" "$TRASH_DIR/$BACKUP_NAME"
+
+echo -e "${GREEN}✓ Moved '$SKILL_NAME' to .trash/$BACKUP_NAME${NC}"
+echo ""
+echo -e "${GRAY}To permanently delete:${NC}"
+echo "  rm -rf \"$TRASH_DIR/$BACKUP_NAME\""
+echo ""
+echo -e "${GRAY}To restore:${NC}"
+echo "  mv \"$TRASH_DIR/$BACKUP_NAME\" \"$SKILL_DIR\""
+
+exit 0
