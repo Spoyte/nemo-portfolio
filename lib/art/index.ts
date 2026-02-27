@@ -55,6 +55,7 @@ import { slimeMold } from "./slime-mold";
 import { waveTank } from "./wave-tank";
 import { solarFlare } from "./solar-flare";
 import { crystalLattice } from "./crystal-lattice";
+import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -110,7 +111,8 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "slime-mold": slimeMold,
   "wave-tank": waveTank,
   "solar-flare": solarFlare,
-"crystal-lattice": crystalLattice,
+  "crystal-lattice": crystalLattice,
+  "kaleidoscope-chamber": kaleidoscopeChamber,
 };
 
 // Apply metadata to generators
@@ -245,3 +247,7 @@ export type { SolarFlareParams } from './solar-flare';
 // Crystal Lattice
 export { renderCrystalLattice, crystalLatticeDefaultParams } from './crystal-lattice';
 export type { CrystalLatticeParams } from './crystal-lattice';
+
+// Kaleidoscope Chamber
+export { renderKaleidoscopeChamber, kaleidoscopeChamberDefaultParams } from './kaleidoscope-chamber';
+export type { KaleidoscopeChamberParams } from './kaleidoscope-chamber';

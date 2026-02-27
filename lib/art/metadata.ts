@@ -313,6 +313,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "3d", "geometric", "ordered", "colorful", "detailed"],
     created: "2024-02-27",
   },
+  "kaleidoscope-chamber": {
+    category: "geometric",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "ordered", "colorful", "detailed"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -447,6 +453,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "light-caverns",
   "polyhedral-sculptures",
   "crystal-lattice",
+  "kaleidoscope-chamber",
   // Interactive
   "particle-network",
   "frequency-visualizer",
