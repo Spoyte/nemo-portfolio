@@ -8,18 +8,20 @@ Usage:
     health --check            # Quick status line
     health --json             # JSON output
     health --quiet            # Exit codes only (0=healthy, 1=issues, 2=warnings)
+    health --fix              # Auto-fix issues where safe
     health --system           # System checks only
-    health --workspace        # Workspace checks only
+    health --workspace        # Workspace health only
 """
 
 import argparse
 import json
+import subprocess
 import sys
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional
-from enum import Enum
 
 
 class Status(Enum):
@@ -29,7 +31,7 @@ class Status(Enum):
     UNKNOWN = "unknown"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CheckResult:
     """Result of a single health check."""
     name: str
@@ -37,6 +39,7 @@ class CheckResult:
     message: str
     value: Optional[str] = None
     threshold: Optional[str] = None
+    fixable: bool = False  # Can this be auto-fixed?
     
     @property
     def is_healthy(self) -> bool:
@@ -52,12 +55,13 @@ class CheckResult:
         }.get(self.status, "❓")
 
 
-@dataclass
+@dataclass(slots=True)
 class HealthReport:
     """Aggregated health report from all checks."""
     timestamp: str
     timezone: str
     checks: list[CheckResult] = field(default_factory=list)
+    fixes_applied: list[str] = field(default_factory=list)
     
     @property
     def critical_count(self) -> int:
@@ -70,6 +74,10 @@ class HealthReport:
     @property
     def ok_count(self) -> int:
         return sum(1 for c in self.checks if c.status == Status.OK)
+    
+    @property
+    def fixable_count(self) -> int:
+        return sum(1 for c in self.checks if c.fixable)
     
     @property
     def has_critical(self) -> bool:
@@ -89,9 +97,50 @@ class HealthReport:
 
 
 # =============================================================================
-# PLUGINS - Each is a pure function: workspace_path -> CheckResult
+# PLUGIN REGISTRY - Simple decorator pattern, no magic
 # =============================================================================
 
+class PluginRegistry:
+    """Simple plugin registry using decorators."""
+    
+    def __init__(self):
+        self._plugins: list[Callable[[str], CheckResult]] = []
+        self._system_plugins: list[Callable[[str], CheckResult]] = []
+        self._workspace_plugins: list[Callable[[str], CheckResult]] = []
+    
+    def system(self, fn: Callable[[str], CheckResult]) -> Callable[[str], CheckResult]:
+        """Register a system-level check."""
+        self._plugins.append(fn)
+        self._system_plugins.append(fn)
+        return fn
+    
+    def workspace(self, fn: Callable[[str], CheckResult]) -> Callable[[str], CheckResult]:
+        """Register a workspace-level check."""
+        self._plugins.append(fn)
+        self._workspace_plugins.append(fn)
+        return fn
+    
+    @property
+    def all_plugins(self) -> list[Callable[[str], CheckResult]]:
+        return self._plugins
+    
+    @property
+    def system_plugins(self) -> list[Callable[[str], CheckResult]]:
+        return self._system_plugins
+    
+    @property
+    def workspace_plugins(self) -> list[Callable[[str], CheckResult]]:
+        return self._workspace_plugins
+
+
+registry = PluginRegistry()
+
+
+# =============================================================================
+# SYSTEM PLUGINS
+# =============================================================================
+
+@registry.system
 def check_disk(workspace: str) -> CheckResult:
     """Check disk usage."""
     try:
@@ -113,7 +162,8 @@ def check_disk(workspace: str) -> CheckResult:
             status=status,
             message=f"{used_gb}GB / {total_gb}GB used ({percent}%)",
             value=f"{percent}%",
-            threshold="80%/90%"
+            threshold="80%/90%",
+            fixable=False  # Can't auto-fix disk usage
         )
     except Exception as e:
         return CheckResult(
@@ -123,14 +173,14 @@ def check_disk(workspace: str) -> CheckResult:
         )
 
 
+@registry.system
 def check_memory(workspace: str) -> CheckResult:
     """Check memory usage."""
     try:
         with open('/proc/meminfo', 'r') as f:
             lines = f.readlines()
         
-        mem_total = 0
-        mem_available = 0
+        mem_total = mem_available = 0
         
         for line in lines:
             if line.startswith('MemTotal:'):
@@ -163,7 +213,8 @@ def check_memory(workspace: str) -> CheckResult:
             status=status,
             message=f"{used_gb}GB / {total_gb}GB used ({percent}%)",
             value=f"{percent}%",
-            threshold="85%/95%"
+            threshold="85%/95%",
+            fixable=False
         )
     except Exception as e:
         return CheckResult(
@@ -173,20 +224,14 @@ def check_memory(workspace: str) -> CheckResult:
         )
 
 
+@registry.system
 def check_load(workspace: str) -> CheckResult:
     """Check system load average."""
     try:
         with open('/proc/loadavg', 'r') as f:
             load = float(f.read().split()[0])
         
-        # Assume 4 cores (common default); adjust if needed
-        cores = 4
-        try:
-            import os
-            cores = os.cpu_count() or 4
-        except:
-            pass
-        
+        cores = max(1, (os.cpu_count() or 4))
         percent = int((load / cores) * 100)
         
         if load > cores * 2:
@@ -201,7 +246,8 @@ def check_load(workspace: str) -> CheckResult:
             status=status,
             message=f"Load: {load:.2f} ({percent}% of {cores} cores)",
             value=f"{load:.2f}",
-            threshold=f"{cores}/{cores*2}"
+            threshold=f"{cores}/{cores*2}",
+            fixable=False
         )
     except Exception as e:
         return CheckResult(
@@ -211,12 +257,14 @@ def check_load(workspace: str) -> CheckResult:
         )
 
 
+# =============================================================================
+# WORKSPACE PLUGINS
+# =============================================================================
+
+@registry.workspace
 def check_git_main(workspace: str) -> CheckResult:
     """Check main workspace git status."""
     try:
-        import subprocess
-        
-        # Check for uncommitted changes
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             cwd=workspace,
@@ -254,7 +302,8 @@ def check_git_main(workspace: str) -> CheckResult:
                 name="workspace.git",
                 status=Status.WARNING,
                 message=f"Git: {', '.join(issues)}",
-                value=f"{uncommitted} files" if uncommitted else "clean"
+                value=f"{uncommitted} files" if uncommitted else "clean",
+                fixable=True  # Can auto-commit safe changes
             )
         
         return CheckResult(
@@ -270,6 +319,7 @@ def check_git_main(workspace: str) -> CheckResult:
         )
 
 
+@registry.workspace
 def check_memory_files(workspace: str) -> CheckResult:
     """Check memory file maintenance."""
     try:
@@ -278,13 +328,13 @@ def check_memory_files(workspace: str) -> CheckResult:
             return CheckResult(
                 name="workspace.memory",
                 status=Status.WARNING,
-                message="No memory directory found"
+                message="No memory directory found",
+                fixable=True
             )
         
         files = list(memory_dir.glob("*.md"))
         
         # Check for recent entries (last 7 days)
-        from datetime import datetime, timedelta
         week_ago = datetime.now() - timedelta(days=7)
         recent = [f for f in files if datetime.fromtimestamp(f.stat().st_mtime) > week_ago]
         
@@ -293,7 +343,8 @@ def check_memory_files(workspace: str) -> CheckResult:
                 name="workspace.memory",
                 status=Status.WARNING,
                 message=f"No memory entries in last 7 days ({len(files)} total)",
-                value=f"{len(recent)} recent"
+                value=f"{len(recent)} recent",
+                fixable=False  # Can't auto-write memories
             )
         
         return CheckResult(
@@ -310,6 +361,7 @@ def check_memory_files(workspace: str) -> CheckResult:
         )
 
 
+@registry.workspace
 def check_backups(workspace: str) -> CheckResult:
     """Check backup freshness."""
     try:
@@ -318,7 +370,8 @@ def check_backups(workspace: str) -> CheckResult:
             return CheckResult(
                 name="workspace.backup",
                 status=Status.WARNING,
-                message="No backup directory found"
+                message="No backup directory found",
+                fixable=True  # Can create directory
             )
         
         backups = sorted(backup_dir.glob("*.zip"), key=lambda x: x.stat().st_mtime, reverse=True)
@@ -327,11 +380,11 @@ def check_backups(workspace: str) -> CheckResult:
             return CheckResult(
                 name="workspace.backup",
                 status=Status.WARNING,
-                message="No backups found"
+                message="No backups found",
+                fixable=False
             )
         
         latest = backups[0]
-        from datetime import datetime
         age_hours = (datetime.now() - datetime.fromtimestamp(latest.stat().st_mtime)).total_seconds() / 3600
         
         if age_hours > 48:
@@ -344,9 +397,10 @@ def check_backups(workspace: str) -> CheckResult:
         return CheckResult(
             name="workspace.backup",
             status=status,
-            message=f"Latest backup: {latest.name} ({age_hours:.0f}h ago)",
+            message=f"Latest: {latest.name} ({age_hours:.0f}h ago)",
             value=f"{age_hours:.0f}h",
-            threshold="24h/48h"
+            threshold="24h/48h",
+            fixable=False
         )
     except Exception as e:
         return CheckResult(
@@ -356,23 +410,140 @@ def check_backups(workspace: str) -> CheckResult:
         )
 
 
+@registry.workspace
+def check_skills_consistency(workspace: str) -> CheckResult:
+    """Check that all skills have SKILL.md files."""
+    try:
+        skills_dir = Path(workspace) / "skills"
+        if not skills_dir.exists():
+            return CheckResult(
+                name="workspace.skills",
+                status=Status.UNKNOWN,
+                message="No skills directory found"
+            )
+        
+        skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
+        missing_skill_md = [d.name for d in skill_dirs if not (d / "SKILL.md").exists()]
+        
+        if missing_skill_md:
+            return CheckResult(
+                name="workspace.skills",
+                status=Status.WARNING,
+                message=f"{len(missing_skill_md)} skills missing SKILL.md: {', '.join(missing_skill_md[:3])}",
+                value=f"{len(missing_skill_md)} missing",
+                fixable=False
+            )
+        
+        return CheckResult(
+            name="workspace.skills",
+            status=Status.OK,
+            message=f"All {len(skill_dirs)} skills have SKILL.md"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.skills",
+            status=Status.UNKNOWN,
+            message=f"Could not check skills: {e}"
+        )
+
+
 # =============================================================================
-# PLUGIN REGISTRY
+# FIXERS - Auto-resolve issues where safe
 # =============================================================================
 
-SYSTEM_PLUGINS: list[Callable[[str], CheckResult]] = [
-    check_disk,
-    check_memory,
-    check_load,
-]
+def fix_git(workspace: str) -> tuple[bool, str]:
+    """Auto-commit safe changes (memory files, logs, etc.)."""
+    try:
+        # Only auto-commit files in safe patterns
+        safe_patterns = ['memory/', '*.md', 'skills/', 'scripts/']
+        
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return False, "Not a git repository"
+        
+        files = [l[3:] for l in result.stdout.strip().split('\n') if l.strip()]
+        
+        # Check if all uncommitted files are safe to auto-commit
+        safe_files = []
+        for f in files:
+            if any(f.startswith(p.rstrip('*')) or f.endswith(p.lstrip('*')) 
+                   for p in safe_patterns):
+                safe_files.append(f)
+        
+        if not safe_files:
+            return False, "No safe files to auto-commit"
+        
+        # Stage and commit safe files
+        for f in safe_files:
+            subprocess.run(
+                ["git", "add", f],
+                cwd=workspace,
+                capture_output=True,
+                timeout=10
+            )
+        
+        commit_result = subprocess.run(
+            ["git", "commit", "-m", f"chore: auto-commit {len(safe_files)} files from health check"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if commit_result.returncode == 0:
+            return True, f"Auto-committed {len(safe_files)} files"
+        else:
+            return False, f"Commit failed: {commit_result.stderr}"
+            
+    except Exception as e:
+        return False, f"Error: {e}"
 
-WORKSPACE_PLUGINS: list[Callable[[str], CheckResult]] = [
-    check_git_main,
-    check_memory_files,
-    check_backups,
-]
 
-ALL_PLUGINS = SYSTEM_PLUGINS + WORKSPACE_PLUGINS
+def fix_backup_dir(workspace: str) -> tuple[bool, str]:
+    """Create backup directory if missing."""
+    try:
+        backup_dir = Path(workspace) / "backups"
+        backup_dir.mkdir(exist_ok=True)
+        return True, f"Created {backup_dir}"
+    except Exception as e:
+        return False, f"Failed to create backup dir: {e}"
+
+
+def fix_memory_dir(workspace: str) -> tuple[bool, str]:
+    """Create memory directory if missing."""
+    try:
+        memory_dir = Path(workspace) / "memory"
+        memory_dir.mkdir(exist_ok=True)
+        return True, f"Created {memory_dir}"
+    except Exception as e:
+        return False, f"Failed to create memory dir: {e}"
+
+
+# Map check names to fixer functions
+FIXERS: dict[str, Callable[[str], tuple[bool, str]]] = {
+    "workspace.git": fix_git,
+    "workspace.backup": fix_backup_dir,
+    "workspace.memory": fix_memory_dir,
+}
+
+
+def apply_fixes(report: HealthReport, workspace: str) -> HealthReport:
+    """Apply auto-fixes for fixable issues."""
+    for check in report.checks:
+        if check.fixable and check.status != Status.OK:
+            fixer = FIXERS.get(check.name)
+            if fixer:
+                success, message = fixer(workspace)
+                report.fixes_applied.append(f"{'✅' if success else '❌'} {check.name}: {message}")
+    
+    return report
 
 
 # =============================================================================
@@ -384,14 +555,15 @@ def format_check_line(report: HealthReport) -> str:
     parts = []
     
     for check in report.checks:
-        if check.status == Status.OK:
-            parts.append(f"✅ {check.name.split('.')[-1]}")
-        elif check.status == Status.WARNING:
-            parts.append(f"⚠️ {check.name.split('.')[-1]}")
-        elif check.status == Status.CRITICAL:
-            parts.append(f"❌ {check.name.split('.')[-1]}")
+        icon = check.icon
+        name = check.name.split('.')[-1]
+        if check.status != Status.OK:
+            parts.append(f"{icon} {name}")
+        else:
+            parts.append(f"{icon} {name}")
     
-    return " | ".join(parts) if parts else "No checks run"
+    fix_info = f" | 🔧 {len(report.fixes_applied)} fixes" if report.fixes_applied else ""
+    return " | ".join(parts) + fix_info if parts else "No checks run"
 
 
 def format_full_report(report: HealthReport) -> str:
@@ -410,12 +582,20 @@ def format_full_report(report: HealthReport) -> str:
     if system_checks:
         lines.extend(["\n🖥️  SYSTEM", "-" * 30])
         for check in system_checks:
-            lines.append(f"   {check.icon} {check.name.split('.')[-1]}: {check.message}")
+            fixable = " [🔧 fixable]" if check.fixable else ""
+            lines.append(f"   {check.icon} {check.name.split('.')[-1]}: {check.message}{fixable}")
     
     if workspace_checks:
         lines.extend(["\n📁 WORKSPACE", "-" * 30])
         for check in workspace_checks:
-            lines.append(f"   {check.icon} {check.name.split('.')[-1]}: {check.message}")
+            fixable = " [🔧 fixable]" if check.fixable else ""
+            lines.append(f"   {check.icon} {check.name.split('.')[-1]}: {check.message}{fixable}")
+    
+    # Fixes applied
+    if report.fixes_applied:
+        lines.extend(["\n🔧 FIXES APPLIED", "-" * 30])
+        for fix in report.fixes_applied:
+            lines.append(f"   {fix}")
     
     # Summary
     lines.extend(["\n" + "=" * 50])
@@ -439,15 +619,18 @@ def format_json(report: HealthReport) -> str:
             "ok": report.ok_count,
             "warnings": report.warning_count,
             "critical": report.critical_count,
+            "fixable": report.fixable_count,
             "healthy": report.is_healthy
         },
+        "fixes_applied": report.fixes_applied,
         "checks": [
             {
                 "name": c.name,
                 "status": c.status.value,
                 "message": c.message,
                 "value": c.value,
-                "threshold": c.threshold
+                "threshold": c.threshold,
+                "fixable": c.fixable
             }
             for c in report.checks
         ]
@@ -469,6 +652,7 @@ Examples:
     health --check            # Quick status line
     health --json             # JSON output
     health --quiet            # Exit codes only (0=healthy, 1=critical, 2=warnings)
+    health --fix              # Auto-fix issues where safe
     health --system           # System checks only
     health --workspace        # Workspace checks only
         """
@@ -476,6 +660,7 @@ Examples:
     parser.add_argument("--check", action="store_true", help="Quick one-line status")
     parser.add_argument("--json", action="store_true", help="JSON output")
     parser.add_argument("--quiet", action="store_true", help="Exit codes only")
+    parser.add_argument("--fix", action="store_true", help="Auto-fix issues where safe")
     parser.add_argument("--system", action="store_true", help="System checks only")
     parser.add_argument("--workspace", action="store_true", help="Workspace checks only")
     parser.add_argument("--workspace-path", default="/root/.openclaw/workspace", help="Workspace path")
@@ -483,11 +668,11 @@ Examples:
     args = parser.parse_args()
     
     # Select plugins
-    plugins = ALL_PLUGINS
+    plugins = registry.all_plugins
     if args.system and not args.workspace:
-        plugins = SYSTEM_PLUGINS
+        plugins = registry.system_plugins
     elif args.workspace and not args.system:
-        plugins = WORKSPACE_PLUGINS
+        plugins = registry.workspace_plugins
     
     # Run checks
     checks = [p(args.workspace_path) for p in plugins]
@@ -497,6 +682,13 @@ Examples:
         timezone="Asia/Shanghai",
         checks=checks
     )
+    
+    # Apply fixes if requested
+    if args.fix:
+        report = apply_fixes(report, args.workspace_path)
+        # Re-run checks to get updated status
+        checks = [p(args.workspace_path) for p in plugins]
+        report.checks = checks
     
     # Output
     if args.quiet:
@@ -523,4 +715,5 @@ Examples:
 
 
 if __name__ == "__main__":
+    import os  # Import here to avoid issues with module-level imports
     main()
