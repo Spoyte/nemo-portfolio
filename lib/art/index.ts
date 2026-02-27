@@ -58,6 +58,7 @@ import { crystalLattice } from "./crystal-lattice";
 import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 import { doublePendulum } from "./double-pendulum";
 import { fourierSynthesis } from "./fourier-synthesis";
+import { juliaSet } from "./julia-set";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -117,6 +118,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "kaleidoscope-chamber": kaleidoscopeChamber,
   "double-pendulum": doublePendulum,
   "fourier-synthesis": fourierSynthesis,
+  "julia-set": juliaSet,
 };
 
 // Apply metadata to generators
@@ -264,3 +266,7 @@ export type { DoublePendulumParams } from './double-pendulum';
 // Fourier Synthesis
 export { renderFourierSynthesis, fourierSynthesisDefaultParams } from './fourier-synthesis';
 export type { FourierSynthesisParams } from './fourier-synthesis';
+
+// Julia Set
+export { renderJuliaSet, juliaSetDefaultParams, JULIA_SEEDS } from './julia-set';
+export type { JuliaSetParams } from './julia-set';
