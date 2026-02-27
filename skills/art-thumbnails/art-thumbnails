@@ -1,0 +1,430 @@
+#!/usr/bin/env bash
+#
+# art-thumbnails — Generate static thumbnail previews for art gallery
+#
+# Usage: art-thumbnails [options] [art-id]
+#
+# Examples:
+#   art-thumbnails              # Generate all missing thumbnails
+#   art-thumbnails flow-field   # Generate specific thumbnail
+#   art-thumbnails --regenerate # Force regenerate all
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GRAY='\033[0;90m'
+NC='\033[0m'
+
+# Configuration
+WORKSPACE_DIR="${WORKSPACE_DIR:-$HOME/.openclaw/workspace}"
+ART_LIB_DIR="$WORKSPACE_DIR/lib/art"
+THUMBNAILS_DIR="$WORKSPACE_DIR/public/art-thumbnails"
+CANVAS_SIZE=400
+
+# Help
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "art-thumbnails — Generate static thumbnail previews for art gallery"
+    echo ""
+    echo "Usage: art-thumbnails [options] [art-id]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help        Show this help"
+    echo "  -r, --regenerate  Force regenerate all thumbnails"
+    echo "  -l, --list        List all art pieces and thumbnail status"
+    echo "  -c, --clean       Remove all thumbnails"
+    echo "  -q, --quiet       Suppress output"
+    echo ""
+    echo "Examples:"
+    echo "  art-thumbnails              # Generate all missing thumbnails"
+    echo "  art-thumbnails flow-field   # Generate specific thumbnail"
+    echo "  art-thumbnails --regenerate # Force regenerate all"
+    echo "  art-thumbnails --list       # Show status of all pieces"
+    exit 0
+fi
+
+# Parse arguments
+REGENERATE=false
+LIST_MODE=false
+CLEAN_MODE=false
+QUIET=false
+TARGET_ART=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -r|--regenerate)
+            REGENERATE=true
+            shift
+            ;;
+        -l|--list)
+            LIST_MODE=true
+            shift
+            ;;
+        -c|--clean)
+            CLEAN_MODE=true
+            shift
+            ;;
+        -q|--quiet)
+            QUIET=true
+            shift
+            ;;
+        -*)
+            echo -e "${RED}Unknown option: $1${NC}" >&2
+            exit 1
+            ;;
+        *)
+            TARGET_ART="$1"
+            shift
+            ;;
+    esac
+done
+
+# Logging
+log() { [[ "$QUIET" == "true" ]] || echo -e "$@"; }
+info() { log "${BLUE}$*${NC}"; }
+success() { log "${GREEN}✓ $*${NC}"; }
+warn() { log "${YELLOW}⚠ $*${NC}"; }
+error() { log "${RED}Error: $*${NC}" >&2; }
+
+# Ensure directories exist
+mkdir -p "$THUMBNAILS_DIR"
+
+# Get all art IDs from the art library
+get_art_ids() {
+    grep -o '"[a-z-]*":' "$ART_LIB_DIR/index.ts" 2>/dev/null | \
+        tr -d '":' | \
+        sort -u | \
+        grep -v '^import$' | \
+        grep -v '^rawGenerators$' || true
+}
+
+# Get art name from metadata
+get_art_name() {
+    local art_id="$1"
+    # Try to extract from metadata.ts
+    grep -A5 "id:.*$art_id" "$ART_LIB_DIR/metadata.ts" 2>/dev/null | \
+        grep "name:" | \
+        head -1 | \
+        sed 's/.*name: *"//;s/".*//' || \
+        echo "$art_id"
+}
+
+# Get art category from metadata
+get_art_category() {
+    local art_id="$1"
+    grep -A10 "id:.*$art_id" "$ART_LIB_DIR/metadata.ts" 2>/dev/null | \
+        grep "category:" | \
+        head -1 | \
+        sed 's/.*category: *"//;s/".*//' || \
+        echo "abstract"
+}
+
+# Generate SVG thumbnail for an art piece
+generate_thumbnail() {
+    local art_id="$1"
+    local output_path="$THUMBNAILS_DIR/$art_id.svg"
+    
+    # Skip if exists and not regenerating
+    if [[ "$REGENERATE" == "false" && -f "$output_path" ]]; then
+        return 0
+    fi
+    
+    local art_name=$(get_art_name "$art_id")
+    local category=$(get_art_category "$art_id")
+    
+    # Generate category-appropriate SVG pattern
+    case "$category" in
+        mathematical)
+            generate_mathematical_thumbnail "$art_id" "$art_name" > "$output_path"
+            ;;
+        natural)
+            generate_natural_thumbnail "$art_id" "$art_name" > "$output_path"
+            ;;
+        physics)
+            generate_physics_thumbnail "$art_id" "$art_name" > "$output_path"
+            ;;
+        geometric)
+            generate_geometric_thumbnail "$art_id" "$art_name" > "$output_path"
+            ;;
+        traditional)
+            generate_traditional_thumbnail "$art_id" "$art_name" > "$output_path"
+            ;;
+        *)
+            generate_abstract_thumbnail "$art_id" "$art_name" > "$output_path"
+            ;;
+    esac
+    
+    success "Generated: $art_id.svg"
+}
+
+# Mathematical pattern (fractals, curves)
+generate_mathematical_thumbnail() {
+    local id="$1"
+    local name="$2"
+    cat << 'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="mathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="50%" style="stop-color:#a855f7"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="#0f0f1a"/>
+  <!-- Spiral pattern -->
+  <g stroke="url(#mathGrad)" fill="none" stroke-width="1.5" opacity="0.8">
+    <path d="M200,150 m0,0 a10,10 0 1,0 20,0 a20,20 0 1,0 -40,0 a30,30 0 1,0 60,0 a40,40 0 1,0 -80,0 a50,50 0 1,0 100,0 a60,60 0 1,0 -120,0"/>
+    <path d="M200,150 m0,0 a15,15 0 1,1 30,0 a30,30 0 1,1 -60,0 a45,45 0 1,1 90,0 a60,60 0 1,1 -120,0" transform="rotate(180 200 150)"/>
+  </g>
+  <!-- Nodes -->
+  <circle cx="200" cy="150" r="4" fill="#ec4899"/>
+  <circle cx="230" cy="150" r="3" fill="#a855f7" opacity="0.7"/>
+  <circle cx="170" cy="150" r="3" fill="#6366f1" opacity="0.7"/>
+  <circle cx="200" cy="120" r="3" fill="#a855f7" opacity="0.7"/>
+  <circle cx="200" cy="180" r="3" fill="#6366f1" opacity="0.7"/>
+  <!-- Label -->
+  <text x="200" y="270" text-anchor="middle" fill="#888" font-size="12" font-family="system-ui">Mathematical</text>
+</svg>
+EOF
+}
+
+# Natural pattern (organic, flowing)
+generate_natural_thumbnail() {
+    local id="$1"
+    local name="$2"
+    cat << 'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="natureGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#166534"/>
+      <stop offset="50%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#86efac"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="#0a1f0a"/>
+  <!-- Branching structure -->
+  <g stroke="url(#natureGrad)" fill="none" stroke-linecap="round">
+    <path d="M200,280 Q200,200 180,150" stroke-width="4"/>
+    <path d="M180,150 Q160,100 140,80" stroke-width="3"/>
+    <path d="M180,150 Q200,100 220,60" stroke-width="3"/>
+    <path d="M180,150 Q220,120 260,100" stroke-width="2.5"/>
+    <path d="M140,80 Q120,50 110,40" stroke-width="2"/>
+    <path d="M140,80 Q160,50 170,30" stroke-width="2"/>
+    <path d="M220,60 Q200,40 190,25" stroke-width="2"/>
+    <path d="M220,60 Q240,40 250,20" stroke-width="2"/>
+    <path d="M260,100 Q280,70 300,50" stroke-width="2"/>
+  </g>
+  <!-- Leaves -->
+  <ellipse cx="110" cy="40" rx="8" ry="4" fill="#4ade80" opacity="0.8" transform="rotate(-30 110 40)"/>
+  <ellipse cx="170" cy="30" rx="8" ry="4" fill="#4ade80" opacity="0.8" transform="rotate(20 170 30)"/>
+  <ellipse cx="190" cy="25" rx="7" ry="3.5" fill="#4ade80" opacity="0.8" transform="rotate(-15 190 25)"/>
+  <ellipse cx="250" cy="20" rx="8" ry="4" fill="#4ade80" opacity="0.8" transform="rotate(40 250 20)"/>
+  <ellipse cx="300" cy="50" rx="7" ry="3.5" fill="#4ade80" opacity="0.8" transform="rotate(60 300 50)"/>
+  <!-- Label -->
+  <text x="200" y="270" text-anchor="middle" fill="#888" font-size="12" font-family="system-ui">Natural Systems</text>
+</svg>
+EOF
+}
+
+# Physics pattern (waves, particles)
+generate_physics_thumbnail() {
+    local id="$1"
+    local name="$2"
+    cat << 'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="physicsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0ea5e9"/>
+      <stop offset="50%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="#0a1628"/>
+  <!-- Wave interference pattern -->
+  <g stroke="url(#physicsGrad)" fill="none" stroke-width="2" opacity="0.6">
+    <path d="M0,150 Q50,100 100,150 T200,150 T300,150 T400,150"/>
+    <path d="M0,150 Q50,200 100,150 T200,150 T300,150 T400,150"/>
+    <path d="M0,150 Q50,80 100,150 T200,150 T300,150 T400,150" opacity="0.4"/>
+    <path d="M0,150 Q50,220 100,150 T200,150 T300,150 T400,150" opacity="0.4"/>
+  </g>
+  <!-- Particles -->
+  <circle cx="100" cy="150" r="5" fill="#0ea5e9"/>
+  <circle cx="200" cy="150" r="5" fill="#06b6d4"/>
+  <circle cx="300" cy="150" r="5" fill="#14b8a6"/>
+  <circle cx="150" cy="120" r="3" fill="#0ea5e9" opacity="0.6"/>
+  <circle cx="250" cy="180" r="3" fill="#06b6d4" opacity="0.6"/>
+  <!-- Label -->
+  <text x="200" y="270" text-anchor="middle" fill="#888" font-size="12" font-family="system-ui">Physics</text>
+</svg>
+EOF
+}
+
+# Geometric pattern (symmetry, shapes)
+generate_geometric_thumbnail() {
+    local id="$1"
+    local name="$2"
+    cat << 'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="geoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="50%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#ef4444"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="#1a0f0a"/>
+  <!-- Mandala-like geometric pattern -->
+  <g transform="translate(200,140)" stroke="url(#geoGrad)" fill="none" stroke-width="1.5">
+    <circle r="20" opacity="0.9"/>
+    <circle r="40" opacity="0.7"/>
+    <circle r="60" opacity="0.5"/>
+    <circle r="80" opacity="0.3"/>
+    <!-- Radial lines -->
+    <line x1="0" y1="-80" x2="0" y2="80"/>
+    <line x1="-69.3" y1="-40" x2="69.3" y2="40"/>
+    <line x1="-69.3" y1="40" x2="69.3" y2="-40"/>
+    <!-- Hexagon -->
+    <polygon points="0,-70 60.6,-35 60.6,35 0,70 -60.6,35 -60.6,-35" opacity="0.6"/>
+    <!-- Inner pattern -->
+    <polygon points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" fill="url(#geoGrad)" opacity="0.3"/>
+  </g>
+  <!-- Label -->
+  <text x="200" y="270" text-anchor="middle" fill="#888" font-size="12" font-family="system-ui">Geometric</text>
+</svg>
+EOF
+}
+
+# Traditional pattern (cross-hatching, textures)
+generate_traditional_thumbnail() {
+    local id="$1"
+    local name="$2"
+    cat << 'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#d4d4d8" stroke-width="1" opacity="0.3"/>
+    </pattern>
+  </defs>
+  <rect width="400" height="300" fill="#18181b"/>
+  <rect width="400" height="300" fill="url(#hatch)"/>
+  <!-- Sketch-like strokes -->
+  <g stroke="#e4e4e7" fill="none" stroke-width="1.5" stroke-linecap="round" opacity="0.8">
+    <path d="M120,200 Q150,150 200,140 Q250,130 280,180"/>
+    <path d="M125,205 Q155,155 205,145 Q255,135 285,185"/>
+    <path d="M130,100 Q180,80 220,90 Q260,100 270,140"/>
+    <path d="M135,105 Q185,85 225,95 Q265,105 275,145"/>
+  </g>
+  <!-- Shading -->
+  <ellipse cx="200" cy="160" rx="60" ry="40" fill="#27272a" opacity="0.5"/>
+  <!-- Label -->
+  <text x="200" y="270" text-anchor="middle" fill="#888" font-size="12" font-family="system-ui">Traditional</text>
+</svg>
+EOF
+}
+
+# Abstract pattern (default)
+generate_abstract_thumbnail() {
+    local id="$1"
+    local name="$2"
+    cat << 'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="absGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="absGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="#0f0f1a"/>
+  <!-- Flowing shapes -->
+  <circle cx="150" cy="120" r="60" fill="url(#absGrad1)" opacity="0.4"/>
+  <circle cx="250" cy="180" r="70" fill="url(#absGrad2)" opacity="0.4"/>
+  <ellipse cx="200" cy="150" rx="100" ry="50" fill="none" stroke="url(#absGrad1)" stroke-width="2" opacity="0.6" transform="rotate(-20 200 150)"/>
+  <!-- Particles -->
+  <circle cx="120" cy="80" r="4" fill="#ec4899" opacity="0.8"/>
+  <circle cx="280" cy="100" r="5" fill="#8b5cf6" opacity="0.7"/>
+  <circle cx="320" cy="200" r="4" fill="#06b6d4" opacity="0.8"/>
+  <circle cx="100" cy="220" r="3" fill="#3b82f6" opacity="0.7"/>
+  <!-- Label -->
+  <text x="200" y="270" text-anchor="middle" fill="#888" font-size="12" font-family="system-ui">Abstract</text>
+</svg>
+EOF
+}
+
+# Clean mode
+if [[ "$CLEAN_MODE" == "true" ]]; then
+    info "Removing all thumbnails..."
+    rm -rf "$THUMBNAILS_DIR"/*
+    success "Thumbnails cleaned"
+    exit 0
+fi
+
+# List mode
+if [[ "$LIST_MODE" == "true" ]]; then
+    info "Art Gallery Thumbnail Status"
+    log "${GRAY}$(printf '─%.0s' {1..60})${NC}"
+    
+    total=0
+    has_thumb=0
+    missing=0
+    
+    while IFS= read -r art_id; do
+        [[ -z "$art_id" ]] && continue
+        total=$((total + 1))
+        
+        thumb_path="$THUMBNAILS_DIR/$art_id.svg"
+        name=$(get_art_name "$art_id")
+        category=$(get_art_category "$art_id")
+        
+        if [[ -f "$thumb_path" ]]; then
+            log "  ${GREEN}✓${NC} $art_id"
+            has_thumb=$((has_thumb + 1))
+        else
+            log "  ${YELLOW}○${NC} $art_id ${GRAY}($category)${NC}"
+            missing=$((missing + 1))
+        fi
+    done < <(get_art_ids)
+    
+    log "${GRAY}$(printf '─%.0s' {1..60})${NC}"
+    log "Total: $total | With thumbnails: $has_thumb | Missing: $missing"
+    exit 0
+fi
+
+# Generate thumbnails
+if [[ -n "$TARGET_ART" ]]; then
+    # Generate specific thumbnail
+    info "Generating thumbnail for: $TARGET_ART"
+    generate_thumbnail "$TARGET_ART"
+else
+    # Generate all missing thumbnails
+    info "Generating thumbnails..."
+    [[ "$REGENERATE" == "true" ]] && warn "Force regenerate mode enabled"
+    
+    generated=0
+    skipped=0
+    
+    while IFS= read -r art_id; do
+        [[ -z "$art_id" ]] && continue
+        
+        thumb_path="$THUMBNAILS_DIR/$art_id.svg"
+        
+        if [[ "$REGENERATE" == "false" && -f "$thumb_path" ]]; then
+            skipped=$((skipped + 1))
+            continue
+        fi
+        
+        generate_thumbnail "$art_id"
+        generated=$((generated + 1))
+    done < <(get_art_ids)
+    
+    log ""
+    success "Done! Generated: $generated | Skipped: $skipped"
+fi
+
+exit 0
