@@ -1014,7 +1014,7 @@ export default function TradingCardsPage() {
         </motion.div>
 
         {/* Empty State */}
-        <{filteredCards.length === 0 && (
+        {filteredCards.length === 0 && (
           <div className="text-center py-16">
             <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <p className="text-lg font-medium">No cards found</p>
@@ -1031,7 +1031,7 @@ export default function TradingCardsPage() {
       />
 
       {/* Pack Opening */}
-      <{isOpeningPack && (
+      {isOpeningPack && (
         <PackOpening onComplete={handlePackComplete} />
       )}
     </div>
