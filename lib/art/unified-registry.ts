@@ -581,6 +581,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderCrossHatching",
     importName: "crossHatching",
   },
+  {
+    id: "weaving-loom",
+    name: "Weaving Loom",
+    description: "Simulated textile weaving with warp and weft threads creating intricate fabric patterns",
+    category: "traditional",
+    loader: () => import("./weaving-loom"),
+    renderFnName: "renderWeavingLoom",
+    importName: "weavingLoom",
+  },
 
   // === TEXT (1) ===
   {

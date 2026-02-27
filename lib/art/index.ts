@@ -114,6 +114,7 @@ import { stainedGlass } from "./stained-glass";
 import { watercolorDreams } from "./watercolor-dreams";
 import { asciiArtGenerator as asciiArt } from "./ascii-art";
 import { crossHatchingSketch as crossHatching } from "./cross-hatching";
+import { weavingLoom } from "./weaving-loom";
 
 // === TEXT (1) ===
 import { kineticTypography } from "./kinetic-typography";
@@ -205,6 +206,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "watercolor-dreams": watercolorDreams,
   "ascii-art": asciiArt,
   "cross-hatching": crossHatching,
+  "weaving-loom": weavingLoom,
 
   // === TEXT ===
   "kinetic-typography": kineticTypography,
