@@ -1,0 +1,526 @@
+#!/usr/bin/env python3
+"""
+Unified Health Monitor for OpenClaw Workspace
+Plugin-based architecture for extensible health checks.
+
+Usage:
+    health                    # Full report
+    health --check            # Quick status line
+    health --json             # JSON output
+    health --quiet            # Exit codes only (0=healthy, 1=issues, 2=warnings)
+    health --system           # System checks only
+    health --workspace        # Workspace checks only
+"""
+
+import argparse
+import json
+import sys
+from dataclasses import dataclass, field, asdict
+from datetime import datetime
+from pathlib import Path
+from typing import Callable, Optional
+from enum import Enum
+
+
+class Status(Enum):
+    OK = "ok"
+    WARNING = "warning"
+    CRITICAL = "critical"
+    UNKNOWN = "unknown"
+
+
+@dataclass(frozen=True)
+class CheckResult:
+    """Result of a single health check."""
+    name: str
+    status: Status
+    message: str
+    value: Optional[str] = None
+    threshold: Optional[str] = None
+    
+    @property
+    def is_healthy(self) -> bool:
+        return self.status == Status.OK
+    
+    @property
+    def icon(self) -> str:
+        return {
+            Status.OK: "✅",
+            Status.WARNING: "⚠️",
+            Status.CRITICAL: "❌",
+            Status.UNKNOWN: "❓"
+        }.get(self.status, "❓")
+
+
+@dataclass
+class HealthReport:
+    """Aggregated health report from all checks."""
+    timestamp: str
+    timezone: str
+    checks: list[CheckResult] = field(default_factory=list)
+    
+    @property
+    def critical_count(self) -> int:
+        return sum(1 for c in self.checks if c.status == Status.CRITICAL)
+    
+    @property
+    def warning_count(self) -> int:
+        return sum(1 for c in self.checks if c.status == Status.WARNING)
+    
+    @property
+    def ok_count(self) -> int:
+        return sum(1 for c in self.checks if c.status == Status.OK)
+    
+    @property
+    def has_critical(self) -> bool:
+        return self.critical_count > 0
+    
+    @property
+    def has_warnings(self) -> bool:
+        return self.warning_count > 0
+    
+    @property
+    def is_healthy(self) -> bool:
+        return not self.has_critical and not self.has_warnings
+    
+    def by_category(self, prefix: str) -> list[CheckResult]:
+        """Get checks matching a name prefix."""
+        return [c for c in self.checks if c.name.startswith(prefix)]
+
+
+# =============================================================================
+# PLUGINS - Each is a pure function: workspace_path -> CheckResult
+# =============================================================================
+
+def check_disk(workspace: str) -> CheckResult:
+    """Check disk usage."""
+    try:
+        import shutil
+        stat = shutil.disk_usage("/")
+        percent = int((stat.used / stat.total) * 100)
+        used_gb = stat.used // (1024**3)
+        total_gb = stat.total // (1024**3)
+        
+        if percent > 90:
+            status = Status.CRITICAL
+        elif percent > 80:
+            status = Status.WARNING
+        else:
+            status = Status.OK
+            
+        return CheckResult(
+            name="system.disk",
+            status=status,
+            message=f"{used_gb}GB / {total_gb}GB used ({percent}%)",
+            value=f"{percent}%",
+            threshold="80%/90%"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="system.disk",
+            status=Status.UNKNOWN,
+            message=f"Could not check disk: {e}"
+        )
+
+
+def check_memory(workspace: str) -> CheckResult:
+    """Check memory usage."""
+    try:
+        with open('/proc/meminfo', 'r') as f:
+            lines = f.readlines()
+        
+        mem_total = 0
+        mem_available = 0
+        
+        for line in lines:
+            if line.startswith('MemTotal:'):
+                mem_total = int(line.split()[1]) * 1024
+            elif line.startswith('MemAvailable:'):
+                mem_available = int(line.split()[1]) * 1024
+        
+        if mem_total == 0:
+            return CheckResult(
+                name="system.memory",
+                status=Status.UNKNOWN,
+                message="Could not parse memory info"
+            )
+        
+        used = mem_total - mem_available
+        percent = int((used / mem_total) * 100)
+        
+        if percent > 95:
+            status = Status.CRITICAL
+        elif percent > 85:
+            status = Status.WARNING
+        else:
+            status = Status.OK
+        
+        used_gb = used // (1024**3)
+        total_gb = mem_total // (1024**3)
+        
+        return CheckResult(
+            name="system.memory",
+            status=status,
+            message=f"{used_gb}GB / {total_gb}GB used ({percent}%)",
+            value=f"{percent}%",
+            threshold="85%/95%"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="system.memory",
+            status=Status.UNKNOWN,
+            message=f"Could not check memory: {e}"
+        )
+
+
+def check_load(workspace: str) -> CheckResult:
+    """Check system load average."""
+    try:
+        with open('/proc/loadavg', 'r') as f:
+            load = float(f.read().split()[0])
+        
+        # Assume 4 cores (common default); adjust if needed
+        cores = 4
+        try:
+            import os
+            cores = os.cpu_count() or 4
+        except:
+            pass
+        
+        percent = int((load / cores) * 100)
+        
+        if load > cores * 2:
+            status = Status.CRITICAL
+        elif load > cores:
+            status = Status.WARNING
+        else:
+            status = Status.OK
+        
+        return CheckResult(
+            name="system.load",
+            status=status,
+            message=f"Load: {load:.2f} ({percent}% of {cores} cores)",
+            value=f"{load:.2f}",
+            threshold=f"{cores}/{cores*2}"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="system.load",
+            status=Status.UNKNOWN,
+            message=f"Could not check load: {e}"
+        )
+
+
+def check_git_main(workspace: str) -> CheckResult:
+    """Check main workspace git status."""
+    try:
+        import subprocess
+        
+        # Check for uncommitted changes
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return CheckResult(
+                name="workspace.git",
+                status=Status.UNKNOWN,
+                message="Not a git repository"
+            )
+        
+        uncommitted = len([l for l in result.stdout.strip().split('\n') if l.strip()])
+        
+        # Check if ahead of remote
+        status_result = subprocess.run(
+            ["git", "status", "-sb"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        needs_push = "ahead" in status_result.stdout.lower()
+        
+        if uncommitted > 0 or needs_push:
+            issues = []
+            if uncommitted:
+                issues.append(f"{uncommitted} uncommitted")
+            if needs_push:
+                issues.append("unpushed commits")
+            return CheckResult(
+                name="workspace.git",
+                status=Status.WARNING,
+                message=f"Git: {', '.join(issues)}",
+                value=f"{uncommitted} files" if uncommitted else "clean"
+            )
+        
+        return CheckResult(
+            name="workspace.git",
+            status=Status.OK,
+            message="Git repository clean"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.git",
+            status=Status.UNKNOWN,
+            message=f"Could not check git: {e}"
+        )
+
+
+def check_memory_files(workspace: str) -> CheckResult:
+    """Check memory file maintenance."""
+    try:
+        memory_dir = Path(workspace) / "memory"
+        if not memory_dir.exists():
+            return CheckResult(
+                name="workspace.memory",
+                status=Status.WARNING,
+                message="No memory directory found"
+            )
+        
+        files = list(memory_dir.glob("*.md"))
+        
+        # Check for recent entries (last 7 days)
+        from datetime import datetime, timedelta
+        week_ago = datetime.now() - timedelta(days=7)
+        recent = [f for f in files if datetime.fromtimestamp(f.stat().st_mtime) > week_ago]
+        
+        if len(recent) == 0:
+            return CheckResult(
+                name="workspace.memory",
+                status=Status.WARNING,
+                message=f"No memory entries in last 7 days ({len(files)} total)",
+                value=f"{len(recent)} recent"
+            )
+        
+        return CheckResult(
+            name="workspace.memory",
+            status=Status.OK,
+            message=f"{len(recent)} entries in last 7 days ({len(files)} total)",
+            value=f"{len(recent)} recent"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.memory",
+            status=Status.UNKNOWN,
+            message=f"Could not check memory files: {e}"
+        )
+
+
+def check_backups(workspace: str) -> CheckResult:
+    """Check backup freshness."""
+    try:
+        backup_dir = Path(workspace) / "backups"
+        if not backup_dir.exists():
+            return CheckResult(
+                name="workspace.backup",
+                status=Status.WARNING,
+                message="No backup directory found"
+            )
+        
+        backups = sorted(backup_dir.glob("*.zip"), key=lambda x: x.stat().st_mtime, reverse=True)
+        
+        if not backups:
+            return CheckResult(
+                name="workspace.backup",
+                status=Status.WARNING,
+                message="No backups found"
+            )
+        
+        latest = backups[0]
+        from datetime import datetime
+        age_hours = (datetime.now() - datetime.fromtimestamp(latest.stat().st_mtime)).total_seconds() / 3600
+        
+        if age_hours > 48:
+            status = Status.CRITICAL
+        elif age_hours > 24:
+            status = Status.WARNING
+        else:
+            status = Status.OK
+        
+        return CheckResult(
+            name="workspace.backup",
+            status=status,
+            message=f"Latest backup: {latest.name} ({age_hours:.0f}h ago)",
+            value=f"{age_hours:.0f}h",
+            threshold="24h/48h"
+        )
+    except Exception as e:
+        return CheckResult(
+            name="workspace.backup",
+            status=Status.UNKNOWN,
+            message=f"Could not check backups: {e}"
+        )
+
+
+# =============================================================================
+# PLUGIN REGISTRY
+# =============================================================================
+
+SYSTEM_PLUGINS: list[Callable[[str], CheckResult]] = [
+    check_disk,
+    check_memory,
+    check_load,
+]
+
+WORKSPACE_PLUGINS: list[Callable[[str], CheckResult]] = [
+    check_git_main,
+    check_memory_files,
+    check_backups,
+]
+
+ALL_PLUGINS = SYSTEM_PLUGINS + WORKSPACE_PLUGINS
+
+
+# =============================================================================
+# FORMATTERS
+# =============================================================================
+
+def format_check_line(report: HealthReport) -> str:
+    """Format a quick one-line status."""
+    parts = []
+    
+    for check in report.checks:
+        if check.status == Status.OK:
+            parts.append(f"✅ {check.name.split('.')[-1]}")
+        elif check.status == Status.WARNING:
+            parts.append(f"⚠️ {check.name.split('.')[-1]}")
+        elif check.status == Status.CRITICAL:
+            parts.append(f"❌ {check.name.split('.')[-1]}")
+    
+    return " | ".join(parts) if parts else "No checks run"
+
+
+def format_full_report(report: HealthReport) -> str:
+    """Format a full human-readable report."""
+    lines = [
+        "=" * 50,
+        "🏥 HEALTH MONITOR REPORT",
+        f"🕐 {report.timestamp} ({report.timezone})",
+        "=" * 50,
+    ]
+    
+    # Group by category
+    system_checks = report.by_category("system")
+    workspace_checks = report.by_category("workspace")
+    
+    if system_checks:
+        lines.extend(["\n🖥️  SYSTEM", "-" * 30])
+        for check in system_checks:
+            lines.append(f"   {check.icon} {check.name.split('.')[-1]}: {check.message}")
+    
+    if workspace_checks:
+        lines.extend(["\n📁 WORKSPACE", "-" * 30])
+        for check in workspace_checks:
+            lines.append(f"   {check.icon} {check.name.split('.')[-1]}: {check.message}")
+    
+    # Summary
+    lines.extend(["\n" + "=" * 50])
+    if report.has_critical:
+        lines.append(f"🚨 {report.critical_count} critical, {report.warning_count} warnings")
+    elif report.has_warnings:
+        lines.append(f"⚠️  {report.warning_count} warnings, {report.ok_count} OK")
+    else:
+        lines.append(f"✅ All {report.ok_count} checks passed")
+    lines.append("=" * 50)
+    
+    return "\n".join(lines)
+
+
+def format_json(report: HealthReport) -> str:
+    """Format as JSON."""
+    data = {
+        "timestamp": report.timestamp,
+        "timezone": report.timezone,
+        "summary": {
+            "ok": report.ok_count,
+            "warnings": report.warning_count,
+            "critical": report.critical_count,
+            "healthy": report.is_healthy
+        },
+        "checks": [
+            {
+                "name": c.name,
+                "status": c.status.value,
+                "message": c.message,
+                "value": c.value,
+                "threshold": c.threshold
+            }
+            for c in report.checks
+        ]
+    }
+    return json.dumps(data, indent=2)
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Unified health monitor for OpenClaw workspace",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    health                    # Full report
+    health --check            # Quick status line
+    health --json             # JSON output
+    health --quiet            # Exit codes only (0=healthy, 1=critical, 2=warnings)
+    health --system           # System checks only
+    health --workspace        # Workspace checks only
+        """
+    )
+    parser.add_argument("--check", action="store_true", help="Quick one-line status")
+    parser.add_argument("--json", action="store_true", help="JSON output")
+    parser.add_argument("--quiet", action="store_true", help="Exit codes only")
+    parser.add_argument("--system", action="store_true", help="System checks only")
+    parser.add_argument("--workspace", action="store_true", help="Workspace checks only")
+    parser.add_argument("--workspace-path", default="/root/.openclaw/workspace", help="Workspace path")
+    
+    args = parser.parse_args()
+    
+    # Select plugins
+    plugins = ALL_PLUGINS
+    if args.system and not args.workspace:
+        plugins = SYSTEM_PLUGINS
+    elif args.workspace and not args.system:
+        plugins = WORKSPACE_PLUGINS
+    
+    # Run checks
+    checks = [p(args.workspace_path) for p in plugins]
+    
+    report = HealthReport(
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        timezone="Asia/Shanghai",
+        checks=checks
+    )
+    
+    # Output
+    if args.quiet:
+        if report.has_critical:
+            sys.exit(1)
+        elif report.has_warnings:
+            sys.exit(2)
+        else:
+            sys.exit(0)
+    elif args.json:
+        print(format_json(report))
+    elif args.check:
+        print(format_check_line(report))
+    else:
+        print(format_full_report(report))
+    
+    # Exit code
+    if report.has_critical:
+        sys.exit(1)
+    elif report.has_warnings:
+        sys.exit(2)
+    else:
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
