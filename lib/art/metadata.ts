@@ -294,6 +294,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "nature", "colorful", "detailed"],
     created: "2024-02-27",
   },
+  "solar-flare": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "chaotic", "colorful", "detailed", "futuristic"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {

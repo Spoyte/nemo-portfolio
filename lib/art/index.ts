@@ -53,6 +53,7 @@ import { magneticField } from "./magnetic-field";
 import { plasmaArc } from "./plasma-arc";
 import { slimeMold } from "./slime-mold";
 import { waveTank } from "./wave-tank";
+import { solarFlare } from "./solar-flare";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -107,6 +108,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "plasma-arc": plasmaArc,
   "slime-mold": slimeMold,
   "wave-tank": waveTank,
+  "solar-flare": solarFlare,
 };
 
 // Apply metadata to generators
@@ -233,3 +235,7 @@ export type { SlimeMoldParams } from './slime-mold';
 // Wave Tank
 export { renderWaveTank, waveTankDefaultParams } from './wave-tank';
 export type { WaveTankParams } from './wave-tank';
+
+// Solar Flare
+export { renderSolarFlare, solarFlareDefaultParams } from './solar-flare';
+export type { SolarFlareParams } from './solar-flare';
