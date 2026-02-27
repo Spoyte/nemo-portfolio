@@ -40,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Active projects tracked as submodules but developed locally
+# These are independent repos - changes should be committed in their own directories
+/coiffeur-website/
+/nemo-portfolio/my-app/
+/projects/
+/promo-scanner/
+/surebet-detector/
