@@ -627,11 +627,12 @@ def check_health_trend(workspace: str) -> CheckResult:
         state = load_state()
         history = state.get("history", [])
         
-        if len(history) < 3:
+        # Need at least 5 runs for meaningful trend analysis
+        if len(history) < 5:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.OK,
-                message="Not enough history for trend analysis"
+                message=f"Building history ({len(history)}/5 runs)"
             )
         
         # Look at last 5 runs
@@ -643,6 +644,12 @@ def check_health_trend(workspace: str) -> CheckResult:
                 name="workspace.trend",
                 status=Status.OK,
                 message=f"Healthy for last {len(recent)} runs 🎉"
+            )
+        elif healthy_runs >= len(recent) // 2 + 1:
+            return CheckResult(
+                name="workspace.trend",
+                status=Status.OK,
+                message=f"Mostly healthy: {healthy_runs}/{len(recent)} recent runs"
             )
         elif healthy_runs >= len(recent) // 2:
             return CheckResult(
