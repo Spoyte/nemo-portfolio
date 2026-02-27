@@ -325,6 +325,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "chaotic", "colorful", "detailed", "futuristic"],
     created: "2024-02-27",
   },
+  "fourier-synthesis": {
+    category: "mathematical",
+    complexity: "complex",
+    tags: ["animated", "geometric", "ordered", "colorful", "detailed", "futuristic"],
+    created: "2024-02-27",
+  },
 
   // === 3D ===
   "light-caverns": {
@@ -408,6 +414,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "spirograph",
   "harmonograph",
   "space-filling-curves",
+  "fourier-synthesis",
   // Natural
   "aurora-borealis",
   "recursive-trees",
@@ -510,6 +517,7 @@ export function validateMetadata(): {
     "moire-pattern", "chladni-figures", "space-filling-curves", "origami-tessellation",
     "cymatics", "prism-dispersion", "kinetic-typography", "magnetic-field",
     "plasma-arc", "slime-mold", "wave-tank", "solar-flare", "crystal-lattice",
+    "kaleidoscope-chamber", "double-pendulum", "fourier-synthesis",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 
