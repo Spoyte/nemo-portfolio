@@ -5,26 +5,60 @@ Plugin-based architecture for extensible health checks.
 
 Usage:
     health                    # Full report
-    health --check            # Quick status line
+    health --check            # Quick status line (shows issues only)
     health --json             # JSON output
     health --quiet            # Exit codes only (0=healthy, 1=issues, 2=warnings)
     health --fix              # Auto-fix issues where safe
     health --system           # System checks only
-    health --workspace        # Workspace health only
+    health --workspace        # Workspace checks only
 """
 
 import argparse
 import json
+import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, NamedTuple, Optional
 
+
+# =============================================================================
+# CONSTANTS - Thresholds and configuration
+# =============================================================================
+
+class Thresholds:
+    """Health check thresholds."""
+    DISK_WARN = 80
+    DISK_CRITICAL = 90
+    MEMORY_WARN = 85
+    MEMORY_CRITICAL = 95
+    LOAD_WARN_MULTIPLIER = 1.0
+    LOAD_CRITICAL_MULTIPLIER = 2.0
+    BACKUP_WARN_HOURS = 24
+    BACKUP_CRITICAL_HOURS = 48
+    MEMORY_RECENT_DAYS = 7
+    TREND_WINDOW = 5
+    HISTORY_LIMIT = 100
+    GIT_TIMEOUT = 10
+    REPO_TIMEOUT = 5
+
+
+class SafePatterns:
+    """File patterns considered safe for auto-commit."""
+    PREFIXES = ['memory/', 'skills/', 'scripts/']
+    SUFFIXES = ['.md']
+
+
+# =============================================================================
+# DATA MODELS
+# =============================================================================
 
 class Status(Enum):
+    """Health check status levels."""
     OK = "ok"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -39,7 +73,7 @@ class CheckResult:
     message: str
     value: Optional[str] = None
     threshold: Optional[str] = None
-    fixable: bool = False  # Can this be auto-fixed?
+    fixable: bool = False
     
     @property
     def is_healthy(self) -> bool:
@@ -94,10 +128,14 @@ class HealthReport:
     def by_category(self, prefix: str) -> list[CheckResult]:
         """Get checks matching a name prefix."""
         return [c for c in self.checks if c.name.startswith(prefix)]
+    
+    def issues(self) -> list[CheckResult]:
+        """Get non-healthy checks."""
+        return [c for c in self.checks if not c.is_healthy]
 
 
 # =============================================================================
-# PLUGIN REGISTRY - Simple decorator pattern, no magic
+# PLUGIN REGISTRY
 # =============================================================================
 
 class PluginRegistry:
@@ -137,6 +175,58 @@ registry = PluginRegistry()
 
 
 # =============================================================================
+# GIT UTILITIES - Shared git operations
+# =============================================================================
+
+class GitStatus(NamedTuple):
+    """Git repository status."""
+    uncommitted: int
+    unpushed: int
+    is_clean: bool
+
+
+def get_git_status(repo_path: Path, timeout: int = Thresholds.GIT_TIMEOUT) -> GitStatus:
+    """Get git status for a repository. Returns GitStatus on success, raises on failure."""
+    # Check for uncommitted changes
+    status_result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        timeout=timeout
+    )
+    
+    if status_result.returncode != 0:
+        raise RuntimeError(f"git status failed: {status_result.stderr}")
+    
+    uncommitted = len([l for l in status_result.stdout.splitlines() if l.strip()])
+    
+    # Check if ahead of remote
+    ahead_result = subprocess.run(
+        ["git", "rev-list", "--count", "@{u}..HEAD"],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        timeout=timeout
+    )
+    
+    unpushed = int(ahead_result.stdout.strip() or 0) if ahead_result.returncode == 0 else 0
+    
+    return GitStatus(
+        uncommitted=uncommitted,
+        unpushed=unpushed,
+        is_clean=(uncommitted == 0 and unpushed == 0)
+    )
+
+
+def is_safe_to_auto_commit(filename: str) -> bool:
+    """Check if a file matches safe auto-commit patterns."""
+    return (
+        any(filename.startswith(p) for p in SafePatterns.PREFIXES) or
+        any(filename.endswith(s) for s in SafePatterns.SUFFIXES)
+    )
+
+# =============================================================================
 # SYSTEM PLUGINS
 # =============================================================================
 
@@ -144,15 +234,14 @@ registry = PluginRegistry()
 def check_disk(workspace: str) -> CheckResult:
     """Check disk usage."""
     try:
-        import shutil
         stat = shutil.disk_usage("/")
         percent = int((stat.used / stat.total) * 100)
         used_gb = stat.used // (1024**3)
         total_gb = stat.total // (1024**3)
         
-        if percent > 90:
+        if percent >= Thresholds.DISK_CRITICAL:
             status = Status.CRITICAL
-        elif percent > 80:
+        elif percent >= Thresholds.DISK_WARN:
             status = Status.WARNING
         else:
             status = Status.OK
@@ -162,10 +251,10 @@ def check_disk(workspace: str) -> CheckResult:
             status=status,
             message=f"{used_gb}GB / {total_gb}GB used ({percent}%)",
             value=f"{percent}%",
-            threshold="80%/90%",
-            fixable=False  # Can't auto-fix disk usage
+            threshold=f"{Thresholds.DISK_WARN}%/{Thresholds.DISK_CRITICAL}%",
+            fixable=False
         )
-    except Exception as e:
+    except OSError as e:
         return CheckResult(
             name="system.disk",
             status=Status.UNKNOWN,
@@ -198,9 +287,9 @@ def check_memory(workspace: str) -> CheckResult:
         used = mem_total - mem_available
         percent = int((used / mem_total) * 100)
         
-        if percent > 95:
+        if percent >= Thresholds.MEMORY_CRITICAL:
             status = Status.CRITICAL
-        elif percent > 85:
+        elif percent >= Thresholds.MEMORY_WARN:
             status = Status.WARNING
         else:
             status = Status.OK
@@ -213,10 +302,10 @@ def check_memory(workspace: str) -> CheckResult:
             status=status,
             message=f"{used_gb}GB / {total_gb}GB used ({percent}%)",
             value=f"{percent}%",
-            threshold="85%/95%",
+            threshold=f"{Thresholds.MEMORY_WARN}%/{Thresholds.MEMORY_CRITICAL}%",
             fixable=False
         )
-    except Exception as e:
+    except (OSError, ValueError) as e:
         return CheckResult(
             name="system.memory",
             status=Status.UNKNOWN,
@@ -234,9 +323,12 @@ def check_load(workspace: str) -> CheckResult:
         cores = max(1, (os.cpu_count() or 4))
         percent = int((load / cores) * 100)
         
-        if load > cores * 2:
+        warn_threshold = cores * Thresholds.LOAD_WARN_MULTIPLIER
+        critical_threshold = cores * Thresholds.LOAD_CRITICAL_MULTIPLIER
+        
+        if load >= critical_threshold:
             status = Status.CRITICAL
-        elif load > cores:
+        elif load >= warn_threshold:
             status = Status.WARNING
         else:
             status = Status.OK
@@ -246,10 +338,10 @@ def check_load(workspace: str) -> CheckResult:
             status=status,
             message=f"Load: {load:.2f} ({percent}% of {cores} cores)",
             value=f"{load:.2f}",
-            threshold=f"{cores}/{cores*2}",
+            threshold=f"{warn_threshold:.0f}/{critical_threshold:.0f}",
             fixable=False
         )
-    except Exception as e:
+    except (OSError, ValueError) as e:
         return CheckResult(
             name="system.load",
             status=Status.UNKNOWN,
@@ -265,57 +357,94 @@ def check_load(workspace: str) -> CheckResult:
 def check_git_main(workspace: str) -> CheckResult:
     """Check main workspace git status."""
     try:
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=workspace,
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
+        status = get_git_status(Path(workspace))
         
-        if result.returncode != 0:
+        if status.is_clean:
             return CheckResult(
                 name="workspace.git",
-                status=Status.UNKNOWN,
-                message="Not a git repository"
+                status=Status.OK,
+                message="Git repository clean"
             )
         
-        uncommitted = len([l for l in result.stdout.strip().split('\n') if l.strip()])
-        
-        # Check if ahead of remote
-        status_result = subprocess.run(
-            ["git", "status", "-sb"],
-            cwd=workspace,
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        needs_push = "ahead" in status_result.stdout.lower()
-        
-        if uncommitted > 0 or needs_push:
-            issues = []
-            if uncommitted:
-                issues.append(f"{uncommitted} uncommitted")
-            if needs_push:
-                issues.append("unpushed commits")
-            return CheckResult(
-                name="workspace.git",
-                status=Status.WARNING,
-                message=f"Git: {', '.join(issues)}",
-                value=f"{uncommitted} files" if uncommitted else "clean",
-                fixable=True  # Can auto-commit safe changes
-            )
+        issues = []
+        if status.uncommitted:
+            issues.append(f"{status.uncommitted} uncommitted")
+        if status.unpushed:
+            issues.append(f"{status.unpushed} unpushed")
         
         return CheckResult(
             name="workspace.git",
-            status=Status.OK,
-            message="Git repository clean"
+            status=Status.WARNING,
+            message=f"Git: {', '.join(issues)}",
+            value=f"{status.uncommitted} files" if status.uncommitted else "clean",
+            fixable=True
         )
-    except Exception as e:
+        
+    except RuntimeError as e:
         return CheckResult(
             name="workspace.git",
             status=Status.UNKNOWN,
-            message=f"Could not check git: {e}"
+            message=f"Not a git repository: {e}"
+        )
+    except subprocess.TimeoutExpired:
+        return CheckResult(
+            name="workspace.git",
+            status=Status.UNKNOWN,
+            message="Git check timed out"
+        )
+
+
+@registry.workspace
+def check_all_repos(workspace: str) -> CheckResult:
+    """Check git status across all repositories in workspace."""
+    try:
+        repos = list(Path(workspace).rglob(".git"))
+        dirty: list[tuple[Path, int, int]] = []
+        
+        for git_dir in repos:
+            repo = git_dir.parent
+            # Skip node_modules and other common non-project dirs
+            if any(part.startswith(".") or part in ["node_modules", "vendor", "__pycache__"] 
+                   for part in repo.parts):
+                continue
+                
+            try:
+                status = get_git_status(repo, timeout=Thresholds.REPO_TIMEOUT)
+                if not status.is_clean:
+                    dirty.append((repo.relative_to(workspace), status.uncommitted, status.unpushed))
+            except (RuntimeError, subprocess.TimeoutExpired):
+                continue
+        
+        if not dirty:
+            return CheckResult(
+                name="workspace.repos",
+                status=Status.OK,
+                message=f"All {len(repos)} repositories clean"
+            )
+        
+        main_repo_dirty = any(str(d[0]) == "." for d in dirty)
+        others = len([d for d in dirty if str(d[0]) != "."])
+        
+        if main_repo_dirty and others > 0:
+            msg = f"Main repo + {others} other(s) need attention"
+        elif main_repo_dirty:
+            msg = "Main repository needs attention"
+        else:
+            msg = f"{len(dirty)} repo(s) need attention"
+        
+        return CheckResult(
+            name="workspace.repos",
+            status=Status.CRITICAL if main_repo_dirty else Status.WARNING,
+            message=msg,
+            value=f"{len(dirty)} dirty",
+            fixable=False
+        )
+        
+    except OSError as e:
+        return CheckResult(
+            name="workspace.repos",
+            status=Status.UNKNOWN,
+            message=f"Could not scan for repos: {e}"
         )
 
 
@@ -334,26 +463,26 @@ def check_memory_files(workspace: str) -> CheckResult:
         
         files = list(memory_dir.glob("*.md"))
         
-        # Check for recent entries (last 7 days)
-        week_ago = datetime.now() - timedelta(days=7)
+        # Check for recent entries
+        week_ago = datetime.now() - timedelta(days=Thresholds.MEMORY_RECENT_DAYS)
         recent = [f for f in files if datetime.fromtimestamp(f.stat().st_mtime) > week_ago]
         
-        if len(recent) == 0:
+        if not recent:
             return CheckResult(
                 name="workspace.memory",
                 status=Status.WARNING,
-                message=f"No memory entries in last 7 days ({len(files)} total)",
+                message=f"No memory entries in last {Thresholds.MEMORY_RECENT_DAYS} days ({len(files)} total)",
                 value=f"{len(recent)} recent",
-                fixable=False  # Can't auto-write memories
+                fixable=False
             )
         
         return CheckResult(
             name="workspace.memory",
             status=Status.OK,
-            message=f"{len(recent)} entries in last 7 days ({len(files)} total)",
+            message=f"{len(recent)} entries in last {Thresholds.MEMORY_RECENT_DAYS} days ({len(files)} total)",
             value=f"{len(recent)} recent"
         )
-    except Exception as e:
+    except OSError as e:
         return CheckResult(
             name="workspace.memory",
             status=Status.UNKNOWN,
@@ -371,7 +500,7 @@ def check_backups(workspace: str) -> CheckResult:
                 name="workspace.backup",
                 status=Status.WARNING,
                 message="No backup directory found",
-                fixable=True  # Can create directory
+                fixable=True
             )
         
         backups = sorted(backup_dir.glob("*.zip"), key=lambda x: x.stat().st_mtime, reverse=True)
@@ -387,9 +516,9 @@ def check_backups(workspace: str) -> CheckResult:
         latest = backups[0]
         age_hours = (datetime.now() - datetime.fromtimestamp(latest.stat().st_mtime)).total_seconds() / 3600
         
-        if age_hours > 48:
+        if age_hours >= Thresholds.BACKUP_CRITICAL_HOURS:
             status = Status.CRITICAL
-        elif age_hours > 24:
+        elif age_hours >= Thresholds.BACKUP_WARN_HOURS:
             status = Status.WARNING
         else:
             status = Status.OK
@@ -399,10 +528,10 @@ def check_backups(workspace: str) -> CheckResult:
             status=status,
             message=f"Latest: {latest.name} ({age_hours:.0f}h ago)",
             value=f"{age_hours:.0f}h",
-            threshold="24h/48h",
+            threshold=f"{Thresholds.BACKUP_WARN_HOURS}h/{Thresholds.BACKUP_CRITICAL_HOURS}h",
             fixable=False
         )
-    except Exception as e:
+    except OSError as e:
         return CheckResult(
             name="workspace.backup",
             status=Status.UNKNOWN,
@@ -439,7 +568,7 @@ def check_skills_consistency(workspace: str) -> CheckResult:
             status=Status.OK,
             message=f"All {len(skill_dirs)} skills have SKILL.md"
         )
-    except Exception as e:
+    except OSError as e:
         return CheckResult(
             name="workspace.skills",
             status=Status.UNKNOWN,
@@ -450,22 +579,22 @@ def check_skills_consistency(workspace: str) -> CheckResult:
 @registry.workspace
 def check_skill_gaps(workspace: str) -> CheckResult:
     """Check for scripts that could be formalized as skills."""
+    # Keywords that suggest skill-worthy scripts
+    keywords = {
+        "backup": "backup|restore|archive",
+        "deploy": "deploy|release|publish",
+        "sync": "sync|mirror|replicate",
+        "build": "build|compile|bundle",
+        "test": "test|check|verify",
+        "lint": "lint|format|style",
+        "clean": "clean|prune|purge"
+    }
+    
     try:
         skills_dir = Path(workspace) / "skills"
         skill_names = {d.name.lower() for d in skills_dir.iterdir() if d.is_dir()} if skills_dir.exists() else set()
         
-        # Keywords that suggest skill-worthy scripts
-        keywords = {
-            "backup": "backup|restore|archive",
-            "deploy": "deploy|release|publish",
-            "sync": "sync|mirror|replicate",
-            "build": "build|compile|bundle",
-            "test": "test|check|verify",
-            "lint": "lint|format|style",
-            "clean": "clean|prune|purge"
-        }
-        
-        candidates = []
+        candidates: list[tuple[str, str]] = []
         for folder in [Path(workspace) / "bin", Path(workspace) / "scripts"]:
             if not folder.exists():
                 continue
@@ -501,79 +630,11 @@ def check_skill_gaps(workspace: str) -> CheckResult:
             status=Status.OK,
             message="No obvious skill gaps detected"
         )
-    except Exception as e:
+    except OSError as e:
         return CheckResult(
             name="workspace.skill_gaps",
             status=Status.UNKNOWN,
             message=f"Could not check skill gaps: {e}"
-        )
-
-
-@registry.workspace
-def check_all_repos(workspace: str) -> CheckResult:
-    """Check git status across all repositories in workspace."""
-    try:
-        repos = list(Path(workspace).rglob(".git"))
-        dirty = []
-        
-        for git_dir in repos:
-            repo = git_dir.parent
-            # Skip node_modules and other common non-project dirs
-            if any(part.startswith(".") or part in ["node_modules", "vendor", "__pycache__"] 
-                   for part in repo.parts):
-                continue
-                
-            try:
-                status = subprocess.run(
-                    ["git", "status", "--porcelain"],
-                    cwd=repo,
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                ahead = subprocess.run(
-                    ["git", "rev-list", "--count", "@{u}..HEAD"],
-                    cwd=repo,
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                
-                uncommitted = len([l for l in status.stdout.splitlines() if l.strip()])
-                unpushed = int(ahead.stdout.strip() or 0) if ahead.returncode == 0 else 0
-                
-                if uncommitted or unpushed:
-                    dirty.append((repo.relative_to(workspace), uncommitted, unpushed))
-            except Exception:
-                continue
-        
-        if dirty:
-            main_repo_dirty = any(str(d[0]) == "." for d in dirty)
-            others = [d for d in dirty if str(d[0]) != "."]
-            
-            if main_repo_dirty:
-                msg = f"Main repo + {len(others)} other(s) need attention"
-            else:
-                msg = f"{len(dirty)} repo(s) need attention"
-            
-            return CheckResult(
-                name="workspace.repos",
-                status=Status.WARNING if not main_repo_dirty else Status.CRITICAL,
-                message=msg,
-                value=f"{len(dirty)} dirty",
-                fixable=False  # Too risky to auto-fix multiple repos
-            )
-        
-        return CheckResult(
-            name="workspace.repos",
-            status=Status.OK,
-            message=f"All {len(repos)} repositories clean"
-        )
-    except Exception as e:
-        return CheckResult(
-            name="workspace.repos",
-            status=Status.UNKNOWN,
-            message=f"Could not check repos: {e}"
         )
 
 
@@ -610,8 +671,8 @@ def save_state(report: HealthReport) -> None:
     }
     state["history"].append(entry)
     
-    # Keep last 100 entries
-    state["history"] = state["history"][-100:]
+    # Keep last N entries
+    state["history"] = state["history"][-Thresholds.HISTORY_LIMIT:]
     
     # Update current status
     state["last_run"] = report.timestamp
@@ -622,48 +683,46 @@ def save_state(report: HealthReport) -> None:
 
 @registry.workspace
 def check_health_trend(workspace: str) -> CheckResult:
-    """Check if health is improving or degrading over time (tracks critical issues only)."""
+    """Analyze health trend over recent runs (tracks critical issues only)."""
     try:
         state = load_state()
         history = state.get("history", [])
         
-        # Need at least 5 runs for meaningful trend analysis
-        if len(history) < 5:
+        if len(history) < Thresholds.TREND_WINDOW:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.OK,
-                message=f"Building history ({len(history)}/5 runs)"
+                message=f"Building history ({len(history)}/{Thresholds.TREND_WINDOW} runs)"
             )
         
-        # Look at last 5 runs - focus on CRITICAL issues (warnings are normal)
-        recent = history[-5:]
+        recent = history[-Thresholds.TREND_WINDOW:]
         runs_with_critical = sum(1 for h in recent if h.get("critical", 0) > 0)
         
         if runs_with_critical == 0:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.OK,
-                message=f"No critical issues in last {len(recent)} runs 🎉"
+                message=f"No critical issues in last {Thresholds.TREND_WINDOW} runs 🎉"
             )
         elif runs_with_critical == 1:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.WARNING,
-                message=f"1 recent run had critical issues (was transient)"
+                message="1 recent run had critical issues (likely transient)"
             )
-        elif runs_with_critical <= len(recent) // 2:
+        elif runs_with_critical <= Thresholds.TREND_WINDOW // 2:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.WARNING,
-                message=f"{runs_with_critical}/{len(recent)} recent runs had critical issues"
+                message=f"{runs_with_critical}/{Thresholds.TREND_WINDOW} recent runs had critical issues"
             )
         else:
             return CheckResult(
                 name="workspace.trend",
                 status=Status.CRITICAL,
-                message=f"Declining health: {runs_with_critical}/{len(recent)} recent runs had critical issues"
+                message=f"Declining health: {runs_with_critical}/{Thresholds.TREND_WINDOW} recent runs had critical issues"
             )
-    except Exception as e:
+    except (OSError, json.JSONDecodeError) as e:
         return CheckResult(
             name="workspace.trend",
             status=Status.UNKNOWN,
@@ -678,15 +737,12 @@ def check_health_trend(workspace: str) -> CheckResult:
 def fix_git(workspace: str) -> tuple[bool, str]:
     """Auto-commit safe changes (memory files, logs, etc.)."""
     try:
-        # Only auto-commit files in safe patterns
-        safe_patterns = ['memory/', '*.md', 'skills/', 'scripts/']
-        
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             cwd=workspace,
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=Thresholds.GIT_TIMEOUT
         )
         
         if result.returncode != 0:
@@ -694,12 +750,8 @@ def fix_git(workspace: str) -> tuple[bool, str]:
         
         files = [l[3:] for l in result.stdout.strip().split('\n') if l.strip()]
         
-        # Check if all uncommitted files are safe to auto-commit
-        safe_files = []
-        for f in files:
-            if any(f.startswith(p.rstrip('*')) or f.endswith(p.lstrip('*')) 
-                   for p in safe_patterns):
-                safe_files.append(f)
+        # Filter to safe files only
+        safe_files = [f for f in files if is_safe_to_auto_commit(f)]
         
         if not safe_files:
             return False, "No safe files to auto-commit"
@@ -710,7 +762,7 @@ def fix_git(workspace: str) -> tuple[bool, str]:
                 ["git", "add", f],
                 cwd=workspace,
                 capture_output=True,
-                timeout=10
+                timeout=Thresholds.GIT_TIMEOUT
             )
         
         commit_result = subprocess.run(
@@ -718,7 +770,7 @@ def fix_git(workspace: str) -> tuple[bool, str]:
             cwd=workspace,
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=Thresholds.GIT_TIMEOUT
         )
         
         if commit_result.returncode == 0:
@@ -726,7 +778,9 @@ def fix_git(workspace: str) -> tuple[bool, str]:
         else:
             return False, f"Commit failed: {commit_result.stderr}"
             
-    except Exception as e:
+    except subprocess.TimeoutExpired:
+        return False, "Git operation timed out"
+    except OSError as e:
         return False, f"Error: {e}"
 
 
@@ -736,7 +790,7 @@ def fix_backup_dir(workspace: str) -> tuple[bool, str]:
         backup_dir = Path(workspace) / "backups"
         backup_dir.mkdir(exist_ok=True)
         return True, f"Created {backup_dir}"
-    except Exception as e:
+    except OSError as e:
         return False, f"Failed to create backup dir: {e}"
 
 
@@ -746,7 +800,7 @@ def fix_memory_dir(workspace: str) -> tuple[bool, str]:
         memory_dir = Path(workspace) / "memory"
         memory_dir.mkdir(exist_ok=True)
         return True, f"Created {memory_dir}"
-    except Exception as e:
+    except OSError as e:
         return False, f"Failed to create memory dir: {e}"
 
 
@@ -775,19 +829,16 @@ def apply_fixes(report: HealthReport, workspace: str) -> HealthReport:
 # =============================================================================
 
 def format_check_line(report: HealthReport) -> str:
-    """Format a quick one-line status."""
-    parts = []
+    """Format a quick one-line status (shows issues only for brevity)."""
+    issues = report.issues()
     
-    for check in report.checks:
-        icon = check.icon
-        name = check.name.split('.')[-1]
-        if check.status != Status.OK:
-            parts.append(f"{icon} {name}")
-        else:
-            parts.append(f"{icon} {name}")
+    if not issues:
+        fix_info = f" | 🔧 {len(report.fixes_applied)} fixed" if report.fixes_applied else ""
+        return f"✅ All {report.ok_count} checks passed{fix_info}"
     
-    fix_info = f" | 🔧 {len(report.fixes_applied)} fixes" if report.fixes_applied else ""
-    return " | ".join(parts) + fix_info if parts else "No checks run"
+    parts = [f"{c.icon} {c.name.split('.')[-1]}" for c in issues]
+    fix_info = f" | 🔧 {len(report.fixes_applied)} fixed" if report.fixes_applied else ""
+    return " | ".join(parts) + fix_info
 
 
 def format_full_report(report: HealthReport) -> str:

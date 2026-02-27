@@ -8,7 +8,7 @@ Unified workspace and system health monitoring with a plugin-based architecture.
 # Full report
 health
 
-# Quick status (for status bars)
+# Quick status (shows issues only — perfect for status bars)
 health --check
 
 # JSON output for automation
@@ -112,6 +112,14 @@ Fixes are conservative — only safe, reversible changes.
 - Fixers are separate from checkers (single responsibility)
 - State persistence enables trend analysis without complexity
 
+**Refactoring improvements (2026-02-28):**
+- **Centralized constants** — All thresholds in `Thresholds` class
+- **Git utilities** — `get_git_status()` eliminates duplication between `check_git_main` and `check_all_repos`
+- **Type safety** — Full type hints with `NamedTuple` for `GitStatus`
+- **Better error handling** — Specific exceptions (`OSError`, `subprocess.TimeoutExpired`) instead of bare `Exception`
+- **Cleaner quick mode** — `format_check_line()` only shows issues, reducing visual noise
+- **Safe pattern utility** — `is_safe_to_auto_commit()` for consistent auto-commit logic
+
 ## Adding New Checks
 
 ```python
@@ -138,3 +146,5 @@ This skill merged capabilities from two tools:
 - **heartbeat-check** — State persistence, trend analysis, skill gap detection
 
 The unified tool is stronger than either was alone.
+
+Refactored 2026-02-28 to improve code quality: eliminated duplication, centralized configuration, improved type safety, and reduced visual noise in quick mode.
