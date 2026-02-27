@@ -67,6 +67,7 @@ import { bioluminescentPlanktonGenerator } from "./bioluminescent-plankton-gener
 import { selfOrganizingMap } from "./self-organizing-map";
 import { abelianSandpile } from "./abelian-sandpile";
 import { turingPatterns } from "./turing-patterns";
+import { nBodyGravity } from "./n-body-gravity-generator";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -135,6 +136,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "self-organizing-map": selfOrganizingMap,
   "abelian-sandpile": abelianSandpile,
   "turing-patterns": turingPatterns,
+  "n-body-gravity": nBodyGravity,
 };
 
 // Apply metadata to generators
@@ -318,3 +320,7 @@ export type { SandpileParams } from './abelian-sandpile';
 // Turing Patterns
 export { renderTuringPatterns, turingPatterns, turingPatternsDefaultParams } from './turing-patterns';
 export type { TuringParams } from './turing-patterns';
+
+// N-Body Gravity
+export { renderNBodyGravity, nBodyGravityDefaultParams } from './n-body-gravity';
+export type { NBodyGravityParams } from './n-body-gravity';
