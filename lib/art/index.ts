@@ -62,6 +62,7 @@ import { juliaSet } from "./julia-set";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
 import { penroseTiling } from "./penrose-tiling";
+import { lenia } from "./lenia";
 
 // Raw generators map - only include existing modules
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -125,6 +126,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
   "penrose-tiling": penroseTiling,
+  "lenia": lenia,
 };
 
 // Apply metadata to generators
@@ -288,3 +290,7 @@ export type { ChaosGameParams } from './chaos-game';
 // Penrose Tiling
 export { renderPenroseTiling, penroseTilingDefaultParams } from './penrose-tiling';
 export type { PenroseTilingParams } from './penrose-tiling';
+
+// Lenia
+export { renderLenia, leniaDefaultParams } from './lenia';
+export type { LeniaParams } from './lenia';
