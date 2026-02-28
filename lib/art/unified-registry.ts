@@ -695,6 +695,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderAbelianSandpile",
     importName: "abelianSandpile",
   },
+  // === TEXT (2) ===
+  {
+    id: "poetry-visualizer",
+    name: "Poetry Visualizer",
+    description: "Transform text into flowing visual poetry - words become particles that dance and flow through space",
+    category: "text",
+    loader: () => import("./poetry-visualizer"),
+    renderFnName: "generate",
+    importName: "poetryVisualizer",
+  },
 ];
 
 // ============================================================================
