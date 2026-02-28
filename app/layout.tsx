@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { Toaster } from "@/components/toaster";
 import { KonamiCodeEasterEgg } from "@/components/konami-easter-egg";
+import { AchievementSystem } from "@/components/achievement-system-portfolio";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -50,6 +51,9 @@ export default function RootLayout({
 
           {/* Easter Egg */}
           <KonamiCodeEasterEgg />
+          
+          {/* Achievement System */}
+          <AchievementSystem />
         </ThemeProvider>
       </body>
     </html>

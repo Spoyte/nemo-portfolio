@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Terminal } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommandPalette } from "@/components/command-palette-enhanced";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -97,6 +98,7 @@ export function Navigation() {
 
             {/* Right Side */}
             <div className="flex items-center gap-2">
+              <CommandPalette />
               <ThemeToggle />
 
               {/* Mobile Menu Button */}
