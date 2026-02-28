@@ -12,6 +12,8 @@ A unified command-line interface for all workspace skills. Instead of rememberin
 ```bash
 # List all available skills
 nemo list
+nemo list -q              # Names only (for scripting)
+nemo list -v              # Verbose with full descriptions
 
 # Run a skill (works with aliases too)
 nemo health --check
@@ -22,7 +24,32 @@ nemo info art-scaffold
 
 # Read skill documentation
 nemo docs git-workflow
+
+# Search for skills
+nemo search backup        # Find skills related to backup
+nemo search "git"         # Search descriptions too
+
+# Execute specific scripts from a skill
+nemo exec memory-log mem-today
+nemo exec memory-log mem-yesterday
+
+# Shell completion
+nemo completion -s bash   # Generate bash completion
+nemo completion -s zsh    # Generate zsh completion
+nemo completion -s fish   # Generate fish completion
 ```
+
+## Commands
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `nemo list` | List all skills | `nemo list -q` |
+| `nemo <skill>` | Run a skill directly | `nemo health --check` |
+| `nemo info <skill>` | Show skill details | `nemo info art-scaffold` |
+| `nemo docs <skill>` | Read full documentation | `nemo docs git-workflow` |
+| `nemo search <query>` | Find skills by name/description | `nemo search backup` |
+| `nemo exec <skill> <script>` | Run a specific script | `nemo exec memory-log mem-today` |
+| `nemo completion` | Generate shell completion | `nemo completion -s zsh` |
 
 ## Why This Exists
 
@@ -36,6 +63,8 @@ nemo docs git-workflow
 - `nemo <skill>` — Run any skill
 - `nemo info <skill>` — Understand what it does
 - `nemo docs <skill>` — Read the full docs
+- `nemo search <query>` — Find what you need
+- `nemo exec <skill> <script>` — Run specific scripts
 
 ## Skill Discovery
 
@@ -56,7 +85,9 @@ Follow the standard skill structure:
 skills/
 └── my-skill/
     ├── SKILL.md          # Required: documentation + frontmatter
-    └── my-skill          # Optional: main executable
+    ├── my-skill          # Optional: main executable
+    └── scripts/          # Optional: helper scripts
+        └── helper.sh
 ```
 
 Frontmatter in SKILL.md:
@@ -74,6 +105,8 @@ description: "What this skill does. Use when: (1) situation 1, (2) situation 2."
 **Consistency across tools:** Same patterns for help, arguments, and output.
 
 **Zero configuration:** Skills are discovered from the filesystem. No registry to maintain.
+
+**Scripting-friendly:** Quiet mode (`-q`), predictable exit codes, composable with other tools.
 
 ## The Name
 
