@@ -590,6 +590,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderWeavingLoom",
     importName: "weavingLoom",
   },
+  {
+    id: "ink-diffusion",
+    name: "Ink Diffusion",
+    description: "Ink drops spreading through water creating organic Rorschach-like patterns inspired by sumi-e painting",
+    category: "traditional",
+    loader: () => import("./ink-diffusion"),
+    renderFnName: "renderInkDiffusion",
+    importName: "inkDiffusion",
+  },
 
   // === TEXT (1) ===
   {

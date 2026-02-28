@@ -108,13 +108,14 @@ import { lenia } from "./lenia";
 import { selfOrganizingMap } from "./self-organizing-map";
 import { langtonsAnt } from "./langtons-ant";
 
-// === TRADITIONAL (5) ===
+// === TRADITIONAL (6) ===
 import { digitalWeave } from "./digital-weave";
 import { stainedGlass } from "./stained-glass";
 import { watercolorDreams } from "./watercolor-dreams";
 import { asciiArtGenerator as asciiArt } from "./ascii-art";
 import { crossHatchingSketch as crossHatching } from "./cross-hatching";
 import { weavingLoom } from "./weaving-loom";
+import { inkDiffusion } from "./ink-diffusion";
 
 // === TEXT (1) ===
 import { kineticTypography } from "./kinetic-typography";
@@ -207,6 +208,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "ascii-art": asciiArt,
   "cross-hatching": crossHatching,
   "weaving-loom": weavingLoom,
+  "ink-diffusion": inkDiffusion,
 
   // === TEXT ===
   "kinetic-typography": kineticTypography,
