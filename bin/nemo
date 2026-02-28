@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+"""
+nemo - Unified skill runner for the workspace.
+
+A single command to discover, explore, and execute all workspace skills.
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+WORKSPACE_ROOT = Path("/root/.openclaw/workspace")
+SKILLS_DIR = WORKSPACE_ROOT / "skills"
+BIN_DIR = WORKSPACE_ROOT / "bin"
+
+
+@dataclass
+class Skill:
+    """Represents a discovered skill."""
+    name: str
+    description: str
+    path: Path
+    executable: Optional[Path] = None
+    has_scripts: bool = False
+    aliases: list[str] = field(default_factory=list)
+    
+    @property
+    def skill_md(self) -> Path:
+        return self.path / "SKILL.md"
+    
+    @property
+    def scripts_dir(self) -> Path:
+        return self.path / "scripts"
+    
+    def matches(self, name: str) -> bool:
+        """Check if this skill matches the given name (including aliases)."""
+        if name == self.name:
+            return True
+        return name in self.aliases
+
+
+def discover_skills() -> list[Skill]:
+    """Discover all skills in the skills directory."""
+    skills = []
+    skill_aliases = {}  # alias -> skill_name
+    
+    # First, find all symlinks in bin/ that point to skills
+    if BIN_DIR.exists():
+        for item in BIN_DIR.iterdir():
+            if item.is_symlink():
+                target = os.readlink(item)
+                # Check if target is within skills/
+                if "skills/" in target:
+                    skill_name = target.split("skills/")[-1].split("/")[0]
+                    skill_aliases[item.name] = skill_name
+    
+    if not SKILLS_DIR.exists():
+        return skills
+    
+    for skill_dir in sorted(SKILLS_DIR.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+            
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        
+        # Parse frontmatter for description
+        description = "No description"
+        try:
+            content = skill_md.read_text()
+            if "description:" in content:
+                for line in content.split("\n"):
+                    if "description:" in line:
+                        desc = line.split("description:", 1)[1].strip().strip('"')
+                        description = desc
+                        break
+        except Exception:
+            pass
+        
+        # Check for executable (symlink in bin/ or file in skill dir)
+        executable = None
+        bin_link = BIN_DIR / skill_dir.name
+        if bin_link.exists():
+            executable = bin_link
+        elif (skill_dir / skill_dir.name).exists():
+            executable = skill_dir / skill_dir.name
+        
+        # Check for scripts directory
+        has_scripts = (skill_dir / "scripts").exists()
+        
+        # Find aliases for this skill
+        aliases = [alias for alias, target in skill_aliases.items() if target == skill_dir.name]
+        
+        # If there's an alias that matches a bin/ symlink, use that as the primary executable path
+        # when the skill's own name doesn't have a direct symlink
+        if not executable and aliases:
+            for alias in aliases:
+                alias_path = BIN_DIR / alias
+                if alias_path.exists():
+                    executable = alias_path
+                    break
+        
+        skill = Skill(
+            name=skill_dir.name,
+            description=description,
+            path=skill_dir,
+            executable=executable,
+            has_scripts=has_scripts,
+            aliases=aliases
+        )
+        skills.append(skill)
+    
+    return skills
+
+
+def format_skill_line(skill: Skill, verbose: bool = False) -> str:
+    """Format a skill for display."""
+    indicators = []
+    if skill.executable:
+        indicators.append("⚡")
+    if skill.has_scripts:
+        indicators.append("📜")
+    
+    indicator_str = " " + "".join(indicators) if indicators else ""
+    
+    if verbose:
+        return f"  {skill.name:20} {indicator_str}\n    {skill.description}"
+    return f"  {skill.name:20} {indicator_str}  {skill.description[:50]}..."
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    """List all available skills."""
+    skills = discover_skills()
+    
+    print(f"\n🦑 Nemo Skills ({len(skills)} found)\n")
+    
+    # Group by capability indicators
+    executable = [s for s in skills if s.executable]
+    scripts_only = [s for s in skills if s.has_scripts and not s.executable]
+    docs_only = [s for s in skills if not s.executable and not s.has_scripts]
+    
+    if executable:
+        print("⚡ Runnable (have main executable):")
+        for skill in executable:
+            print(format_skill_line(skill, verbose=args.verbose))
+        print()
+    
+    if scripts_only:
+        print("📜 Script-based (scripts/ directory):")
+        for skill in scripts_only:
+            print(format_skill_line(skill, verbose=args.verbose))
+        print()
+    
+    if docs_only:
+        print("📖 Documentation only:")
+        for skill in docs_only:
+            print(format_skill_line(skill, verbose=args.verbose))
+        print()
+    
+    print("Usage: nemo <skill-name> [args...]  # Run a skill")
+    print("       nemo info <skill-name>       # Show skill details")
+    print("       nemo docs <skill-name>       # Open SKILL.md")
+    return 0
+
+
+def cmd_info(args: argparse.Namespace) -> int:
+    """Show detailed info about a skill."""
+    skills = discover_skills()
+    skill = next((s for s in skills if s.matches(args.skill_name)), None)
+    
+    if not skill:
+        print(f"❌ Skill not found: {args.skill_name}")
+        print(f"\nRun 'nemo list' to see available skills.")
+        return 1
+    
+    print(f"\n🦑 {skill.name}\n")
+    print(f"  Path: {skill.path}")
+    print(f"  Description: {skill.description}")
+    
+    if skill.executable:
+        print(f"  Executable: {skill.executable}")
+        # Try to get help
+        try:
+            result = subprocess.run(
+                [str(skill.executable), "--help"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                print(f"\n  Usage:")
+                for line in result.stdout.strip().split("\n")[:10]:
+                    print(f"    {line}")
+        except Exception:
+            pass
+    
+    if skill.has_scripts:
+        scripts = list(skill.scripts_dir.iterdir())
+        if scripts:
+            print(f"\n  Scripts:")
+            for script in sorted(scripts):
+                print(f"    - {script.name}")
+    
+    print(f"\n  Documentation: {skill.skill_md}")
+    return 0
+
+
+def cmd_docs(args: argparse.Namespace) -> int:
+    """Display skill documentation."""
+    skills = discover_skills()
+    skill = next((s for s in skills if s.matches(args.skill_name)), None)
+    
+    if not skill:
+        print(f"❌ Skill not found: {args.skill_name}")
+        return 1
+    
+    try:
+        content = skill.skill_md.read_text()
+        print(content)
+    except Exception as e:
+        print(f"❌ Error reading documentation: {e}")
+        return 1
+    
+    return 0
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    """Run a skill with arguments."""
+    skills = discover_skills()
+    skill = next((s for s in skills if s.name == args.skill_name), None)
+    
+    if not skill:
+        print(f"❌ Skill not found: {args.skill_name}")
+        print(f"\nRun 'nemo list' to see available skills.")
+        return 1
+    
+    if not skill.executable:
+        print(f"❌ Skill '{skill.name}' has no executable")
+        print(f"\nThis skill is documentation-only.")
+        print(f"Run 'nemo docs {skill.name}' to read the documentation.")
+        return 1
+    
+    # Run the skill with remaining arguments
+    cmd = [str(skill.executable)] + args.skill_args
+    
+    try:
+        result = subprocess.run(cmd)
+        return result.returncode
+    except FileNotFoundError:
+        print(f"❌ Executable not found: {skill.executable}")
+        return 1
+    except KeyboardInterrupt:
+        print("\n⚡ Interrupted")
+        return 130
+
+
+def main() -> int:
+    # Check if first arg is a skill name (not a known command)
+    known_commands = {"list", "info", "docs", "-h", "--help"}
+    
+    if len(sys.argv) > 1 and sys.argv[1] not in known_commands:
+        # First arg is a skill name - run it directly
+        skill_name = sys.argv[1]
+        skill_args = sys.argv[2:]
+        
+        skills = discover_skills()
+        skill = next((s for s in skills if s.matches(skill_name)), None)
+        
+        if skill and skill.executable:
+            cmd = [str(skill.executable)] + skill_args
+            try:
+                result = subprocess.run(cmd)
+                return result.returncode
+            except FileNotFoundError:
+                print(f"❌ Executable not found: {skill.executable}")
+                return 1
+            except KeyboardInterrupt:
+                print("\n⚡ Interrupted")
+                return 130
+        elif skill:
+            print(f"❌ Skill '{skill_name}' has no executable")
+            return 1
+        else:
+            print(f"❌ Unknown skill or command: {skill_name}")
+            print(f"\nRun 'nemo list' to see available skills.")
+            return 1
+    
+    # Otherwise use argparse for known commands
+    parser = argparse.ArgumentParser(
+        prog="nemo",
+        description="Unified skill runner for the workspace",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  nemo list                 # List all skills
+  nemo info health-monitor  # Show skill details
+  nemo health --check       # Run health monitor
+  nemo docs art-scaffold    # Read documentation
+        """
+    )
+    
+    subparsers = parser.add_subparsers(dest="command", help="Commands")
+    
+    # list command
+    list_parser = subparsers.add_parser("list", help="List available skills")
+    list_parser.add_argument("-v", "--verbose", action="store_true", help="Show full descriptions")
+    
+    # info command
+    info_parser = subparsers.add_parser("info", help="Show skill information")
+    info_parser.add_argument("skill_name", help="Name of the skill")
+    
+    # docs command
+    docs_parser = subparsers.add_parser("docs", help="Show skill documentation")
+    docs_parser.add_argument("skill_name", help="Name of the skill")
+    
+    parsed = parser.parse_args()
+    
+    # Handle explicit commands
+    if parsed.command == "list":
+        return cmd_list(parsed)
+    elif parsed.command == "info":
+        return cmd_info(parsed)
+    elif parsed.command == "docs":
+        return cmd_docs(parsed)
+    
+    # No command given - show list
+    return cmd_list(argparse.Namespace(verbose=False))
+
+
+if __name__ == "__main__":
+    sys.exit(main())
