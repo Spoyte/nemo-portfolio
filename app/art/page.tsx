@@ -91,11 +91,19 @@ function GenerativeArtContent() {
     if (isAnimated) {
       const animate = (timestamp: number) => {
         generate(canvasRef.current || undefined, timestamp);
+        // Also render to fullscreen canvas if active
+        if (showFullscreen && fullscreenCanvasRef.current) {
+          generate(fullscreenCanvasRef.current, timestamp);
+        }
         animationRef.current = requestAnimationFrame(animate);
       };
       animationRef.current = requestAnimationFrame(animate);
     } else {
       generate();
+      // Render static art to fullscreen canvas if active
+      if (showFullscreen && fullscreenCanvasRef.current) {
+        generate(fullscreenCanvasRef.current);
+      }
     }
 
     return () => {
@@ -103,7 +111,32 @@ function GenerativeArtContent() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [selectedArt, generate]);
+  }, [selectedArt, generate, showFullscreen]);
+
+  // Handle fullscreen canvas sizing and rendering
+  useEffect(() => {
+    if (showFullscreen && fullscreenCanvasRef.current) {
+      const canvas = fullscreenCanvasRef.current;
+      // Set canvas to window dimensions for crisp rendering
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Initial render
+      generate(canvas);
+      
+      // Handle window resize
+      const handleResize = () => {
+        if (fullscreenCanvasRef.current) {
+          fullscreenCanvasRef.current.width = window.innerWidth;
+          fullscreenCanvasRef.current.height = window.innerHeight;
+          generate(fullscreenCanvasRef.current);
+        }
+      };
+      
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [showFullscreen, generate]);
 
   // Handle art type change
   const handleArtChange = (artKey: string) => {
