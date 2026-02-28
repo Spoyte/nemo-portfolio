@@ -4,49 +4,17 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Moon, Sun, Terminal } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Menu, X, Terminal } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
-  { href: "/timeline", label: "Timeline" },
-  { href: "/new-features", label: "New" },
-  { href: "/hire", label: "Hire Me" },
-  { href: "/projects", label: "Projects" },
-  { href: "/projects-showcase", label: "Showcase" },
-  { href: "/blog", label: "Blog" },
-  { href: "/skills", label: "Skills" },
-  { href: "/journey", label: "Journey" },
   { href: "/now", label: "Now" },
-  { href: "/code-cinema", label: "Cinema" },
-  { href: "/trading-cards", label: "Cards" },
-  { href: "/mood-themes", label: "Themes" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/terminal", label: "Terminal" },
-  { href: "/api-playground", label: "API" },
-  { href: "/games", label: "Games" },
-  { href: "/interactive-playground", label: "Playground" },
-  { href: "/music", label: "Music" },
-  { href: "/snippets", label: "Snippets" },
-  { href: "/design-system", label: "Design" },
-  { href: "/art-gallery", label: "Art Gallery" },
-  { href: "/creative-space", label: "Creative Space" },
-  { href: "/playground", label: "Playground" },
-  { href: "/experiments", label: "Experiments" },
-  { href: "/secret-lab", label: "Secret Lab" },
-  { href: "/code-poetry", label: "Code Poetry" },
-  { href: "/zen-mode", label: "Zen Mode" },
-  { href: "/speed-type", label: "Speed Type" },
-  { href: "/ascii-gallery", label: "ASCII Gallery" },
-  { href: "/bookmarks", label: "Bookmarks" },
-  { href: "/reading", label: "Reading" },
-  { href: "/setup", label: "Setup" },
-  { href: "/jokes", label: "Jokes" },
-  { href: "/changelog", label: "Changelog" },
-  { href: "/achievements", label: "Achievements" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/hire-me", label: "Hire Me" },
+  { href: "/timeline", label: "Timeline" },
+  { href: "/skills", label: "Skills" },
+  { href: "/projects", label: "Projects" },
+  { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -55,12 +23,6 @@ export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [konami, setKonami] = useState<string[]>([]);
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,16 +32,13 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Konami code easter egg
+  // Track Konami code progress
   useEffect(() => {
     const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
     
     const handleKeyDown = (e: KeyboardEvent) => {
       setKonami((prev) => {
         const newKonami = [...prev, e.key].slice(-10);
-        if (newKonami.join(",") === konamiCode.join(",")) {
-          window.location.href = "/secret";
-        }
         return newKonami;
       });
     };
@@ -95,16 +54,20 @@ export function Navigation() {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "glass-strong py-3" : "bg-transparent py-5"
+          scrolled ? "glass-strong py-3 shadow-sm" : "bg-transparent py-5"
         }`}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg group-hover:scale-110 transition-transform">
+              <motion.div 
+                className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                whileTap={{ scale: 0.9 }}
+              >
                 N
-              </div>
+              </motion.div>
               <span className="font-semibold text-lg hidden sm:block">Nemo</span>
             </Link>
 
@@ -134,38 +97,7 @@ export function Navigation() {
 
             {/* Right Side */}
             <div className="flex items-center gap-2">
-              {/* Theme Toggle */}
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                  aria-label="Toggle theme"
-                >
-                  <AnimatePresence mode="wait">
-                    {theme === "dark" ? (
-                      <motion.div
-                        key="sun"
-                        initial={{ scale: 0, rotate: -90 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={{ scale: 0, rotate: 90 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Sun className="w-5 h-5" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="moon"
-                        initial={{ scale: 0, rotate: 90 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={{ scale: 0, rotate: -90 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Moon className="w-5 h-5" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-              )}
+              <ThemeToggle />
 
               {/* Mobile Menu Button */}
               <button
@@ -238,18 +170,20 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Konami Code Hint */}
-      {konami.length > 0 && konami.length < 10 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="fixed bottom-4 right-4 z-50 glass px-4 py-2 rounded-lg text-sm flex items-center gap-2"
-        >
-          <Terminal className="w-4 h-4" />
-          <span>{konami.length}/10</span>
-        </motion.div>
-      )}
+      {/* Konami Code Progress */}
+      <AnimatePresence>
+        {konami.length > 0 && konami.length < 10 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-4 right-4 z-50 glass px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+          >
+            <Terminal className="w-4 h-4" />
+            <span>{konami.length}/10</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

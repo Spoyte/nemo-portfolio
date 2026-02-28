@@ -271,3 +271,7 @@ if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {
     console.warn("[art/index] Registry validation issues:", validation);
   }
 }
+
+// Flowing Magnetism
+export { renderFlowingMagnetism, flowingMagnetismDefaultParams } from './flowing-magnetism';
+export type { FlowingMagnetismParams } from './flowing-magnetism';

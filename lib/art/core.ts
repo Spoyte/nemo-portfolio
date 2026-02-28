@@ -16,6 +16,25 @@ export interface ParamConfig {
   default: number | string;
 }
 
+// ParamType enum for convenience
+export enum ParamType {
+  RANGE = "range",
+  SELECT = "select",
+  BOOLEAN = "boolean",
+  SEED = "seed",
+  COLOR = "color",
+}
+
+// ParamDef type alias for backward compatibility
+export type ParamDef = ParamConfig;
+
+// ArtCanvas type for backward compatibility
+export interface ArtCanvas {
+  width: number;
+  height: number;
+  ctx: CanvasRenderingContext2D;
+}
+
 // Artwork category for organization
 export type ArtCategory =
   | "mathematical"      // Pure math: fractals, curves, geometric forms

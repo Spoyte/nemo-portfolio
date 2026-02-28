@@ -163,6 +163,12 @@
 }
 
 /* Animation utilities */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
@@ -171,12 +177,6 @@
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
   50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.6); }
-}
-
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
 }
 
 @keyframes shimmer {
@@ -347,4 +347,20 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Smooth theme transitions */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html * {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Exclude motion-heavy elements from color transitions */
+html *:is(.no-transition, [class*="animate"], [class*="motion"]) {
+  transition-property: none;
 }

@@ -3,30 +3,9 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
-import { Analytics } from "@/components/analytics";
 import { ScrollProgress } from "@/components/scroll-progress";
-import { TerminalWidget } from "@/components/terminal-widget";
-import { CommandPalette } from "@/components/command-palette";
-import { CursorFollower } from "@/components/cursor-follower";
-import { EasterEggTracker } from "@/components/easter-egg-tracker";
 import { Toaster } from "@/components/toaster";
-import { AIChatEnhanced } from "@/components/ai-chat-enhanced";
-import { MusicPlayerWidget } from "@/components/music-player";
-import { VoiceNavigation } from "@/components/voice-navigation";
-import { RealTimeCollaboration } from "@/components/real-time-collaboration";
-import { InteractiveTerminal } from "@/components/interactive-terminal";
-
-// New enhanced components
-import { CodeRainToggle } from "@/components/code-rain-background";
-import { WeatherWidget } from "@/components/weather-widget";
-import { FocusModeProvider, FocusModeToggle } from "@/components/focus-mode";
-import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
-import { ParticleCursorTrail } from "@/components/particle-cursor-trail";
-import { DynamicFavicon } from "@/components/dynamic-favicon";
-import { ScreenSaver } from "@/components/screen-saver";
-import { ToastProvider } from "@/components/notification-toast";
-import { PomodoroTimer } from "@/components/pomodoro-timer";
-import { ParticleNetwork } from "@/components/particle-network";
+import { KonamiCodeEasterEgg } from "@/components/konami-easter-egg";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -61,43 +40,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          <ToastProvider>
-            <FocusModeProvider>
-              <CursorFollower>
-                <ParticleCursorTrail>
-                  <ParticleNetwork />
-                  <DynamicFavicon />
-                  <Analytics />
-                  <ScrollProgress />
-                  <Toaster />
-                  
-                  <div className="flex flex-col min-h-screen">
-                    <Navigation />
-                    <main className="flex-1">{children}</main>
-                    <Footer />
-                  </div>
+          <ScrollProgress />
+          <Toaster />
+          <div className="flex flex-col min-h-screen">
+            <Navigation />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
 
-                  {/* Core Widgets */}
-                  <TerminalWidget />
-                  <MusicPlayerWidget />
-                  <AIChatEnhanced />
-                  <CommandPalette />
-                  <EasterEggTracker />
-                  <VoiceNavigation />
-                  <RealTimeCollaboration />
-                  <InteractiveTerminal />
-
-                  {/* New Enhanced Features */}
-                  <CodeRainToggle />
-                  <WeatherWidget />
-                  <FocusModeToggle />
-                  <KeyboardShortcuts />
-                  <ScreenSaver />
-                  <PomodoroTimer />
-                </ParticleCursorTrail>
-              </CursorFollower>
-            </FocusModeProvider>
-          </ToastProvider>
+          {/* Easter Egg */}
+          <KonamiCodeEasterEgg />
         </ThemeProvider>
       </body>
     </html>
