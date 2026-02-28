@@ -38,6 +38,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["geometric", "ordered", "colorful", "detailed"],
     created: "2024-02-25",
   },
+  "sierpinski-triangle": {
+    category: "mathematical",
+    complexity: "moderate",
+    tags: ["static", "geometric", "ordered", "minimal"],
+    created: "2026-02-28",
+  },
 
   // === NATURAL ===
   "aurora-borealis": {
@@ -250,6 +256,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     category: "traditional",
     complexity: "complex",
     tags: ["animated", "organic", "detailed", "nature"],
+    created: "2026-02-28",
+  },
+  "paper-marbling": {
+    category: "traditional",
+    complexity: "moderate",
+    tags: ["animated", "organic", "colorful", "detailed"],
     created: "2026-02-28",
   },
   "moire-pattern": {

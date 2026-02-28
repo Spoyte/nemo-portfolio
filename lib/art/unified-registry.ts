@@ -121,6 +121,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderChaosGame",
     importName: "chaosGame",
   },
+  {
+    id: "sierpinski-triangle",
+    name: "Sierpinski Triangle",
+    description: "The iconic fractal triangle — infinite complexity from simple recursive subdivision",
+    category: "mathematical",
+    loader: () => import("./sierpinski-triangle"),
+    renderFnName: "renderSierpinski",
+    importName: "sierpinskiTriangle",
+  },
 
   // === NATURAL (9) ===
   {
@@ -535,7 +544,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "langtonsAnt",
   },
 
-  // === TRADITIONAL (6) ===
+  // === TRADITIONAL (8) ===
   {
     id: "digital-weave",
     name: "Digital Weave",
@@ -598,6 +607,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./ink-diffusion"),
     renderFnName: "renderInkDiffusion",
     importName: "inkDiffusion",
+  },
+  {
+    id: "paper-marbling",
+    name: "Paper Marbling",
+    description: "Traditional Ebru art simulation - floating pigments creating organic swirling patterns on water, transferred to paper",
+    category: "traditional",
+    loader: () => import("./paper-marbling"),
+    renderFnName: "renderPaperMarbling",
+    importName: "paperMarbling",
   },
 
   // === TEXT (1) ===

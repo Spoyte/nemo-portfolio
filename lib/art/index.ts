@@ -54,6 +54,7 @@ import { spaceFillingCurves } from "./space-filling-curves";
 import { fourierSynthesis } from "./fourier-synthesis";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
+import { sierpinskiTriangle } from "./sierpinski-triangle";
 
 // === NATURAL (8) ===
 import { auroraBorealis } from "./aurora-borealis";
@@ -147,6 +148,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "fourier-synthesis": fourierSynthesis,
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
+  "sierpinski-triangle": sierpinskiTriangle,
 
   // === NATURAL ===
   "aurora-borealis": auroraBorealis,
