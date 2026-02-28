@@ -1,4 +1,9 @@
-# backup-restore Skill
+---
+name: backup-restore
+description: "Automated backup and restore operations for workspace data protection. Use when: (1) Creating backups before major changes, (2) Migrating to a new machine, (3) Recovering from data loss, (4) Setting up automated backup schedules."
+---
+
+# Backup & Restore
 
 Automated backup and restore operations for the workspace. Protects against data loss and enables easy migration.
 

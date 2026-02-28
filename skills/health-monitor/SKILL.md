@@ -1,4 +1,9 @@
-# Health Monitor Skill
+---
+name: health-monitor
+description: "Unified workspace and system health monitoring with auto-fix capabilities. Use when: (1) Checking overall system health, (2) Identifying workspace issues, (3) Auto-fixing common problems, (4) Monitoring trends over time."
+---
+
+# Health Monitor
 
 Unified workspace and system health monitoring with a plugin-based architecture.
 
