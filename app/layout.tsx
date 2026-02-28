@@ -7,6 +7,7 @@ import { ScrollProgress } from "@/components/scroll-progress";
 import { Toaster } from "@/components/toaster";
 import { KonamiCodeEasterEgg } from "@/components/konami-easter-egg";
 import { AchievementSystem } from "@/components/achievement-system-portfolio";
+import { TerminalToggle } from "@/components/interactive-terminal";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -54,6 +55,9 @@ export default function RootLayout({
           
           {/* Achievement System */}
           <AchievementSystem />
+          
+          {/* Terminal Toggle */}
+          <TerminalToggle />
         </ThemeProvider>
       </body>
     </html>
