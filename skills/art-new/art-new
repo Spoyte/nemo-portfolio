@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+#
+# art-new — Scaffold new generative art algorithms
+# Usage: art-new <kebab-name> "Descriptive Name"
+#
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Paths
+ART_DIR="/root/.openclaw/workspace/nemo-portfolio/my-app/lib/art"
+REGISTRY_FILE="$ART_DIR/unified-registry.ts"
+METADATA_FILE="$ART_DIR/metadata.ts"
+INDEX_FILE="$ART_DIR/index.ts"
+
+# Help
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "art-new — Scaffold new generative art algorithms"
+    echo ""
+    echo "Usage:"
+    echo "  art-new <kebab-name> \"Descriptive Name\""
+    echo ""
+    echo "Examples:"
+    echo "  art-new neural-flow \"Neural Flow Fields\""
+    echo "  art-new reaction-diffusion \"Reaction Diffusion Patterns\""
+    echo ""
+    echo "Categories: mathematical, natural, physics, geometric, abstract, 3d, interactive"
+    exit 0
+fi
+
+# Validate arguments
+if [[ $# -lt 2 ]]; then
+    echo -e "${RED}Error: Missing arguments${NC}"
+    echo "Usage: art-new <kebab-name> \"Descriptive Name\""
+    exit 1
+fi
+
+KEBAB_NAME="$1"
+DISPLAY_NAME="$2"
+
+# Convert kebab to camelCase for function names
+CAMEL_NAME=$(echo "$KEBAB_NAME" | sed -E 's/-([a-z])/\U\1/g; s/^([A-Z])/\L\1/')
+# Convert kebab to PascalCase for type names
+PASCAL_NAME=$(echo "$KEBAB_NAME" | sed -E 's/(^|-)([a-z])/\U\2/g')
+
+# Check if file already exists
+if [[ -f "$ART_DIR/$KEBAB_NAME.ts" ]]; then
+    echo -e "${RED}Error: $KEBAB_NAME.ts already exists${NC}"
+    exit 1
+fi
+
+# Prompt for category
+echo -e "${BLUE}Select category:${NC}"
+echo "  1) mathematical"
+echo "  2) natural"
+echo "  3) physics"
+echo "  4) geometric"
+echo "  5) abstract"
+echo "  6) 3d"
+echo "  7) interactive"
+read -p "Enter number (1-7): " CATEGORY_NUM
+
+case $CATEGORY_NUM in
+    1) CATEGORY="mathematical" ;;
+    2) CATEGORY="natural" ;;
+    3) CATEGORY="physics" ;;
+    4) CATEGORY="geometric" ;;
+    5) CATEGORY="abstract" ;;
+    6) CATEGORY="3d" ;;
+    7) CATEGORY="interactive" ;;
+    *) echo -e "${RED}Invalid category${NC}"; exit 1 ;;
+esac
+
+echo -e "${GREEN}Creating $DISPLAY_NAME ($KEBAB_NAME) in category: $CATEGORY${NC}"
+
+# ============================================================================
+# Create main generator file
+# ============================================================================
+cat > "$ART_DIR/$KEBAB_NAME.ts" << 'EOF'
+import { ArtGenerator, GeneratorContext, ExportOptions } from "./core";
+
+export interface DISPLAY_NAMEConfig {
+  // TODO: Add your parameters here
+  parameter1: number;
+  parameter2: string;
+  colorScheme: "warm" | "cool" | "monochrome";
+  animated: boolean;
+}
+
+export const defaultDISPLAY_NAMEConfig: DISPLAY_NAMEConfig = {
+  parameter1: 50,
+  parameter2: "default",
+  colorScheme: "warm",
+  animated: true,
+};
+
+export class DISPLAY_NAMEGenerator implements ArtGenerator {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private config: DISPLAY_NAMEConfig;
+  private animationId: number | null = null;
+  private time: number = 0;
+
+  constructor(canvas: HTMLCanvasElement, config: Partial<DISPLAY_NAMEConfig> = {}) {
+    this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get 2D context");
+    this.ctx = ctx;
+    this.config = { ...defaultDISPLAY_NAMEConfig, ...config };
+  }
+
+  private getColors(scheme: string): string[] {
+    const palettes: Record<string, string[]> = {
+      warm: ["#FF6B35", "#F7931E", "#FFD23F", "#EE4266", "#540D6E"],
+      cool: ["#3B82F6", "#06B6D4", "#10B981", "#8B5CF6", "#6366F1"],
+      monochrome: ["#000000", "#333333", "#666666", "#999999", "#CCCCCC"],
+    };
+    return palettes[scheme] || palettes.warm;
+  }
+
+  generate(): void {
+    const { width, height } = this.canvas;
+    const colors = this.getColors(this.config.colorScheme);
+
+    // Clear canvas
+    this.ctx.fillStyle = "#0a0a0a";
+    this.ctx.fillRect(0, 0, width, height);
+
+    // TODO: Implement your algorithm here
+    // This is where the magic happens!
+
+    // Example: Draw a simple pattern
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const maxRadius = Math.min(width, height) * 0.4;
+
+    for (let i = 0; i < 100; i++) {
+      const angle = (i / 100) * Math.PI * 2 + this.time;
+      const radius = (i / 100) * maxRadius;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, 5 + i * 0.1, 0, Math.PI * 2);
+      this.ctx.fillStyle = colors[i % colors.length];
+      this.ctx.fill();
+    }
+  }
+
+  animate(): void {
+    if (!this.config.animated) return;
+
+    const loop = () => {
+      this.time += 0.01;
+      this.generate();
+      this.animationId = requestAnimationFrame(loop);
+    };
+
+    this.stop();
+    loop();
+  }
+
+  stop(): void {
+    if (this.animationId !== null) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+  }
+
+  updateConfig(newConfig: Partial<DISPLAY_NAMEConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+    this.generate();
+  }
+
+  export(options: ExportOptions = {}): string {
+    return this.canvas.toDataURL(options.format || "image/png", options.quality);
+  }
+
+  getMetadata() {
+    return {
+      name: "DISPLAY_NAME",
+      description: "TODO: Add description",
+      category: "CATEGORY",
+      tags: ["TODO", "add", "tags"],
+      complexity: "medium",
+    };
+  }
+}
+
+// Factory function for easy instantiation
+export function createDISPLAY_NAME(
+  canvas: HTMLCanvasElement,
+  config?: Partial<DISPLAY_NAMEConfig>
+): DISPLAY_NAMEGenerator {
+  return new DISPLAY_NAMEGenerator(canvas, config);
+}
+
+// Default export
+export default DISPLAY_NAMEGenerator;
+EOF
+
+# Replace placeholders in the template
+sed -i "s/DISPLAY_NAME/$PASCAL_NAME/g" "$ART_DIR/$KEBAB_NAME.ts"
+sed -i "s/CATEGORY/$CATEGORY/g" "$ART_DIR/$KEBAB_NAME.ts"
+
+# ============================================================================
+# Create thumbnail variant
+# ============================================================================
+cat > "$ART_DIR/$KEBAB_NAME-thumb.ts" << 'EOF'
+import { ArtGenerator, GeneratorContext } from "./core";
+
+export class DISPLAY_NAMEMini implements ArtGenerator {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get 2D context");
+    this.ctx = ctx;
+  }
+
+  generate(): void {
+    const { width, height } = this.canvas;
+
+    // Simplified version for thumbnails
+    this.ctx.fillStyle = "#0a0a0a";
+    this.ctx.fillRect(0, 0, width, height);
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Quick preview pattern
+    this.ctx.strokeStyle = "#FF6B35";
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, width * 0.3, 0, Math.PI * 2);
+    this.ctx.stroke();
+  }
+
+  animate(): void {
+    // Thumbnails are static
+    this.generate();
+  }
+
+  stop(): void {
+    // No-op for thumbnails
+  }
+}
+
+export function createDISPLAY_NAMEMini(canvas: HTMLCanvasElement): DISPLAY_NAMEMini {
+  return new DISPLAY_NAMEMini(canvas);
+}
+
+export default DISPLAY_NAMEMini;
+EOF
+
+sed -i "s/DISPLAY_NAME/$PASCAL_NAME/g" "$ART_DIR/$KEBAB_NAME-thumb.ts"
+
+echo -e "${GREEN}✓ Created $KEBAB_NAME.ts${NC}"
+echo -e "${GREEN}✓ Created $KEBAB_NAME-thumb.ts${NC}"
+
+# ============================================================================
+# Update index.ts with new export
+# ============================================================================
+echo -e "${YELLOW}⚠ Manual step required:${NC}"
+echo "  Add the following to $INDEX_FILE:"
+echo ""
+echo "  import { $CAMEL_NAME } from \"./$KEBAB_NAME\";"
+echo "  // In the appropriate category section"
+echo ""
+
+# ============================================================================
+# Update unified-registry.ts
+# ============================================================================
+echo -e "${YELLOW}⚠ Manual step required:${NC}"
+echo "  Add to $REGISTRY_FILE in the $CATEGORY section:"
+echo ""
+echo "    $KEBAB_NAME: {"
+echo "      id: \"$KEBAB_NAME\","
+echo "      name: \"$DISPLAY_NAME\","
+echo "      category: \"$CATEGORY\","
+echo "      loader: () => import(\"./$KEBAB_NAME\"),"
+echo "      thumbnailLoader: () => import(\"./$KEBAB_NAME-thumb\"),"
+echo "    },"
+echo ""
+
+# ============================================================================
+# Update metadata.ts
+# ============================================================================
+echo -e "${YELLOW}⚠ Manual step required:${NC}"
+echo "  Add to $METADATA_FILE:"
+echo ""
+echo "    $KEBAB_NAME: {"
+echo "      title: \"$DISPLAY_NAME\","
+echo "      description: \"TODO: Add description\","
+echo "      category: \"$CATEGORY\","
+echo "      tags: [\"TODO\", \"add\", \"tags\"],"
+echo "      complexity: \"medium\","
+echo "      animated: true,"
+echo "    },"
+echo ""
+
+echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}  $DISPLAY_NAME scaffolded successfully!${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
+echo ""
+echo "Next steps:"
+echo "  1. Edit $KEBAB_NAME.ts — implement your algorithm"
+echo "  2. Update registry and metadata (see manual steps above)"
+echo "  3. Test in browser"
+echo "  4. Commit: git add . && git commit -m \"feat(art): add $KEBAB_NAME\""
