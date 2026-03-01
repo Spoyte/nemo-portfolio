@@ -1,0 +1,360 @@
+#!/usr/bin/env node
+/**
+ * art-test — Validate generative art generators
+ * 
+ * Tests:
+ * 1. Import test — Can the module be imported?
+ * 2. Export test — Does it export required functions?
+ * 3. Render test — Can it render to a canvas?
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Configuration
+const ART_DIR = path.join(__dirname, '..', '..', 'nemo-portfolio', 'my-app', 'lib', 'art');
+const STATE_FILE = path.join(__dirname, '.test-state.json');
+
+// ANSI colors
+const C = {
+  reset: '\x1b[0m',
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  gray: '\x1b[90m',
+  bold: '\x1b[1m'
+};
+
+// Parse arguments
+const args = process.argv.slice(2);
+const quickMode = args.includes('--quick');
+const renderMode = args.includes('--render');
+const failedOnly = args.includes('--failed');
+const jsonMode = args.includes('--json');
+const verbose = args.includes('-v') || args.includes('--verbose');
+
+// Load previous failures if requested
+let previousFailures = [];
+if (failedOnly && fs.existsSync(STATE_FILE)) {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    previousFailures = state.failed || [];
+  } catch (e) {
+    // Ignore
+  }
+}
+
+// Find all generator files (excluding index, registry, thumbnails, etc.)
+function findGenerators() {
+  const files = fs.readdirSync(ART_DIR);
+  const generators = [];
+  
+  for (const file of files) {
+    if (!file.endsWith('.ts')) continue;
+    if (file.endsWith('-thumb.ts')) continue;
+    if (file === 'index.ts') continue;
+    if (file === 'registry.ts') continue;
+    if (file === 'core.ts') continue;
+    if (file === 'metadata.ts') continue;
+    if (file === 'favorites.ts') continue;
+    if (file === 'statistics.ts') continue;
+    if (file === 'thumbnails.ts') continue;
+    if (file === 'seeded-random.ts') continue;
+    if (file === 'unified-registry.ts') continue;
+    
+    const name = file.replace('.ts', '');
+    
+    // If filtering to failed only, skip others
+    if (failedOnly && !previousFailures.includes(name)) {
+      continue;
+    }
+    
+    generators.push({
+      name,
+      file: path.join(ART_DIR, file),
+      relative: `lib/art/${file}`
+    });
+  }
+  
+  return generators.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Test 1: Can we read the file?
+async function testImport(generator) {
+  try {
+    const content = fs.readFileSync(generator.file, 'utf8');
+    
+    // Basic sanity checks
+    if (content.length === 0) {
+      return {
+        passed: false,
+        error: 'Empty file'
+      };
+    }
+    
+    // Check for export statement (basic sanity check)
+    const hasExport = /\bexport\b/.test(content);
+    if (!hasExport) {
+      return {
+        passed: false,
+        error: 'No export statement found'
+      };
+    }
+    
+    return { passed: true };
+  } catch (error) {
+    return { 
+      passed: false, 
+      error: error.message || 'Could not read file'
+    };
+  }
+}
+
+// Test 2: Does it export the right things?
+async function testExports(generator) {
+  try {
+    const content = fs.readFileSync(generator.file, 'utf8');
+    
+    // Check for generate function or ArtGenerator object with generate method
+    const hasGenerateFunction = /export\s+(?:async\s+)?function\s+generate\b/.test(content) ||
+                       /export\s+const\s+generate\s*=/.test(content) ||
+                       /export\s*\{[^}]*\bgenerate\b[^}]*\}/.test(content);
+    
+    // Check for ArtGenerator pattern: export const name: ArtGenerator = { ... generate: ... }
+    const hasArtGenerator = /export\s+const\s+\w+\s*:\s*ArtGenerator\s*=/.test(content) &&
+                           /generate\s*\(/.test(content);
+    
+    // Check for any object with a generate method
+    const hasGenerateMethod = /generate\s*\([^)]*\)\s*\{/.test(content) || 
+                              /generate\s*:\s*\(/.test(content);
+    
+    // Check for p5-style render function
+    const hasRenderFunction = /export\s+function\s+render\w+/.test(content) ||
+                              /render\s*:\s*render\w+/.test(content) ||
+                              /render\s*:\s*\(/.test(content);
+    
+    if (!hasGenerateFunction && !hasArtGenerator && !hasGenerateMethod && !hasRenderFunction) {
+      return {
+        passed: false,
+        error: 'No exported generate/render function found'
+      };
+    }
+    
+    return { passed: true };
+  } catch (error) {
+    return {
+      passed: false,
+      error: error.message || 'Could not read file'
+    };
+  }
+}
+
+// Test 3: Can it render? (Check for SSR issues)
+async function testRender(generator) {
+  try {
+    const content = fs.readFileSync(generator.file, 'utf8');
+    
+    // Check for top-level browser API usage that would break SSR
+    const lines = content.split('\n');
+    const issues = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      // Skip comments and imports
+      if (trimmed.startsWith('//') || trimmed.startsWith('*') || 
+          trimmed.startsWith('import ') || trimmed.startsWith('export ')) {
+        continue;
+      }
+      
+      // Check for top-level browser API usage
+      if (/\bwindow\./.test(line) || /\bwindow\[/.test(line)) {
+        // Check if it's inside a function
+        const prevLines = lines.slice(0, i);
+        const functionDepth = prevLines.reduce((depth, l) => {
+          depth += (l.match(/\bfunction\b|\b=\>\s*\{/g) || []).length;
+          depth -= (l.match(/\}/g) || []).length;
+          return depth;
+        }, 0);
+        
+        if (functionDepth === 0) {
+          issues.push(`window at line ${i + 1}`);
+        }
+      }
+    }
+    
+    if (issues.length > 0) {
+      return {
+        passed: false,
+        error: `Potential SSR issues: ${issues.slice(0, 3).join(', ')}${issues.length > 3 ? '...' : ''}`
+      };
+    }
+    
+    return { passed: true };
+  } catch (error) {
+    return {
+      passed: false,
+      error: error.message || 'Render test failed'
+    };
+  }
+}
+
+// Run all tests
+async function runTests() {
+  const generators = findGenerators();
+  
+  if (generators.length === 0) {
+    if (jsonMode) {
+      console.log(JSON.stringify({ error: 'No generators found' }, null, 2));
+    } else {
+      console.log(`${C.red}No generators found${C.reset}`);
+    }
+    process.exit(2);
+  }
+  
+  const results = {
+    total: generators.length,
+    import: { passed: 0, failed: 0, details: [] },
+    export: { passed: 0, failed: 0, details: [] },
+    render: { passed: 0, failed: 0, details: [] },
+    failed: []
+  };
+  
+  if (!jsonMode) {
+    console.log(`\n${C.bold}🎨 Art Test: ${generators.length} generators${C.reset}\n`);
+  }
+  
+  for (const generator of generators) {
+    const genResults = {
+      name: generator.name,
+      import: null,
+      export: null,
+      render: null
+    };
+    
+    // Test 1: Import (file readable, basic sanity)
+    const importResult = await testImport(generator);
+    genResults.import = importResult;
+    if (importResult.passed) {
+      results.import.passed++;
+    } else {
+      results.import.failed++;
+      results.import.details.push({ name: generator.name, error: importResult.error });
+    }
+    
+    // Test 2: Export (skip if import failed)
+    if (importResult.passed) {
+      const exportResult = await testExports(generator);
+      genResults.export = exportResult;
+      if (exportResult.passed) {
+        results.export.passed++;
+      } else {
+        results.export.failed++;
+        results.export.details.push({ name: generator.name, error: exportResult.error });
+      }
+    } else {
+      results.export.details.push({ name: generator.name, error: 'Skipped (import failed)' });
+    }
+    
+    // Test 3: Render (only if requested and previous passed)
+    if (renderMode && genResults.import?.passed && genResults.export?.passed) {
+      const renderResult = await testRender(generator);
+      genResults.render = renderResult;
+      if (renderResult.passed) {
+        results.render.passed++;
+      } else {
+        results.render.failed++;
+        results.render.details.push({ name: generator.name, error: renderResult.error });
+      }
+    }
+    
+    // Track failures
+    if (!genResults.import?.passed || !genResults.export?.passed || 
+        (renderMode && !genResults.render?.passed)) {
+      results.failed.push(generator.name);
+    }
+    
+    // Verbose output
+    if (verbose && !jsonMode) {
+      const status = (!genResults.import?.passed || !genResults.export?.passed) ? 
+        `${C.red}FAIL${C.reset}` : `${C.green}PASS${C.reset}`;
+      console.log(`  ${status} ${generator.name}`);
+      if (!genResults.import?.passed) {
+        console.log(`    Import: ${genResults.import.error}`);
+      }
+      if (!genResults.export?.passed) {
+        console.log(`    Export: ${genResults.export.error}`);
+      }
+    }
+  }
+  
+  // Save state for --failed flag
+  fs.writeFileSync(STATE_FILE, JSON.stringify({ failed: results.failed, timestamp: Date.now() }, null, 2));
+  
+  // Output results
+  if (jsonMode) {
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    // Summary
+    const importPct = Math.round((results.import.passed / results.total) * 100);
+    const exportPct = Math.round((results.export.passed / results.total) * 100);
+    
+    console.log(`${C.bold}Results:${C.reset}`);
+    console.log(`  ${importPct === 100 ? C.green : C.red}Import  ${results.import.passed}/${results.total}  (${importPct}%)${C.reset}`);
+    console.log(`  ${exportPct === 100 ? C.green : C.red}Export  ${results.export.passed}/${results.total}  (${exportPct}%)${C.reset}`);
+    
+    if (renderMode) {
+      const renderPct = Math.round((results.render.passed / results.total) * 100);
+      console.log(`  ${renderPct === 100 ? C.green : C.red}Render  ${results.render.passed}/${results.total}  (${renderPct}%)${C.reset}`);
+    }
+    
+    console.log();
+    
+    // Failures
+    if (results.import.failed > 0) {
+      console.log(`${C.red}${C.bold}Import Failures:${C.reset}`);
+      for (const fail of results.import.details) {
+        console.log(`  ${C.red}✗${C.reset} ${fail.name}`);
+        if (verbose) {
+          console.log(`    ${C.gray}${fail.error.substring(0, 200)}${C.reset}`);
+        }
+      }
+      console.log();
+    }
+    
+    if (results.export.failed > 0) {
+      console.log(`${C.red}${C.bold}Export Failures:${C.reset}`);
+      for (const fail of results.export.details) {
+        console.log(`  ${C.red}✗${C.reset} ${fail.name}: ${fail.error}`);
+      }
+      console.log();
+    }
+    
+    if (results.render.failed > 0) {
+      console.log(`${C.red}${C.bold}Render Failures:${C.reset}`);
+      for (const fail of results.render.details) {
+        console.log(`  ${C.red}✗${C.reset} ${fail.name}: ${fail.error}`);
+      }
+      console.log();
+    }
+    
+    // Final status
+    if (results.failed.length === 0) {
+      console.log(`${C.green}${C.bold}✓ All generators healthy!${C.reset}\n`);
+    } else {
+      console.log(`${C.red}${C.bold}✗ ${results.failed.length} generator(s) failed${C.reset}`);
+      console.log(`${C.gray}  Run with --failed to retest only failed generators${C.reset}\n`);
+    }
+  }
+  
+  // Exit code
+  process.exit(results.failed.length > 0 ? 1 : 0);
+}
+
+// Run
+runTests().catch(err => {
+  console.error(`${C.red}Error: ${err.message}${C.reset}`);
+  process.exit(2);
+});

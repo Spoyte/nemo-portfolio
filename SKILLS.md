@@ -9,6 +9,7 @@ Unified documentation for all workspace skills. 14 skills, one ecosystem.
 | [art-audit](#art-audit) | Portfolio health analysis | ⚡ |
 | [art-ideate](#art-ideate) | Algorithm ideation engine | ⚡ |
 | [art-new](#art-new) | Scaffold new art algorithms | ⚡ |
+| [art-test](#art-test) | Validate generators | ⚡ |
 | [art-thumbnails](#art-thumbnails) | Generate gallery thumbnails | ⚡ |
 | [backup-restore](#backup-restore) | Data protection & migration | ⚡ 📜 |
 | [git-workflow](#git-workflow) | Automated git operations | ⚡ 📜 |
@@ -95,6 +96,32 @@ art-new flowing-lines "Flowing Lines"
 3. Time as input — All pieces animate
 4. Parameters as UI — 2-4 sliders
 5. Color schemes — 3-5 palettes
+
+---
+
+## art-test
+
+**Validate generative art generators** — Test imports, exports, and rendering for all 86+ generators.
+
+```bash
+art-test              # Test all generators
+art-test --quick      # Import/export test only (fast)
+art-test --render     # Include render test (slow)
+art-test --failed     # Re-test only previously failed
+art-test --json       # JSON output for CI/CD
+```
+
+**When to use:** Before releases, CI/CD validation, debugging broken art pieces.
+
+**Tests:**
+1. **Import** — File readable, has exports
+2. **Export** — Has generate/render function
+3. **Render** — No SSR-breaking browser API usage
+
+**Exit codes:**
+- `0` — All tests passed
+- `1` — Some tests failed
+- `2` — Critical error
 
 ---
 
@@ -513,4 +540,4 @@ This file is the skill ecosystem's "bird's eye view." It:
 
 ---
 
-*14 skills. One command. Infinite possibilities.*
+*15 skills. One command. Infinite possibilities.*
