@@ -636,7 +636,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "paperMarbling",
   },
 
-  // === TEXT (3) ===
+  // === TEXT (4) ===
   {
     id: "kinetic-typography",
     name: "Kinetic Typography",
@@ -750,7 +750,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "kineticSculpture",
   },
 
-  // === TEXT (4) ===
+  // === TEXT (5) ===
   {
     id: "poetry-visualizer",
     name: "Poetry Visualizer",
@@ -768,6 +768,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./code-garden"),
     renderFnName: "renderCodeGarden",
     importName: "codeGarden",
+  },
+  {
+    id: "calligraphy-brush",
+    name: "Calligraphy Brush",
+    description: "Procedural East Asian calligraphy simulation with ink physics, brush pressure, and flying white effects",
+    category: "text",
+    loader: () => import("./calligraphy-brush"),
+    renderFnName: "generate",
+    importName: "calligraphyBrush",
   },
 ];
 
@@ -1004,6 +1013,15 @@ export function generateIndexContent(): string {
     loader: () => import("./volumetric-text"),
     renderFnName: "renderVolumetricText",
     importName: "volumetricText",
+  },
+  {
+    id: "kinetic-poetry",
+    name: "Kinetic Poetry",
+    description: "Floating words drift and connect — poetry as physics, meaning emerging from motion",
+    category: "text",
+    loader: () => import("./kinetic-poetry"),
+    renderFnName: "renderKineticPoetry",
+    importName: "kineticPoetry",
   },');
   lines.push('  };');
   lines.push('});');

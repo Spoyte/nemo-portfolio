@@ -524,11 +524,23 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "interactive", "colorful", "futuristic", "3d"],
     created: "2026-03-01",
   },
+  "calligraphy-brush": {
+    category: "text",
+    complexity: "moderate",
+    tags: ["static", "monochrome", "traditional", "organic", "minimal"],
+    created: "2026-03-02",
+  },
   "volumetric-text": {
     category: "3d",
     complexity: "complex",
     tags: ["animated", "3d", "futuristic", "detailed", "colorful"],
     created: "2026-03-01",
+  },
+  "kinetic-poetry": {
+    category: "text",
+    complexity: "moderate",
+    tags: ["animated", "typography", "poetic", "physics", "connections"],
+    created: "2026-03-02",
   },
 };
 
@@ -641,6 +653,10 @@ export const VALID_ARTWORK_IDS = new Set([
   "cross-hatching",
   // Text
   "kinetic-typography",
+  "poetry-rain",
+  "poetry-visualizer",
+  "code-garden",
+  "calligraphy-brush",
   // 3D
   "light-caverns",
   "polyhedral-sculptures",
@@ -701,7 +717,7 @@ export function validateMetadata(): {
     "kaleidoscope-chamber", "double-pendulum", "fourier-synthesis", "julia-set",
     "barnsley-fern", "chaos-game", "penrose-tiling", "lenia", "bioluminescent-plankton", "self-organizing-map", "abelian-sandpile", "turing-patterns",
     "n-body-gravity", "sacred-geometry", "sdf-sculptor", "poetry-visualizer",
-    "magnetic-poetry", "kinetic-sculpture", "code-garden",
+    "magnetic-poetry", "kinetic-sculpture", "code-garden", "calligraphy-brush",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 

@@ -8,7 +8,6 @@ import { ARTWORK_METADATA } from "./metadata";
 export * from "./core";
 export * from "./metadata";
 export * from "./statistics";
-export * from "./config";
 
 // Re-export registry system
 export {
@@ -31,7 +30,7 @@ export {
 
 // ============================================================================
 // STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-01 19:58:49
+// Generated: 2026-03-02 05:58:06
 // Do not edit manually - run: art-sync
 // ============================================================================
 
@@ -113,10 +112,12 @@ import { weavingLoom } from "./weaving-loom";
 import { inkDiffusion } from "./ink-diffusion";
 import { paperMarbling } from "./paper-marbling";
 
-// === TEXT (3) ===
+// === TEXT (5) ===
 import { kineticTypography } from "./kinetic-typography";
 import { poetryRain } from "./poetry-rain";
 import { poetryVisualizer } from "./poetry-visualizer";
+import { codeGarden } from "./code-garden";
+import { calligraphyBrush } from "./calligraphy-brush";
 
 // === 3D (4) ===
 import { lightCaverns } from "./light-caverns";
@@ -131,7 +132,6 @@ import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
 import { magneticPoetry } from "./magnetic-poetry";
 import { kineticSculpture } from "./kinetic-sculpture";
-import { codeGarden } from "./code-garden";
 
 
 // ============================================================================
@@ -222,6 +222,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "poetry-rain": poetryRain,
   "poetry-visualizer": poetryVisualizer,
   "code-garden": codeGarden,
+  "calligraphy-brush": calligraphyBrush,
 
   // === 3D ===
   "light-caverns": lightCaverns,
