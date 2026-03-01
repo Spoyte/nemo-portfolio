@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+#
+# skill - Unified skill management interface
+#
+
+set -e
+
+SKILLS_DIR="${SKILLS_DIR:-$HOME/.openclaw/workspace/skills}"
+BIN_DIR="${BIN_DIR:-$HOME/.openclaw/workspace/bin}"
+
+usage() {
+    cat << 'EOF'
+Usage: skill <command> [args...]
+
+Commands:
+  list              List all skills
+  new <name> "desc" Create new skill
+  show <name>       Show skill documentation
+  edit <name>       Open skill in $EDITOR
+  delete <name>     Remove skill (with confirmation)
+
+Options:
+  -h, --help        Show this help
+  -q, --quiet       Quiet mode (for list)
+  -v, --verbose     Verbose mode (for list)
+
+Examples:
+  skill list
+  skill new backup "Backup operations"
+  skill show art-new
+  skill edit my-skill
+EOF
+}
+
+cmd_list() {
+    local args=()
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -q|--quiet) args+=(-q) ;;
+            -v|--verbose) args+=(-v) ;;
+            -h|--help) usage; exit 0 ;;
+        esac
+        shift
+    done
+    skills-list "${args[@]}"
+}
+
+cmd_new() {
+    if [[ $# -lt 2 ]]; then
+        echo "Usage: skill new <kebab-name> \"Description\"" >&2
+        exit 1
+    fi
+    skill-create "$1" "$2"
+}
+
+cmd_show() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: skill show <skill-name>" >&2
+        exit 1
+    fi
+    skill-info "$1"
+}
+
+cmd_edit() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: skill edit <skill-name>" >&2
+        exit 1
+    fi
+    
+    local name="$1"
+    local skill_file="$SKILLS_DIR/$name/SKILL.md"
+    
+    if [[ ! -f "$skill_file" ]]; then
+        # Try partial match
+        skill_file=$(find "$SKILLS_DIR" -maxdepth 2 -name "SKILL.md" -type f 2>/dev/null | \
+            while read -r f; do
+                local skill_name
+                skill_name=$(basename "$(dirname "$f")")
+                if [[ "$skill_name" == *"$name"* ]]; then
+                    echo "$f"
+                    break
+                fi
+            done)
+    fi
+    
+    if [[ -z "$skill_file" ]] || [[ ! -f "$skill_file" ]]; then
+        echo "Error: Skill not found: $name" >&2
+        exit 1
+    fi
+    
+    if [[ -z "$EDITOR" ]]; then
+        EDITOR="nano"
+    fi
+    
+    $EDITOR "$skill_file"
+}
+
+cmd_delete() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: skill delete <skill-name>" >&2
+        exit 1
+    fi
+    
+    local name="$1"
+    local skill_dir="$SKILLS_DIR/$name"
+    
+    if [[ ! -d "$skill_dir" ]]; then
+        echo "Error: Skill not found: $name" >&2
+        exit 1
+    fi
+    
+    echo "This will delete: $skill_dir"
+    read -p "Are you sure? [y/N] " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        # Move to trash instead of rm -rf
+        local trash_dir="$HOME/.trash/skills-$(date +%s)"
+        mkdir -p "$trash_dir"
+        mv "$skill_dir" "$trash_dir/"
+        rm -f "$BIN_DIR/$name"
+        echo "✓ Moved to $trash_dir"
+    else
+        echo "Cancelled."
+    fi
+}
+
+# Main
+main() {
+    if [[ $# -eq 0 ]] || [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+        usage
+        exit 0
+    fi
+    
+    local cmd="$1"
+    shift
+    
+    case "$cmd" in
+        list)
+            cmd_list "$@"
+            ;;
+        new|create)
+            cmd_new "$@"
+            ;;
+        show|info)
+            cmd_show "$@"
+            ;;
+        edit)
+            cmd_edit "$@"
+            ;;
+        delete|remove)
+            cmd_delete "$@"
+            ;;
+        *)
+            echo "Unknown command: $cmd" >&2
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
