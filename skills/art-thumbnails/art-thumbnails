@@ -1,0 +1,365 @@
+#!/bin/bash
+#
+# art-thumbnails — Generate gallery thumbnails for generative art
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+THUMBNAIL_DIR="$WORKSPACE_ROOT/public/thumbnails"
+REGISTRY_FILE="$WORKSPACE_ROOT/lib/art/unified-registry.ts"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Show usage
+usage() {
+    cat << 'EOF'
+Usage: art-thumbnails [OPTIONS] [ALGORITHM_NAME]
+
+Generate gallery thumbnails for generative art portfolio.
+
+Arguments:
+  ALGORITHM_NAME    Generate thumbnail for specific piece (optional)
+
+Options:
+  --regenerate      Force regenerate all thumbnails
+  --list            Show thumbnail status for all pieces
+  --clean           Remove all thumbnails
+  --help            Show this help message
+
+Examples:
+  art-thumbnails              # Generate all missing thumbnails
+  art-thumbnails flow-field   # Generate specific piece
+  art-thumbnails --regenerate # Force regenerate all
+  art-thumbnails --list       # Show status
+EOF
+}
+
+# Get category for an algorithm
+get_category() {
+    local algo_id="$1"
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        grep -A10 "id:\\s*\\\"$algo_id\\\"" "$REGISTRY_FILE" 2>/dev/null | grep "category:" | head -1 | sed -E 's/.*category:\s*"([^"]+)".*/\1/'
+    else
+        echo "abstract"
+    fi
+}
+
+# Get display name for an algorithm
+get_display_name() {
+    local algo_id="$1"
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        grep -A10 "id:\\s*\\\"$algo_id\\\"" "$REGISTRY_FILE" 2>/dev/null | grep "name:" | head -1 | sed -E 's/.*name:\s*"([^"]+)".*/\1/'
+    else
+        echo "$algo_id"
+    fi
+}
+
+# Generate SVG thumbnail for a category
+generate_thumbnail_svg() {
+    local algo_id="$1"
+    local category="$2"
+    local display_name="${3:-$algo_id}"
+    
+    local seed=$(echo -n "$algo_id" | cksum | cut -d' ' -f1)
+    local hue1=$((seed % 360))
+    local hue2=$(((seed * 7 + 120) % 360))
+    local hue3=$(((seed * 13 + 240) % 360))
+    
+    # Truncate display name if too long
+    if [[ ${#display_name} -gt 25 ]]; then
+        display_name="${display_name:0:22}..."
+    fi
+    
+    case "$category" in
+        mathematical)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="hsl($hue1,70%,60%)"/>
+      <stop offset="100%" stop-color="hsl($hue2,70%,40%)"/>
+    </radialGradient>
+  </defs>
+  <rect fill="#1a1a2e" width="200" height="200"/>
+  <g transform="translate(100,90)">
+    <circle r="20" fill="none" stroke="url(#g)" stroke-width="1" opacity="0.6"/>
+    <circle r="35" fill="none" stroke="url(#g)" stroke-width="1" opacity="0.5"/>
+    <circle r="50" fill="none" stroke="url(#g)" stroke-width="1" opacity="0.4"/>
+    <circle r="65" fill="none" stroke="url(#g)" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="0" x2="70" y2="0" stroke="hsl($hue3,60%,70%)" stroke-width="2" opacity="0.8"/>
+    <line x1="0" y1="0" x2="0" y2="70" stroke="hsl($hue3,60%,70%)" stroke-width="2" opacity="0.8"/>
+    <line x1="0" y1="0" x2="-50" y2="50" stroke="hsl($hue3,60%,70%)" stroke-width="2" opacity="0.8"/>
+    <line x1="0" y1="0" x2="50" y2="-50" stroke="hsl($hue3,60%,70%)" stroke-width="2" opacity="0.8"/>
+  </g>
+  <text x="100" y="185" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        natural)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#0d1f0d" width="200" height="200"/>
+  <g transform="translate(100,170)">
+    <path d="M0,0 Q-20,-40 -40,-60" fill="none" stroke="hsl($hue1,60%,50%)" stroke-width="2" opacity="0.7"/>
+    <path d="M0,0 Q10,-35 25,-55" fill="none" stroke="hsl($((hue1+30)),60%,50%)" stroke-width="2" opacity="0.7"/>
+    <path d="M0,0 Q30,-30 50,-45" fill="none" stroke="hsl($((hue1+60)),60%,50%)" stroke-width="2" opacity="0.7"/>
+    <path d="M0,0 Q-10,-25 -20,-40" fill="none" stroke="hsl($((hue1+90)),60%,50%)" stroke-width="2" opacity="0.7"/>
+  </g>
+  <circle cx="100" cy="50" r="12" fill="hsl($hue2,80%,60%)" opacity="0.9"/>
+  <text x="100" y="195" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        physics)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#0a0a1a" width="200" height="200"/>
+  <path d="M20,60 Q60,40 100,60 T180,60" fill="none" stroke="hsl($hue1,70%,60%)" stroke-width="1.5" opacity="0.6"/>
+  <path d="M20,90 Q60,70 100,90 T180,90" fill="none" stroke="hsl($((hue1+20)),70%,60%)" stroke-width="1.5" opacity="0.6"/>
+  <path d="M20,120 Q60,100 100,120 T180,120" fill="none" stroke="hsl($((hue1+40)),70%,60%)" stroke-width="1.5" opacity="0.6"/>
+  <circle cx="50" cy="70" r="5" fill="hsl($hue2,80%,70%)" opacity="0.8"/>
+  <circle cx="120" cy="100" r="7" fill="hsl($hue2,80%,70%)" opacity="0.8"/>
+  <circle cx="160" cy="80" r="4" fill="hsl($hue2,80%,70%)" opacity="0.8"/>
+  <text x="100" y="195" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        geometric)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#1a0a1a" width="200" height="200"/>
+  <g transform="translate(100,95)">
+    <polygon points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30" fill="none" stroke="hsl($hue1,60%,60%)" stroke-width="1" opacity="0.8"/>
+    <polygon points="0,-45 39,-22 39,22 0,45 -39,22 -39,-22" fill="none" stroke="hsl($((hue1+30)),60%,60%)" stroke-width="1" opacity="0.7"/>
+    <polygon points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" fill="none" stroke="hsl($((hue1+60)),60%,60%)" stroke-width="1" opacity="0.6"/>
+    <circle r="10" fill="hsl($hue2,70%,50%)" opacity="0.9"/>
+  </g>
+  <text x="100" y="195" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        traditional)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#f5f0e8" width="200" height="200"/>
+  <g stroke="hsl($hue1,30%,40%)" stroke-width="1" fill="none" opacity="0.6">
+    <line x1="30" y1="40" x2="170" y2="40"/>
+    <line x1="30" y1="60" x2="170" y2="60"/>
+    <line x1="30" y1="80" x2="170" y2="80"/>
+    <line x1="30" y1="100" x2="170" y2="100"/>
+    <line x1="30" y1="120" x2="170" y2="120"/>
+    <line x1="30" y1="140" x2="170" y2="140"/>
+  </g>
+  <circle cx="100" cy="100" r="35" fill="none" stroke="hsl($hue2,50%,45%)" stroke-width="2" opacity="0.8"/>
+  <path d="M80,100 Q100,70 120,100 Q100,130 80,100" fill="hsl($hue3,40%,60%)" opacity="0.5"/>
+  <text x="100" y="185" text-anchor="middle" fill="#666" font-size="10" font-family="serif">$display_name</text>
+</svg>
+EOF
+            ;;
+        text)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#1a1a1a" width="200" height="200"/>
+  <text x="100" y="85" text-anchor="middle" fill="hsl($hue1,70%,60%)" font-size="48" font-family="serif" font-weight="bold">Aa</text>
+  <text x="100" y="125" text-anchor="middle" fill="hsl($hue2,60%,55%)" font-size="24" font-family="monospace">$algo_id</text>
+  <line x1="40" y1="145" x2="160" y2="145" stroke="hsl($hue3,50%,50%)" stroke-width="2"/>
+  <text x="100" y="170" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        3d)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#0d0d1a" width="200" height="200"/>
+  <g transform="translate(100,100)">
+    <path d="M-40,-30 L0,-50 L40,-30 L40,20 L0,40 L-40,20 Z" fill="hsl($hue1,50%,40%)" opacity="0.9"/>
+    <path d="M-40,-30 L0,-50 L0,40 L-40,20 Z" fill="hsl($hue1,50%,50%)" opacity="0.8"/>
+    <path d="M0,-50 L40,-30 L40,20 L0,40 Z" fill="hsl($hue1,50%,35%)" opacity="0.8"/>
+    <path d="M-40,20 L0,40 L40,20 L0,0 Z" fill="hsl($hue2,40%,45%)" opacity="0.9"/>
+  </g>
+  <text x="100" y="185" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        interactive)
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect fill="#1a1a2e" width="200" height="200"/>
+  <rect x="50" y="60" width="100" height="80" rx="5" fill="hsl($hue1,30%,25%)" stroke="hsl($hue1,50%,50%)" stroke-width="2"/>
+  <circle cx="75" cy="100" r="8" fill="hsl($hue2,70%,60%)" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <rect x="95" y="85" width="40" height="8" rx="2" fill="hsl($hue3,50%,50%)"/>
+  <rect x="95" y="100" width="30" height="8" rx="2" fill="hsl($hue3,50%,50%)"/>
+  <rect x="95" y="115" width="35" height="8" rx="2" fill="hsl($hue3,50%,50%)"/>
+  <text x="100" y="185" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+        *)
+            # Default abstract style
+            cat > "$THUMBNAIL_DIR/${algo_id}.svg" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="hsl($hue1,60%,50%)"/>
+      <stop offset="100%" stop-color="hsl($hue2,60%,40%)"/>
+    </linearGradient>
+  </defs>
+  <rect fill="#1a1a1a" width="200" height="200"/>
+  <rect x="40" y="50" width="120" height="100" rx="10" fill="url(#g)" opacity="0.8"/>
+  <circle cx="70" cy="85" r="15" fill="hsl($hue3,70%,60%)" opacity="0.9"/>
+  <circle cx="130" cy="115" r="20" fill="hsl($((hue3+60)),70%,55%)" opacity="0.8"/>
+  <text x="100" y="185" text-anchor="middle" fill="#888" font-size="10" font-family="system-ui">$display_name</text>
+</svg>
+EOF
+            ;;
+    esac
+}
+
+# List all algorithms from registry
+list_algorithms() {
+    if [[ ! -f "$REGISTRY_FILE" ]]; then
+        echo -e "${RED}Error: Registry file not found: $REGISTRY_FILE${NC}"
+        return 1
+    fi
+    
+    # Extract algorithm IDs from registry
+    # Format: id: "name", (with possible whitespace variations)
+    grep -E 'id:\s*"[^"]+"' "$REGISTRY_FILE" | sed -E 's/.*id:\s*"([^"]+)".*/\1/'
+}
+
+# Show thumbnail status
+show_status() {
+    echo -e "${BLUE}Thumbnail Status${NC}"
+    echo ""
+    
+    if [[ ! -f "$REGISTRY_FILE" ]]; then
+        echo -e "${RED}Registry not found${NC}"
+        return 1
+    fi
+    
+    local total=0
+    local exists=0
+    local missing=0
+    
+    while IFS= read -r algo_id; do
+        total=$((total + 1))
+        if [[ -f "$THUMBNAIL_DIR/${algo_id}.svg" ]]; then
+            exists=$((exists + 1))
+            echo -e "${GREEN}✓${NC} $algo_id"
+        else
+            missing=$((missing + 1))
+            echo -e "${YELLOW}○${NC} $algo_id"
+        fi
+    done < <(list_algorithms)
+    
+    echo ""
+    echo -e "Total: $total | ${GREEN}Exists: $exists${NC} | ${YELLOW}Missing: $missing${NC}"
+}
+
+# Generate all missing thumbnails
+generate_all() {
+    local force=${1:-false}
+    
+    mkdir -p "$THUMBNAIL_DIR"
+    
+    local generated=0
+    local skipped=0
+    
+    while IFS= read -r algo_id; do
+        local filepath="$THUMBNAIL_DIR/${algo_id}.svg"
+        
+        if [[ "$force" == "false" ]] && [[ -f "$filepath" ]]; then
+            skipped=$((skipped + 1))
+            continue
+        fi
+        
+        local category=$(get_category "$algo_id")
+        local display_name=$(get_display_name "$algo_id")
+        
+        generate_thumbnail_svg "$algo_id" "$category" "$display_name"
+        generated=$((generated + 1))
+        echo -e "${GREEN}Generated:${NC} $algo_id (${category})"
+    done < <(list_algorithms)
+    
+    echo ""
+    echo -e "${GREEN}Generated: $generated${NC} | ${YELLOW}Skipped: $skipped${NC}"
+}
+
+# Generate specific thumbnail
+generate_one() {
+    local algo_id="$1"
+    
+    mkdir -p "$THUMBNAIL_DIR"
+    
+    # Check if algorithm exists in registry
+    if ! list_algorithms | grep -q "^${algo_id}$"; then
+        echo -e "${RED}Error: Algorithm '$algo_id' not found in registry${NC}"
+        echo ""
+        echo "Available algorithms:"
+        list_algorithms | head -20
+        return 1
+    fi
+    
+    local category=$(get_category "$algo_id")
+    local display_name=$(get_display_name "$algo_id")
+    
+    generate_thumbnail_svg "$algo_id" "$category" "$display_name"
+    echo -e "${GREEN}Generated:${NC} $THUMBNAIL_DIR/${algo_id}.svg"
+}
+
+# Clean all thumbnails
+clean_all() {
+    if [[ -d "$THUMBNAIL_DIR" ]]; then
+        local count=$(ls -1 "$THUMBNAIL_DIR"/*.svg 2>/dev/null | wc -l)
+        rm -f "$THUMBNAIL_DIR"/*.svg
+        echo -e "${YELLOW}Removed $count thumbnails${NC}"
+    else
+        echo "No thumbnails to clean"
+    fi
+}
+
+# Main
+main() {
+    case "${1:-}" in
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --list|-l)
+            show_status
+            exit 0
+            ;;
+        --regenerate)
+            generate_all true
+            exit 0
+            ;;
+        --clean)
+            clean_all
+            exit 0
+            ;;
+        "")
+            generate_all false
+            exit 0
+            ;;
+        -*)
+            echo -e "${RED}Unknown option: $1${NC}"
+            usage
+            exit 1
+            ;;
+        *)
+            generate_one "$1"
+            exit 0
+            ;;
+    esac
+}
+
+main "$@"

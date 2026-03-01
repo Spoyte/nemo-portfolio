@@ -1,0 +1,272 @@
+#!/bin/bash
+#
+# portfolio-insights — Portfolio pattern analysis
+# Discover patterns, identify gaps, find opportunities
+#
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="/root/.openclaw/workspace"
+ART_DIR="$WORKSPACE_ROOT/lib/art"
+REGISTRY_FILE="$ART_DIR/unified-registry.ts"
+
+# Colors
+BOLD='\033[1m'
+DIM='\033[2m'
+RESET='\033[0m'
+BLUE='\033[34m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+
+# Parse arguments
+SHOW_STATS=false
+SHOW_GAPS=false
+SHOW_JSON=false
+CATEGORY_FILTER=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --stats|-s)
+      SHOW_STATS=true
+      shift
+      ;;
+    --gaps|-g)
+      SHOW_GAPS=true
+      shift
+      ;;
+    --json|-j)
+      SHOW_JSON=true
+      shift
+      ;;
+    --category|-c)
+      CATEGORY_FILTER="$2"
+      shift 2
+      ;;
+    --help|-h)
+      echo "portfolio-insights — Portfolio pattern analysis"
+      echo ""
+      echo "Usage:"
+      echo "  portfolio-insights              # Full analysis"
+      echo "  portfolio-insights --stats      # Quick stats only"
+      echo "  portfolio-insights --gaps       # Find gaps only"
+      echo "  portfolio-insights --category <name>  # Analyze specific"
+      echo "  portfolio-insights --json       # JSON output"
+      echo ""
+      echo "Categories: mathematical, natural, physics, geometric, traditional, abstract, text, 3d, interactive"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Check if registry exists
+if [[ ! -f "$REGISTRY_FILE" ]]; then
+  echo "Error: Registry not found at $REGISTRY_FILE"
+  exit 1
+fi
+
+# Extract category counts from registry
+extract_categories() {
+  grep -E "^\s+\w+:\s*\[" "$REGISTRY_FILE" | grep -v "GENERATOR_IDS" | sed 's/://g' | tr -d '[]' | awk '{print $1}'
+}
+
+count_category() {
+  local cat="$1"
+  grep -A1 "^\s\+$cat:" "$REGISTRY_FILE" | grep -oE '\[.*\]' | tr ',' '\n' | wc -l
+}
+
+# Get all category names and counts
+declare -A CATEGORIES
+declare -A CAT_COUNTS
+TOTAL=0
+
+for cat in mathematical natural physics geometric traditional abstract text 3d interactive; do
+  CATEGORIES[$cat]="$cat"
+  count=$(grep -A5 "^\s\+${cat}:" "$REGISTRY_FILE" 2>/dev/null | grep -oE '\[.*\]' | head -1 | tr ',' '\n' | grep -c '"' || echo "0")
+  if [[ "$count" == "0" ]]; then
+    # Try alternative parsing
+    count=$(grep -A10 "category:\s*\"$cat\"" "$REGISTRY_FILE" 2>/dev/null | wc -l || echo "0")
+  fi
+  # Ensure count is a valid number
+  count=${count//[^0-9]/}
+  count=${count:-0}
+  CAT_COUNTS[$cat]=$count
+  TOTAL=$((TOTAL + count))
+done
+
+# Get actual counts from index.ts
+get_actual_counts() {
+  local index_file="$ART_DIR/index.ts"
+  if [[ -f "$index_file" ]]; then
+    grep -E "^// === [A-Z]+ \(" "$index_file" | sed 's/.*(\([0-9]*\)).*/\1/' | awk '{s+=$1} END {print s}'
+  else
+    echo "0"
+  fi
+}
+
+get_category_from_index() {
+  local cat_upper="$1"
+  cat_upper=$(echo "$cat_upper" | tr '[:lower:]' '[:upper:]')
+  local index_file="$ART_DIR/index.ts"
+  if [[ -f "$index_file" ]]; then
+    grep "^// === $cat_upper" "$index_file" | sed 's/.*(\([0-9]*\)).*/\1/'
+  else
+    echo "0"
+  fi
+}
+
+# Use index.ts counts if available
+if [[ -f "$ART_DIR/index.ts" ]]; then
+  TOTAL=$(grep -E "^// === [A-Z]+ \(" "$ART_DIR/index.ts" | sed 's/.*(\([0-9]*\)).*/\1/' | awk '{s+=$1} END {print s}')
+  for cat in mathematical natural physics geometric traditional abstract text 3d interactive; do
+    cat_upper=$(echo "$cat" | tr '[:lower:]' '[:upper:]')
+    count=$(grep "^// === $cat_upper" "$ART_DIR/index.ts" 2>/dev/null | sed 's/.*(\([0-9]*\)).*/\1/' || echo "0")
+    CAT_COUNTS[$cat]=${count:-0}
+  done
+fi
+
+# JSON output
+if [[ "$SHOW_JSON" == true ]]; then
+  echo "{"
+  echo "  \"total\": $TOTAL,"
+  echo "  \"categories\": {"
+  first=true
+  for cat in mathematical natural physics geometric traditional abstract text 3d interactive; do
+    count=${CAT_COUNTS[$cat]:-0}
+    if [[ "$first" == true ]]; then
+      first=false
+    else
+      echo ","
+    fi
+    printf "    \"%s\": %s" "$cat" "$count"
+  done
+  echo ""
+  echo "  }"
+  echo "}"
+  exit 0
+fi
+
+# Category filter mode
+if [[ -n "$CATEGORY_FILTER" ]]; then
+  count=${CAT_COUNTS[$CATEGORY_FILTER]:-0}
+  echo -e "${BOLD}Category: $CATEGORY_FILTER${RESET}"
+  echo "Count: $count"
+  echo ""
+  
+  # List pieces in this category
+  cat_upper=$(echo "$CATEGORY_FILTER" | tr '[:lower:]' '[:upper:]')
+  if [[ -f "$ART_DIR/index.ts" ]]; then
+    echo "Pieces:"
+    grep -A$((count + 2)) "^// === $cat_upper" "$ART_DIR/index.ts" | grep "import" | sed 's/.*from "\.\//  - /; s/";//'
+  fi
+  exit 0
+fi
+
+# Stats only mode
+if [[ "$SHOW_STATS" == true ]]; then
+  echo "Portfolio: $TOTAL generators"
+  for cat in mathematical natural physics geometric traditional abstract text 3d interactive; do
+    count=${CAT_COUNTS[$cat]:-0}
+    pct=$((count * 100 / TOTAL))
+    printf "%12s: %3d (%d%%)\n" "$cat" "$count" "$pct"
+  done
+  exit 0
+fi
+
+# Full visualization
+echo ""
+echo -e "${BOLD}┌─────────────────────────────────────────┐${RESET}"
+printf "${BOLD}│${RESET}  Portfolio: ${CYAN}%d${RESET} Generators" "$TOTAL"
+printf "%*s${BOLD}│${RESET}\n" $((35 - ${#TOTAL})) ""
+echo -e "${BOLD}├─────────────────────────────────────────┤${RESET}"
+
+# Find max for bar scaling
+max=0
+for cat in mathematical natural physics geometric traditional abstract text 3d interactive; do
+  count=${CAT_COUNTS[$cat]:-0}
+  if [[ $count -gt $max ]]; then
+    max=$count
+  fi
+done
+
+# Display bars
+for cat in physics mathematical geometric abstract natural traditional interactive 3d text; do
+  count=${CAT_COUNTS[$cat]:-0}
+  if [[ $count -eq 0 ]]; then
+    continue
+  fi
+  
+  # Calculate bar length (max 28 chars)
+  bar_len=$((count * 28 / max))
+  if [[ $bar_len -eq 0 && $count -gt 0 ]]; then
+    bar_len=1
+  fi
+  
+  # Build bar
+  bar=""
+  for ((i=0; i<bar_len; i++)); do
+    bar="${bar}█"
+  done
+  
+  # Pad category name
+  name=$(echo "$cat" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
+  printf "${BOLD}│${RESET}  %-11s ${BLUE}%s${RESET}" "$name" "$bar"
+  printf "%*s" $((28 - bar_len)) ""
+  printf " ${CYAN}%2d${RESET}  ${BOLD}│${RESET}\n" "$count"
+done
+
+echo -e "${BOLD}└─────────────────────────────────────────┘${RESET}"
+echo ""
+
+# Gaps analysis
+if [[ "$SHOW_GAPS" == true || "$SHOW_STATS" == false ]]; then
+  echo -e "${BOLD}Gap Analysis:${RESET}"
+  echo ""
+  
+  # Underrepresented categories
+  echo "  Underrepresented (< 5% of portfolio):"
+  for cat in text 3d interactive traditional; do
+    count=${CAT_COUNTS[$cat]:-0}
+    pct=$((count * 100 / TOTAL))
+    if [[ $pct -lt 5 ]]; then
+      printf "    • %s: %d pieces (%d%%)\n" "$cat" "$count" "$pct"
+    fi
+  done
+  echo ""
+  
+  # Opportunities based on gaps
+  echo -e "  ${YELLOW}💡 Top Opportunities:${RESET}"
+  
+  # Simple opportunity logic based on category gaps
+  if [[ ${CAT_COUNTS[text]:-0} -lt 5 ]]; then
+    echo "    1. Typography systems — Kinetic type, variable fonts"
+    echo "    2. Calligraphic generators — Brush strokes, ink flow"
+  fi
+  if [[ ${CAT_COUNTS[3d]:-0} -lt 5 ]]; then
+    echo "    3. 3D projections — Isometric, perspective drawings"
+    echo "    4. Volumetric forms — Sculptural, architectural"
+  fi
+  if [[ ${CAT_COUNTS[interactive]:-0} -lt 5 ]]; then
+    echo "    5. Audio-reactive pieces — Music visualization"
+    echo "    6. Mouse-responsive flows — Interactive fields"
+  fi
+  if [[ ${CAT_COUNTS[traditional]:-0} -lt 5 ]]; then
+    echo "    7. Textile patterns — Batik, ikat, weaving"
+    echo "    8. Print techniques — Etching, lithography simulation"
+  fi
+  if [[ ${CAT_COUNTS[natural]:-0} -lt 10 ]]; then
+    echo "    9. Biological systems — Cell division, growth patterns"
+    echo "    10. Weather phenomena — Clouds, storms, lightning"
+  fi
+  
+  echo ""
+fi
+
+# Summary
+echo -e "${DIM}Run with --gaps for detailed gap analysis${RESET}"
+echo -e "${DIM}Run with --category <name> for category details${RESET}"
