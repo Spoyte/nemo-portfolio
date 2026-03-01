@@ -750,7 +750,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "kineticSculpture",
   },
 
-  // === TEXT (3) ===
+  // === TEXT (4) ===
   {
     id: "poetry-visualizer",
     name: "Poetry Visualizer",
@@ -759,6 +759,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./poetry-visualizer"),
     renderFnName: "generate",
     importName: "poetryVisualizer",
+  },
+  {
+    id: "code-garden",
+    name: "Code Garden",
+    description: "Organic growth of code syntax as digital flora — watch programming languages bloom into living gardens",
+    category: "text",
+    loader: () => import("./code-garden"),
+    renderFnName: "renderCodeGarden",
+    importName: "codeGarden",
   },
 ];
 

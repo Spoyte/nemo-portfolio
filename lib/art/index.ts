@@ -130,6 +130,7 @@ import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
 import { magneticPoetry } from "./magnetic-poetry";
 import { kineticSculpture } from "./kinetic-sculpture";
+import { codeGarden } from "./code-garden";
 
 
 // ============================================================================
@@ -219,6 +220,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "kinetic-typography": kineticTypography,
   "poetry-rain": poetryRain,
   "poetry-visualizer": poetryVisualizer,
+  "code-garden": codeGarden,
 
   // === 3D ===
   "light-caverns": lightCaverns,

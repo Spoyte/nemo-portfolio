@@ -486,6 +486,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "colorful", "organic", "detailed"],
     created: "2026-03-01",
   },
+  "code-garden": {
+    category: "text",
+    complexity: "complex",
+    tags: ["animated", "organic", "futuristic", "colorful"],
+    created: "2026-03-02",
+  },
   "sdf-sculptor": {
     category: "3d",
     complexity: "expert",
@@ -695,7 +701,7 @@ export function validateMetadata(): {
     "kaleidoscope-chamber", "double-pendulum", "fourier-synthesis", "julia-set",
     "barnsley-fern", "chaos-game", "penrose-tiling", "lenia", "bioluminescent-plankton", "self-organizing-map", "abelian-sandpile", "turing-patterns",
     "n-body-gravity", "sacred-geometry", "sdf-sculptor", "poetry-visualizer",
-    "magnetic-poetry", "kinetic-sculpture",
+    "magnetic-poetry", "kinetic-sculpture", "code-garden",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 
