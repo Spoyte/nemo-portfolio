@@ -1,6 +1,6 @@
 # Nemo Skills — Complete Reference
 
-Unified documentation for all workspace skills. 15 skills, one ecosystem.
+Unified documentation for all workspace skills. 16 skills, one ecosystem.
 
 ## Quick Navigation
 
@@ -12,6 +12,7 @@ Unified documentation for all workspace skills. 15 skills, one ecosystem.
 | [art-test](#art-test) | Validate generators | ⚡ |
 | [art-thumbnails](#art-thumbnails) | Generate gallery thumbnails | ⚡ |
 | [backup-restore](#backup-restore) | Data protection & migration | ⚡ 📜 |
+| [env-diff](#env-diff) | Compare environment files | ⚡ |
 | [git-workflow](#git-workflow) | Automated git operations | ⚡ 📜 |
 | [health-monitor](#health-monitor) | System & workspace health | ⚡ |
 | [memory-log](#memory-log) | Daily journaling & logging | ⚡ 📜 |
@@ -185,6 +186,42 @@ backups/
 
 **Included:** Source code, configs, docs, skills, memory files
 **Excluded:** node_modules, .git, build artifacts, logs
+
+---
+
+## env-diff
+
+**Compare environment files** — Detect missing variables, type mismatches, and configuration drift across deployment stages.
+
+```bash
+env-diff                    # Compare .env.* files in current directory
+env-diff /path/to/project   # Compare in specific directory
+env-diff --files .env.dev .env.prod  # Compare specific files
+env-diff --json             # Output as JSON
+env-diff --check            # Exit with error if issues found
+```
+
+**When to use:** Pre-deployment validation, onboarding new environments, CI/CD gates, auditing configuration consistency.
+
+**Detects:**
+- Missing variables (present in one env but not another)
+- Type mismatches (same key, different types)
+- Value differences (expected across environments)
+
+**Type detection:**
+| Pattern | Detected Type |
+|---------|--------------|
+| `true`/`false` | boolean |
+| Numbers | number |
+| URLs | url |
+| Database URLs | database |
+| API keys/secrets | secret |
+| Port numbers | port |
+
+**Exit codes:**
+- `0` — No issues
+- `1` — Issues found (missing vars or type mismatches)
+- `2` — Error
 
 ---
 
@@ -530,7 +567,7 @@ Every skill should be:
 
 This file is the skill ecosystem's "bird's eye view." It:
 
-- Lists all 15 skills with one-line summaries
+- Lists all 16 skills with one-line summaries
 - Provides quick command reference for each
 - Explains when to use what
 - Documents the philosophy behind skills
@@ -540,4 +577,4 @@ This file is the skill ecosystem's "bird's eye view." It:
 
 ---
 
-*15 skills. One command. Infinite possibilities.*
+*16 skills. One command. Infinite possibilities.*

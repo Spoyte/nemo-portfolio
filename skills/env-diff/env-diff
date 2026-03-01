@@ -1,0 +1,300 @@
+#!/usr/bin/env python3
+"""
+env-diff — Compare environment files across deployment stages
+
+Analyzes .env files across different environments (dev, staging, prod, etc.)
+identifying missing variables, type mismatches, and value differences.
+"""
+
+import argparse
+import os
+import re
+import sys
+from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
+
+
+def parse_env_file(filepath: Path) -> Dict[str, str]:
+    """Parse a .env file into a dictionary of key-value pairs."""
+    env_vars = {}
+    if not filepath.exists():
+        return env_vars
+    
+    with open(filepath, 'r') as f:
+        for line in f:
+            line = line.strip()
+            # Skip comments and empty lines
+            if not line or line.startswith('#'):
+                continue
+            # Parse KEY=value (handle values with = in them)
+            if '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip()
+    return env_vars
+
+
+def detect_type(value: str) -> str:
+    """Detect the likely type of an environment variable value."""
+    value_lower = value.lower()
+    
+    # Boolean
+    if value_lower in ('true', 'false', 'yes', 'no', '1', '0', 'on', 'off'):
+        return 'boolean'
+    
+    # Number (integer or float)
+    try:
+        float(value)
+        return 'number'
+    except ValueError:
+        pass
+    
+    # URL
+    if re.match(r'^https?://', value):
+        return 'url'
+    
+    # Database URL
+    if re.match(r'^(postgres|mysql|mongodb|redis)://', value):
+        return 'database'
+    
+    # API key pattern
+    if re.search(r'(api[_-]?key|token|secret)', value_lower):
+        return 'secret'
+    
+    # Port
+    if re.match(r'^\d{1,5}$', value) and int(value) < 65536:
+        return 'port'
+    
+    return 'string'
+
+
+def compare_environments(env_files: Dict[str, Path]) -> Dict:
+    """Compare multiple environment files and return analysis."""
+    # Parse all files
+    env_data = {}
+    for env_name, filepath in env_files.items():
+        env_data[env_name] = parse_env_file(filepath)
+    
+    # Collect all unique keys
+    all_keys: Set[str] = set()
+    for data in env_data.values():
+        all_keys.update(data.keys())
+    
+    # Analyze each key
+    analysis = {
+        'environments': list(env_files.keys()),
+        'total_keys': len(all_keys),
+        'variables': {},
+        'missing_by_env': defaultdict(list),
+        'type_mismatches': [],
+        'value_differences': []
+    }
+    
+    for key in sorted(all_keys):
+        var_analysis = {
+            'key': key,
+            'present_in': [],
+            'missing_in': [],
+            'values': {},
+            'types': {},
+            'consistent_type': True,
+            'consistent_value': True
+        }
+        
+        # Collect presence and values
+        for env_name, data in env_data.items():
+            if key in data:
+                var_analysis['present_in'].append(env_name)
+                var_analysis['values'][env_name] = data[key]
+                var_analysis['types'][env_name] = detect_type(data[key])
+            else:
+                var_analysis['missing_in'].append(env_name)
+                analysis['missing_by_env'][env_name].append(key)
+        
+        # Check type consistency
+        types_found = set(var_analysis['types'].values())
+        if len(types_found) > 1:
+            var_analysis['consistent_type'] = False
+            analysis['type_mismatches'].append({
+                'key': key,
+                'types': dict(var_analysis['types'])
+            })
+        
+        # Check value consistency
+        values_found = set(var_analysis['values'].values())
+        if len(values_found) > 1:
+            var_analysis['consistent_value'] = False
+            analysis['value_differences'].append({
+                'key': key,
+                'values': dict(var_analysis['values'])
+            })
+        
+        analysis['variables'][key] = var_analysis
+    
+    return analysis
+
+
+def format_output(analysis: Dict, format_type: str = 'text') -> str:
+    """Format the analysis output."""
+    if format_type == 'json':
+        import json
+        return json.dumps(analysis, indent=2)
+    
+    lines = []
+    envs = analysis['environments']
+    
+    # Header
+    lines.append("═" * 60)
+    lines.append("  ENV-DIFF: Environment Configuration Analysis")
+    lines.append("═" * 60)
+    lines.append(f"\n  Environments: {', '.join(envs)}")
+    lines.append(f"  Total variables: {analysis['total_keys']}")
+    
+    # Missing variables section
+    if analysis['missing_by_env']:
+        lines.append("\n" + "─" * 60)
+        lines.append("  ⚠️  MISSING VARIABLES")
+        lines.append("─" * 60)
+        for env, missing in sorted(analysis['missing_by_env'].items()):
+            lines.append(f"\n  {env}:")
+            for key in missing:
+                lines.append(f"    • {key}")
+    
+    # Type mismatches section
+    if analysis['type_mismatches']:
+        lines.append("\n" + "─" * 60)
+        lines.append("  ⚠️  TYPE MISMATCHES")
+        lines.append("─" * 60)
+        for mismatch in analysis['type_mismatches']:
+            lines.append(f"\n  {mismatch['key']}:")
+            for env, type_name in mismatch['types'].items():
+                lines.append(f"    {env}: {type_name}")
+    
+    # Value differences section
+    if analysis['value_differences']:
+        lines.append("\n" + "─" * 60)
+        lines.append("  📊 VALUE DIFFERENCES (expected across environments)")
+        lines.append("─" * 60)
+        for diff in analysis['value_differences']:
+            lines.append(f"\n  {diff['key']}:")
+            for env, value in diff['values'].items():
+                # Mask secrets
+                if detect_type(value) == 'secret':
+                    value = value[:4] + "***" if len(value) > 4 else "***"
+                lines.append(f"    {env}: {value}")
+    
+    # Summary
+    lines.append("\n" + "═" * 60)
+    lines.append("  SUMMARY")
+    lines.append("═" * 60)
+    
+    missing_count = sum(len(m) for m in analysis['missing_by_env'].values())
+    type_issues = len(analysis['type_mismatches'])
+    value_diffs = len(analysis['value_differences'])
+    
+    lines.append(f"\n  Missing variables: {missing_count}")
+    lines.append(f"  Type mismatches: {type_issues}")
+    lines.append(f"  Value differences: {value_diffs}")
+    
+    if missing_count == 0 and type_issues == 0:
+        lines.append("\n  ✅ All environments are properly configured!")
+    elif missing_count > 0:
+        lines.append("\n  ⚠️  Action needed: Add missing variables")
+    
+    lines.append("")
+    return "\n".join(lines)
+
+
+def find_env_files(directory: Path, pattern: str = ".env.*") -> Dict[str, Path]:
+    """Find environment files matching pattern in directory."""
+    env_files = {}
+    
+    # Look for .env.{name} files
+    for filepath in directory.glob(pattern):
+        filename = filepath.name
+        # Extract environment name from .env.{name}
+        if filename.startswith('.env.'):
+            env_name = filename[5:]  # Remove '.env.' prefix
+            env_files[env_name] = filepath
+    
+    # Also check for standard .env file
+    standard_env = directory / ".env"
+    if standard_env.exists():
+        env_files['default'] = standard_env
+    
+    return dict(sorted(env_files.items()))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Compare environment files across deployment stages",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  env-diff                          # Compare .env.* files in current directory
+  env-diff /path/to/project         # Compare in specific directory
+  env-diff --files .env.dev .env.prod  # Compare specific files
+  env-diff --json                   # Output as JSON
+  env-diff --check                  # Exit with error if issues found
+        """
+    )
+    
+    parser.add_argument('directory', nargs='?', default='.',
+                       help='Directory containing .env files (default: current)')
+    parser.add_argument('--files', nargs='+', metavar='FILE',
+                       help='Specific files to compare')
+    parser.add_argument('--json', action='store_true',
+                       help='Output as JSON')
+    parser.add_argument('--check', action='store_true',
+                       help='Exit with error code if issues found')
+    parser.add_argument('--pattern', default='.env.*',
+                       help='Glob pattern for env files (default: .env.*)')
+    
+    args = parser.parse_args()
+    
+    # Determine which files to compare
+    if args.files:
+        env_files = {}
+        for filepath in args.files:
+            path = Path(filepath)
+            if not path.exists():
+                print(f"Error: File not found: {filepath}", file=sys.stderr)
+                sys.exit(1)
+            # Use filename without .env. prefix as name
+            name = path.name
+            if name.startswith('.env.'):
+                name = name[5:]
+            elif name.startswith('.'):
+                name = name[1:]
+            env_files[name] = path
+    else:
+        directory = Path(args.directory)
+        if not directory.is_dir():
+            print(f"Error: Not a directory: {directory}", file=sys.stderr)
+            sys.exit(1)
+        env_files = find_env_files(directory, args.pattern)
+    
+    if len(env_files) < 2:
+        print("Error: Need at least 2 environment files to compare.", file=sys.stderr)
+        print(f"Found: {list(env_files.keys()) or 'none'}", file=sys.stderr)
+        print("\nLooking for files matching pattern: .env.*", file=sys.stderr)
+        sys.exit(1)
+    
+    # Perform analysis
+    analysis = compare_environments(env_files)
+    
+    # Output results
+    print(format_output(analysis, 'json' if args.json else 'text'))
+    
+    # Exit with error if check mode and issues found
+    if args.check:
+        missing = sum(len(m) for m in analysis['missing_by_env'].values())
+        mismatches = len(analysis['type_mismatches'])
+        if missing > 0 or mismatches > 0:
+            sys.exit(1)
+    
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
