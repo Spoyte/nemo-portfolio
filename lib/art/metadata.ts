@@ -306,6 +306,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "colorful", "futuristic", "abstract"],
     created: "2024-02-27",
   },
+  "poetry-rain": {
+    category: "text",
+    complexity: "moderate",
+    tags: ["animated", "monochrome", "futuristic", "abstract", "cyberpunk"],
+    created: "2026-03-01",
+  },
   "magnetic-field": {
     category: "physics",
     complexity: "complex",

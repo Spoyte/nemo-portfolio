@@ -118,8 +118,9 @@ import { crossHatchingSketch as crossHatching } from "./cross-hatching";
 import { weavingLoom } from "./weaving-loom";
 import { inkDiffusion } from "./ink-diffusion";
 
-// === TEXT (1) ===
+// === TEXT (2) ===
 import { kineticTypography } from "./kinetic-typography";
+import { poetryRain } from "./poetry-rain";
 
 // === 3D (3) ===
 import { lightCaverns } from "./light-caverns-generator";
@@ -214,6 +215,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
 
   // === TEXT ===
   "kinetic-typography": kineticTypography,
+  "poetry-rain": poetryRain,
 
   // === 3D ===
   "light-caverns": lightCaverns,
