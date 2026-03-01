@@ -656,7 +656,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "poetryRain",
   },
 
-  // === 3D (6) ===
+  // === 3D (7) ===
   {
     id: "light-caverns",
     name: "Light Caverns",
@@ -1031,6 +1031,15 @@ export function generateIndexContent(): string {
     loader: () => import("./hypercube"),
     renderFnName: "renderHypercube",
     importName: "hypercube",
+  },
+  {
+    id: "raymarcher",
+    name: "Raymarcher",
+    description: "SDF-based raymarching with soft shadows - real-time 3D rendering using signed distance functions",
+    category: "3d",
+    loader: () => import("./raymarcher"),
+    renderFnName: "renderRaymarcher",
+    importName: "raymarcher",
   },');
   lines.push('  };');
   lines.push('});');
