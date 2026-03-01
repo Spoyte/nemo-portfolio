@@ -656,7 +656,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "poetryRain",
   },
 
-  // === 3D (5) ===
+  // === 3D (6) ===
   {
     id: "light-caverns",
     name: "Light Caverns",
@@ -1022,6 +1022,15 @@ export function generateIndexContent(): string {
     loader: () => import("./kinetic-poetry"),
     renderFnName: "renderKineticPoetry",
     importName: "kineticPoetry",
+  },
+  {
+    id: "hypercube",
+    name: "Hypercube",
+    description: "Rotating tesseract — 4D hypercube projected into 3D space, edges dancing through dimensions",
+    category: "3d",
+    loader: () => import("./hypercube"),
+    renderFnName: "renderHypercube",
+    importName: "hypercube",
   },');
   lines.push('  };');
   lines.push('});');

@@ -7,7 +7,7 @@ import { ScrollProgress } from "@/components/scroll-progress";
 import { Toaster } from "@/components/toaster";
 import { KonamiCodeEasterEgg } from "@/components/konami-easter-egg";
 import { AchievementSystem } from "@/components/achievement-system-portfolio";
-import { TerminalToggle } from "@/components/interactive-terminal";
+import { EasterEggCollection } from "@/components/easter-egg-collection";
 import { HolographicBackground } from "@/components/holographic-background";
 import { AIChatWidget } from "@/components/ai-chat-widget";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
@@ -69,6 +69,9 @@ export default function RootLayout({
           
           {/* Achievement System */}
           <AchievementSystem />
+          
+          {/* Easter Egg Collection */}
+          <EasterEggCollection />
           
           {/* Terminal Toggle */}
           <TerminalToggle />

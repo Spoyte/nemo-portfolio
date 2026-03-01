@@ -542,6 +542,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "typography", "poetic", "physics", "connections"],
     created: "2026-03-02",
   },
+  "hypercube": {
+    category: "3d",
+    complexity: "expert",
+    tags: ["animated", "3d", "detailed", "futuristic"],
+    created: "2026-03-02",
+  },
 };
 
 // Helper function to get metadata for a generator

@@ -6,485 +6,252 @@ import {
   Play, 
   Pause, 
   RotateCcw, 
-  Code2, 
   Copy, 
-  Check,
+  Check, 
+  Code2, 
+  Terminal,
+  Sparkles,
+  Zap,
   Settings,
+  Download,
+  Share2,
   Maximize2,
   Minimize2,
-  Terminal,
   Lightbulb,
-  Sparkles
+  Wand2,
+  Bug,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import confetti from "canvas-confetti";
 
-interface CodeDemo {
-  id: string;
-  title: string;
-  description: string;
-  language: string;
-  code: string;
-  preview: React.ReactNode;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  tags: string[];
-}
+// Sample code templates
+const CODE_TEMPLATES = {
+  react: `import React, { useState } from 'react';
 
-// Animated Counter Demo
-function CounterDemo() {
+export default function Counter() {
   const [count, setCount] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   return (
-    <div className="p-8 flex flex-col items-center gap-6">
-      <motion.div 
-        className="text-6xl font-bold text-primary"
-        animate={{ scale: isAnimating ? [1, 1.2, 1] : 1 }}
-        transition={{ duration: 0.3 }}
+    <div className="p-8 text-center">
+      <h1 className="text-3xl font-bold mb-4">
+        Count: {count}
+      </h1>
+      <button
+        onClick={() => setCount(c => c + 1)}
+        className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
       >
-        {count}
-      </motion.div>
-      
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => { setCount(c => c - 1); setIsAnimating(true); setTimeout(() => setIsAnimating(false), 300); }}
-        >
-          -
-        </Button>
-        <Button
-          onClick={() => { setCount(c => c + 1); setIsAnimating(true); setTimeout(() => setIsAnimating(false), 300); }}
-        >
-          +
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={() => setCount(0)}
-        >
-          <RotateCcw className="h-4 w-4" />
-        </Button>
-      </div>
+        Increment
+      </button>
     </div>
   );
+}`,
+  css: `.animated-card {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  animation: float 3s ease-in-out infinite;
 }
 
-// Animated Card Demo
-function CardDemo() {
-  const [isHovered, setIsHovered] = useState(false);
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}`,
+  html: `<div class="glass-card">
+  <h2>Hello World! 🎉</h2>
+  <p>This is a live preview of your HTML code.</p>
+  <button onclick="alert('Clicked!')">
+    Click Me
+  </button>
+</div>
 
-  return (
-    <div className="p-8 flex items-center justify-center">
-      <motion.div
-        className="w-64 p-6 rounded-2xl bg-gradient-to-br from-primary to-orange-500 text-white cursor-pointer"
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
-        animate={{
-          scale: isHovered ? 1.05 : 1,
-          rotateY: isHovered ? 5 : 0,
-          rotateX: isHovered ? -5 : 0,
-        }}
-        transition={{ type: "spring", stiffness: 300 }}
-        style={{ perspective: 1000 }}
-      >
-        <motion.div
-          animate={{ y: isHovered ? -10 : 0 }}
-          className="text-4xl mb-4"
-        >
-          🎨
-        </motion.div>
-        <h3 className="text-xl font-bold mb-2">Interactive Card</h3>
-        <p className="text-white/80 text-sm">Hover to see the 3D effect in action!</p>
-      </motion.div>
-    </div>
-  );
-}
-
-// Loading States Demo
-function LoadingDemo() {
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  const startLoading = () => {
-    setLoading(true);
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setLoading(false);
-          return 100;
-        }
-        return p + 10;
-      });
-    }, 200);
-  };
-
-  return (
-    <div className="p-8 flex flex-col items-center gap-6">
-      <div className="flex gap-4">
-        {/* Spinner */}
-        <motion.div
-          className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
-
-        {/* Pulse */}
-        <motion.div
-          className="w-12 h-12 rounded-full bg-primary"
-          animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
-
-        {/* Dots */}
-        <div className="flex gap-1">
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className="w-3 h-3 rounded-full bg-primary"
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="w-full max-w-xs">
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-          />
-        </div>
-        <p className="text-center text-sm text-muted-foreground mt-2">{progress}%</p>
-      </div>
-
-      <Button onClick={startLoading} disabled={loading}>
-        {loading ? "Loading..." : "Start Loading"}
-      </Button>
-    </div>
-  );
-}
-
-// Toggle Switch Demo
-function ToggleDemo() {
-  const [isOn, setIsOn] = useState(false);
-
-  return (
-    <div className="p-8 flex flex-col items-center gap-6">
-      <div 
-        className="relative w-20 h-10 rounded-full cursor-pointer transition-colors"
-        style={{ backgroundColor: isOn ? "#22c55e" : "#e5e7eb" }}
-        onClick={() => setIsOn(!isOn)}
-      >
-        <motion.div
-          className="absolute top-1 w-8 h-8 rounded-full bg-white shadow-md"
-          animate={{ left: isOn ? "44px" : "4px" }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        />
-      </div>
-
-      <div className="flex gap-4">
-        {["🌙", "💡", "🔔", "🔒"].map((emoji, i) => (
-          <motion.button
-            key={i}
-            className="text-3xl p-2 rounded-xl bg-muted"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            animate={{ 
-              backgroundColor: isOn ? "#dcfce7" : "#f3f4f6",
-              scale: isOn ? 1.05 : 1
-            }}
-            onClick={() => setIsOn(!isOn)}
-          >
-            {emoji}
-          </motion.button>
-        ))}
-      </div>
-
-      <p className="text-muted-foreground">State: {isOn ? "ON ✅" : "OFF ❌"}</p>
-    </div>
-  );
-}
-
-// Notification Toast Demo
-function ToastDemo() {
-  const [toasts, setToasts] = useState<{ id: number; message: string; type: string }[]>([]);
-
-  const addToast = (type: string) => {
-    const id = Date.now();
-    const messages: Record<string, string> = {
-      success: "Operation completed successfully! ✅",
-      error: "Something went wrong! ❌",
-      info: "Here's some information ℹ️",
-      warning: "Please be careful! ⚠️",
-    };
-    
-    setToasts(prev => [...prev, { id, message: messages[type], type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
-  };
-
-  return (
-    <div className="p-8 flex flex-col items-center gap-6">
-      <div className="flex flex-wrap gap-2 justify-center">
-        <Button onClick={() => addToast("success")} variant="outline" className="border-green-500 text-green-600">
-          Success
-        </Button>
-        <Button onClick={() => addToast("error")} variant="outline" className="border-red-500 text-red-600">
-          Error
-        </Button>
-        <Button onClick={() => addToast("info")} variant="outline" className="border-blue-500 text-blue-600">
-          Info
-        </Button>
-        <Button onClick={() => addToast("warning")} variant="outline" className="border-yellow-500 text-yellow-600">
-          Warning
-        </Button>
-      </div>
-
-      <div className="relative w-full max-w-sm h-32">
-        <AnimatePresence>
-          {toasts.map((toast, index) => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100 }}
-              className={`absolute left-0 right-0 p-4 rounded-xl shadow-lg ${
-                toast.type === "success" ? "bg-green-500 text-white" :
-                toast.type === "error" ? "bg-red-500 text-white" :
-                toast.type === "warning" ? "bg-yellow-500 text-white" :
-                "bg-blue-500 text-white"
-              }`}
-              style={{ top: index * 70 }}
-            >
-              {toast.message}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-const demos: CodeDemo[] = [
-  {
-    id: "counter",
-    title: "Animated Counter",
-    description: "A simple counter with smooth animations and state management",
-    language: "tsx",
-    difficulty: "beginner",
-    tags: ["useState", "framer-motion", "events"],
-    code: `function Counter() {
-  const [count, setCount] = useState(0);
+<style>
+  .glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+  }
   
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <motion.div 
-        className="text-6xl font-bold"
-        animate={{ scale: [1, 1.2, 1] }}
-        key={count}
-      >
-        {count}
-      </motion.div>
-      
-      <div className="flex gap-2">
-        <Button onClick={() => setCount(c => c - 1)}>-</Button>
-        <Button onClick={() => setCount(c => c + 1)}>+</Button>
-      </div>
-    </div>
-  );
-}`,
-    preview: <CounterDemo />,
-  },
-  {
-    id: "card",
-    title: "3D Hover Card",
-    description: "Interactive card with 3D tilt effect on hover",
-    language: "tsx",
-    difficulty: "intermediate",
-    tags: ["framer-motion", "3D", "hover"],
-    code: `function HoverCard() {
-  const [isHovered, setIsHovered] = useState(false);
+  button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+</style>`,
+  canvas: `const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-  return (
-    <motion.div
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      animate={{
-        scale: isHovered ? 1.05 : 1,
-        rotateY: isHovered ? 5 : 0,
-        rotateX: isHovered ? -5 : 0,
-      }}
-      transition={{ type: "spring", stiffness: 300 }}
-      style={{ perspective: 1000 }}
-      className="p-6 rounded-2xl bg-gradient-to-br 
-                 from-primary to-orange-500"
-    >
-      <h3>Interactive Card</h3>
-      <p>Hover to see 3D effect!</p>
-    </motion.div>
-  );
-}`,
-    preview: <CardDemo />,
-  },
-  {
-    id: "loading",
-    title: "Loading States",
-    description: "Various loading animations and progress indicators",
-    language: "tsx",
-    difficulty: "beginner",
-    tags: ["animation", "loading", "progress"],
-    code: `function LoadingDemo() {
-  return (
-    <div className="flex gap-4">
-      {/* Spinner */}
-      <motion.div
-        className="w-12 h-12 rounded-full 
-                   border-4 border-primary/20 border-t-primary"
-        animate={{ rotate: 360 }}
-        transition={{ 
-          duration: 1, 
-          repeat: Infinity, 
-          ease: "linear" 
-        }}
-      />
+canvas.width = 400;
+canvas.height = 300;
 
-      {/* Pulse */}
-      <motion.div
-        className="w-12 h-12 rounded-full bg-primary"
-        animate={{ 
-          scale: [1, 1.2, 1], 
-          opacity: [1, 0.5, 1] 
-        }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-      />
+let particles = [];
 
-      {/* Dots */}
-      <div className="flex gap-1">
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="w-3 h-3 rounded-full bg-primary"
-            animate={{ y: [0, -10, 0] }}
-            transition={{ 
-              duration: 0.6, 
-              repeat: Infinity, 
-              delay: i * 0.1 
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}`,
-    preview: <LoadingDemo />,
-  },
-  {
-    id: "toggle",
-    title: "Animated Toggle",
-    description: "Smooth toggle switch with spring physics",
-    language: "tsx",
-    difficulty: "beginner",
-    tags: ["toggle", "spring", "interaction"],
-    code: `function Toggle() {
-  const [isOn, setIsOn] = useState(false);
+for (let i = 0; i < 50; i++) {
+  particles.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 2,
+    vy: (Math.random() - 0.5) * 2,
+    size: Math.random() * 5 + 2,
+    color: \`hsl(\${Math.random() * 360}, 70%, 60%)\`
+  });
+}
 
-  return (
-    <div 
-      className="relative w-20 h-10 rounded-full 
-                 cursor-pointer transition-colors"
-      style={{ 
-        backgroundColor: isOn ? "#22c55e" : "#e5e7eb" 
-      }}
-      onClick={() => setIsOn(!isOn)}
-    >
-      <motion.div
-        className="absolute top-1 w-8 h-8 
-                   rounded-full bg-white shadow-md"
-        animate={{ left: isOn ? "44px" : "4px" }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 500, 
-          damping: 30 
-        }}
-      />
-    </div>
-  );
-}`,
-    preview: <ToggleDemo />,
-  },
-  {
-    id: "toast",
-    title: "Toast Notifications",
-    description: "Animated toast notifications with auto-dismiss",
-    language: "tsx",
-    difficulty: "intermediate",
-    tags: ["notifications", "AnimatePresence", "stack"],
-    code: `function ToastDemo() {
-  const [toasts, setToasts] = useState([]);
-
-  const addToast = (message) => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message }]);
+function animate() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
     
-    setTimeout(() => {
-      setToasts(prev => 
-        prev.filter(t => t.id !== id)
-      );
-    }, 3000);
-  };
+    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+    
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  });
+  
+  requestAnimationFrame(animate);
+}
 
-  return (
-    <>
-      <Button onClick={() => addToast("Hello!")}>
-        Show Toast
-      </Button>
-      
-      <AnimatePresence>
-        {toasts.map((toast, index) => (
-          <motion.div
-            key={toast.id}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            className="p-4 rounded-xl bg-primary 
-                       text-white shadow-lg"
-            style={{ top: index * 70 }}
-          >
-            {toast.message}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </>
-  );
-}`,
-    preview: <ToastDemo />,
+animate();`
+};
+
+// Code challenges
+const CHALLENGES = [
+  {
+    id: 1,
+    title: "Center a Div",
+    description: "Create CSS to perfectly center a div both horizontally and vertically.",
+    hint: "Use flexbox or grid with place-items/justify-content/align-items",
+    difficulty: "Easy"
   },
+  {
+    id: 2,
+    title: "Animated Button",
+    description: "Create a button with a hover animation that scales and changes color.",
+    hint: "Use transform: scale() and transition properties",
+    difficulty: "Easy"
+  },
+  {
+    id: 3,
+    title: "Gradient Text",
+    description: "Create text with a gradient background that clips to the text.",
+    hint: "Use background-clip: text and -webkit-text-fill-color",
+    difficulty: "Medium"
+  }
 ];
 
-export default function CodePlayground() {
-  const [selectedDemo, setSelectedDemo] = useState<CodeDemo>(demos[0]);
+export default function LiveCodePlayground() {
+  const [code, setCode] = useState(CODE_TEMPLATES.react);
+  const [language, setLanguage] = useState<keyof typeof CODE_TEMPLATES>("react");
+  const [output, setOutput] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeChallenge, setActiveChallenge] = useState<number | null>(null);
+  const [showHint, setShowHint] = useState(false);
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Auto-run on code change (with debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      runCode();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [code, language]);
+
+  const runCode = () => {
+    setIsRunning(true);
+    setConsoleLogs([]);
+
+    let htmlContent = "";
+
+    if (language === "react") {
+      // For React, we'd need Babel - simplified version
+      htmlContent = `
+        <div id="root"></div>
+        <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script type="text/babel">
+          ${code}
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(<Counter />);
+        </script>
+        <script src="https://cdn.tailwindcss.com"></script>
+      `;
+    } else if (language === "css") {
+      htmlContent = `
+        <style>${code}</style>
+        <div class="animated-card">CSS Animation!</div>
+        <script src="https://cdn.tailwindcss.com"></script>
+      `;
+    } else if (language === "html") {
+      htmlContent = code;
+    } else if (language === "canvas") {
+      htmlContent = `
+        <canvas id="canvas" style="border-radius: 8px;"></canvas>
+        <script>${code}</script>
+      `;
+    }
+
+    setOutput(htmlContent);
+    setIsRunning(false);
+  };
 
   const copyCode = () => {
-    navigator.clipboard.writeText(selectedDemo.code);
+    navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "beginner": return "bg-green-500/10 text-green-600";
-      case "intermediate": return "bg-yellow-500/10 text-yellow-600";
-      case "advanced": return "bg-red-500/10 text-red-600";
-      default: return "bg-muted";
-    }
+  const resetCode = () => {
+    setCode(CODE_TEMPLATES[language]);
+  };
+
+  const loadTemplate = (lang: keyof typeof CODE_TEMPLATES) => {
+    setLanguage(lang);
+    setCode(CODE_TEMPLATES[lang]);
+  };
+
+  const loadChallenge = (challengeId: number) => {
+    setActiveChallenge(challengeId);
+    setLanguage("css");
+    setCode(`/* Challenge: ${CHALLENGES.find(c => c.id === challengeId)?.title} */
+/* Write your solution below */
+
+`);
+    setShowHint(false);
+  };
+
+  const celebrateSuccess = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#3b82f6", "#22c55e", "#f59e0b", "#ec4899"]
+    });
   };
 
   return (
@@ -505,142 +272,222 @@ export default function CodePlayground() {
             <Code2 className="h-4 w-4" />
             <span className="text-sm font-medium">Interactive Playground</span>
           </motion.div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Code Playground</h1>
+
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+            Live Code{" "}
+            <span className="text-gradient-animated">Playground</span>
+          </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Explore interactive React components with live previews. 
-            Learn by experimenting with real code examples.
+            Write, run, and experiment with code in real-time. Perfect for learning,
+            prototyping, and sharing ideas.
           </p>
         </motion.div>
 
-        {/* Demo Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle className="text-lg">Components</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="space-y-2">
-                  {demos.map((demo) => (
-                    <button
-                      key={demo.id}
-                      onClick={() => setSelectedDemo(demo)}
-                      className={`w-full text-left p-3 rounded-xl transition-all ${
-                        selectedDemo.id === demo.id
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">{demo.title}</span>
-                        <Badge 
-                          variant={selectedDemo.id === demo.id ? "secondary" : "outline"}
-                          className={`text-xs ${selectedDemo.id !== demo.id ? getDifficultyColor(demo.difficulty) : ""}`}
-                        >
-                          {demo.difficulty}
-                        </Badge>
-                      </div>
-                      <p className={`text-xs ${selectedDemo.id === demo.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                        {demo.description}
-                      </p>
-                    </button>
-                  ))}
+        {/* Challenges Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-5 h-5 text-yellow-500" />
+            <h2 className="text-lg font-semibold">Coding Challenges</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {CHALLENGES.map((challenge) => (
+              <motion.button
+                key={challenge.id}
+                onClick={() => loadChallenge(challenge.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`p-4 rounded-xl border text-left transition-colors ${
+                  activeChallenge === challenge.id
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">{challenge.title}</span>
+                  <Badge variant={challenge.difficulty === "Easy" ? "secondary" : "default"}>
+                    {challenge.difficulty}
+                  </Badge>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                <p className="text-sm text-muted-foreground">{challenge.description}</p>
+              </motion.button>
+            ))}
+          </div>
 
-          {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 space-y-6"
-          >
-            {/* Preview */}
-            <Card className={`overflow-hidden transition-all ${isFullscreen ? "fixed inset-4 z-50" : ""}`}>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Play className="h-5 w-5 text-primary" />
-                    Live Preview
-                  </CardTitle>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                >
-                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          {activeChallenge && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="mt-4 p-4 rounded-xl bg-muted"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  Active: {CHALLENGES.find(c => c.id === activeChallenge)?.title}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => setShowHint(!showHint)}>
+                  <Lightbulb className="w-4 h-4 mr-1" />
+                  {showHint ? "Hide Hint" : "Show Hint"}
                 </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="border-t bg-muted/30 min-h-[200px]">
-                  {selectedDemo.preview}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Code */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Terminal className="h-5 w-5 text-primary" />
-                    Source Code
-                  </CardTitle>
-                  <div className="flex gap-1">
-                    {selectedDemo.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyCode}
-                  className="gap-2"
+              </div>
+              {showHint && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-2 text-sm text-muted-foreground"
                 >
-                  {copied ? <><Check className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy</>}
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <pre className="p-4 bg-slate-950 text-slate-50 overflow-x-auto text-sm"
-                >
-                  <code>{selectedDemo.code}</code>
-                </pre>
-              </CardContent>
-            </Card>
+                  💡 {CHALLENGES.find(c => c.id === activeChallenge)?.hint}
+                </motion.p>
+              )}
+            </motion.div>
+          )}
+        </motion.div>
 
-            {/* Tips */}
-            <Card className="bg-gradient-to-br from-primary/5 to-orange-500/5 border-primary/20">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-primary/10">
-                    <Lightbulb className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">Pro Tip</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Try modifying the code in your own project! These components use 
-                      Framer Motion for animations and Tailwind CSS for styling. 
-                      They&apos;re fully responsive and accessible.
-                    </p>
-                  </div>
+        {/* Main Editor */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className={`grid gap-6 ${isFullscreen ? "fixed inset-0 z-50 bg-background p-4" : "grid-cols-1 lg:grid-cols-2"}`}
+        >
+          {/* Code Editor */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/50 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Editor</span>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={language}
+                    onChange={(e) => loadTemplate(e.target.value as keyof typeof CODE_TEMPLATES)}
+                    className="text-sm bg-background border rounded px-2 py-1"
+                  >
+                    <option value="react">React</option>
+                    <option value="css">CSS</option>
+                    <option value="html">HTML</option>
+                    <option value="canvas">Canvas</option>
+                  </select>
+                  <Button variant="ghost" size="icon" onClick={copyCode}>
+                    {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={resetCode}>
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setIsFullscreen(!isFullscreen)}>
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <textarea
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full h-[400px] p-4 font-mono text-sm bg-background resize-none focus:outline-none"
+                spellCheck={false}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Preview */}
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/50 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Preview</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={runCode}
+                    disabled={isRunning}
+                    className="gap-1"
+                  >
+                    {isRunning ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3 h-3" />
+                        Run
+                      </>
+                    )}
+                  </Button>
+                  {activeChallenge && (
+                    <Button size="sm" variant="outline" onClick={celebrateSuccess}>
+                      <Check className="w-3 h-3 mr-1" />
+                      Done
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 bg-muted/30">
+              <iframe
+                ref={iframeRef}
+                srcDoc={output}
+                className="w-full h-[400px] bg-white"
+                sandbox="allow-scripts"
+                title="preview"
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8 flex flex-wrap justify-center gap-3"
+        >
+          <Button variant="outline" onClick={() => loadTemplate("react")}>
+            <Sparkles className="w-4 h-4 mr-2" />
+            React Component
+          </Button>
+          <Button variant="outline" onClick={() => loadTemplate("css")}>
+            <Wand2 className="w-4 h-4 mr-2" />
+            CSS Animation
+          </Button>
+          <Button variant="outline" onClick={() => loadTemplate("canvas")}>
+            <Zap className="w-4 h-4 mr-2" />
+            Canvas Particles
+          </Button>
+          <Button variant="outline" onClick={() => loadTemplate("html")}>
+            <Code2 className="w-4 h-4 mr-2" />
+            HTML Template
+          </Button>
+        </motion.div>
+
+        {/* Features */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          {[
+            { icon: Zap, label: "Auto-run", desc: "Code runs automatically" },
+            { icon: Bug, label: "Error Handling", desc: "Safe sandboxed execution" },
+            { icon: Share2, label: "Shareable", desc: "Copy and share code" },
+            { icon: Download, label: "Export", desc: "Download your work" },
+          ].map((feature) => (
+            <div key={feature.label} className="text-center p-4">
+              <feature.icon className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <p className="font-medium text-sm">{feature.label}</p>
+              <p className="text-xs text-muted-foreground">{feature.desc}</p>
+            </div>
+          ))}
+        </motion.div>
       </div>
     </div>
   );

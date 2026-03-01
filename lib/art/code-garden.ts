@@ -38,7 +38,7 @@ const CODE_VOCABULARIES: Record<string, { keywords: string[]; symbols: string[];
   },
   python: {
     keywords: ["def", "class", "return", "if", "elif", "else", "for", "while", "import", "from", "async", "await", "with", "try", "except"],
-    symbols: ["==", "!=", "and", "or", "not", "in", "is", "+=", "-=" "*=" "**", "//", "[]", "{}"],
+    symbols: ["==", "!=", "and", "or", "not", "in", "is", "+=", "-=", "*=", "**", "//", "[]", "{}"],
     types: ["str", "int", "float", "list", "dict", "tuple", "None", "True", "False"],
     comments: ["# TODO", "# FIXME", "# HACK", "# NOTE", '""" """', "''' '''"],
   },
