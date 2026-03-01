@@ -1,17 +1,8 @@
-// Auto-generated from unified-registry.ts
-// Do not edit manually - run: node scripts/generate-art-index.ts
+// Unified art index - Auto-synchronized with unified-registry.ts
+// Run `art-sync` to regenerate after adding entries to the registry
 
 import { ArtGenerator } from "./core";
 import { ARTWORK_METADATA } from "./metadata";
-import {
-  GENERATOR_REGISTRY,
-  GeneratorId,
-  getGeneratorEntry,
-  getGeneratorIdsByCategory,
-  getCategoryStats,
-  loadGenerator,
-  validateRegistry,
-} from "./unified-registry";
 
 // Re-export core types
 export * from "./core";
@@ -38,8 +29,9 @@ export {
 } from "./unified-registry";
 
 // ============================================================================
-// STATIC IMPORTS - Eagerly loaded generators
-// Auto-generated from unified-registry.ts
+// STATIC IMPORTS - Auto-generated from unified-registry.ts
+// Generated: 2026-03-01 19:58:49
+// Do not edit manually - run: art-sync
 // ============================================================================
 
 // === MATHEMATICAL (13) ===
@@ -139,12 +131,12 @@ import { abelianSandpile } from "./abelian-sandpile";
 import { magneticPoetry } from "./magnetic-poetry";
 import { kineticSculpture } from "./kinetic-sculpture";
 
+
 // ============================================================================
-// GENERATORS MAP - Connects IDs to implementations
+// GENERATORS MAP - Auto-generated from unified-registry.ts
 // ============================================================================
 
 const rawGenerators: Record<string, ArtGenerator> = {
-
   // === MATHEMATICAL ===
   "mandelbrot-explorer": mandelbrotExplorer,
   "julia-set": juliaSet,
@@ -241,10 +233,12 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "abelian-sandpile": abelianSandpile,
   "magnetic-poetry": magneticPoetry,
   "kinetic-sculpture": kineticSculpture,
-
 };
 
-// Apply metadata to generators
+// ============================================================================
+// APPLY METADATA - Enrich generators with metadata
+// ============================================================================
+
 export const artGenerators: Record<string, ArtGenerator> = {};
 
 Object.entries(rawGenerators).forEach(([id, generator]) => {
@@ -288,3 +282,10 @@ if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {
     console.warn("[art/index] Registry validation issues:", validation);
   }
 }
+
+// ============================================================================
+// ADDITIONAL EXPORTS - Standalone modules not in registry
+// ============================================================================
+
+export { renderFlowingMagnetism, flowingMagnetismDefaultParams } from "./flowing-magnetism";
+export type { FlowingMagnetismParams } from "./flowing-magnetism";

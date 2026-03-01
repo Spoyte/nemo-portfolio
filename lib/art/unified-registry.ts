@@ -351,7 +351,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "nBodyGravity",
   },
 
-  // === GEOMETRIC (11) ===
+  // === GEOMETRIC (12) ===
   {
     id: "geometric-mandala",
     name: "Geometric Mandala",
@@ -986,7 +986,16 @@ export function generateIndexContent(): string {
   lines.push('      complexity: "moderate",');
   lines.push('      tags: [],');
   lines.push('      created: "2024-01-01",');
-  lines.push('    },');
+  lines.push('    },
+  {
+    id: "volumetric-text",
+    name: "Volumetric Text",
+    description: "3D text rendered with volumetric lighting and particle systems — words as luminous fog",
+    category: "3d",
+    loader: () => import("./volumetric-text"),
+    renderFnName: "renderVolumetricText",
+    importName: "volumetricText",
+  },');
   lines.push('  };');
   lines.push('});');
   lines.push('');

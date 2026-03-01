@@ -518,6 +518,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "interactive", "colorful", "futuristic", "3d"],
     created: "2026-03-01",
   },
+  "volumetric-text": {
+    category: "3d",
+    complexity: "complex",
+    tags: ["animated", "3d", "futuristic", "detailed", "colorful"],
+    created: "2026-03-01",
+  },
 };
 
 // Helper function to get metadata for a generator
