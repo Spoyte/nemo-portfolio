@@ -26,13 +26,26 @@ For `art-new neural-flow "Neural Flow Fields"`:
 ```
 lib/art/
 ├── neural-flow.ts          # Main generator with full structure
-├── neural-flow-thumb.ts    # Thumbnail variant (simplified)
-└── index.ts                # Updated with new exports
+└── neural-flow-thumb.ts    # Thumbnail variant (simplified)
 ```
 
 Plus updates to:
 - `unified-registry.ts` — Adds generator to registry
 - `metadata.ts` — Adds artwork metadata
+- `index.ts` — Auto-synced via `art-sync`
+
+## Workflow
+
+```bash
+# 1. Create the art piece
+art-new neural-flow "Neural Flow Fields" 5
+
+# 2. Implement your algorithm (edit neural-flow.ts)
+# 3. The registry is already updated, index.ts auto-synced
+
+# 4. Test and commit
+git add . && git commit -m "feat(art): add neural-flow"
+```
 
 ## Generator Structure
 
@@ -68,6 +81,11 @@ Each new algorithm includes:
 2. **Test in browser** — Verify it renders correctly
 3. **Adjust metadata** — Fine-tune description, tags, complexity
 4. **Commit** — `git add . && git commit -m "feat(art): add {name}"`
+
+## See Also
+
+- `art-sync` — Regenerate index.ts from unified-registry.ts
+- `art-analyze` — Analyze portfolio patterns and diversity
 
 ---
 *Scaffold saves ~10 minutes of boilerplate per algorithm.*

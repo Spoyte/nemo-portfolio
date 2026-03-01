@@ -441,67 +441,17 @@ PYTHON_SCRIPT
 echo -e "${GREEN}✓ Updated metadata.ts${NC}"
 
 # ============================================================================
-# Update index.ts - Add static import
+# Sync index.ts - Auto-generate from registry
 # ============================================================================
-echo -e "${CYAN}→ Updating index.ts...${NC}"
+echo -e "${CYAN}→ Syncing index.ts with art-sync...${NC}"
 
-python3 << PYTHON_SCRIPT
-import re
-
-index_file = "$INDEX_FILE"
-kebab_name = "$KEBAB_NAME"
-camel_name = "$CAMEL_NAME"
-category = "$CATEGORY"
-
-with open(index_file, 'r') as f:
-    content = f.read()
-
-# Find the category import section
-# Pattern: // === CATEGORY (count) ===
-category_pattern = rf"(// === {category.upper()} \([^)]+\) ===)"
-match = re.search(category_pattern, content)
-
-if match:
-    # Find the end of imports in this section (next // === or the generators map)
-    section_start = match.end()
-    next_section = re.search(r"\n// === [A-Z]+|\n// =", content[section_start:])
-    
-    if next_section:
-        insert_pos = section_start + next_section.start()
-    else:
-        # Find before the generators map comment
-        gen_map = content.find("// ============================================================================")
-        insert_pos = gen_map if gen_map != -1 else len(content)
-    
-    # Create import line
-    import_line = f'import {{ {camel_name} }} from "./{kebab_name}";'
-    
-    # Insert
-    new_content = content[:insert_pos] + "\n" + import_line + content[insert_pos:]
-    
-    with open(index_file, 'w') as f:
-        f.write(new_content)
-    
-    print(f"Added import for {kebab_name}")
-else:
-    print(f"Category section not found in index.ts")
-    # Add to end of imports section
-    # Find the last import before the generators map
-    gen_map = content.find("const rawGenerators")
-    if gen_map != -1:
-        # Find last import before this
-        last_import = content.rfind("import {", 0, gen_map)
-        if last_import != -1:
-            # Find end of that line
-            line_end = content.find("\n", last_import)
-            import_line = f'import {{ {camel_name} }} from "./{kebab_name}";'
-            new_content = content[:line_end+1] + import_line + "\n" + content[line_end+1:]
-            with open(index_file, 'w') as f:
-                f.write(new_content)
-            print(f"Added import for {kebab_name} at end of imports")
-PYTHON_SCRIPT
-
-echo -e "${GREEN}✓ Updated index.ts${NC}"
+if command -v art-sync &> /dev/null; then
+    art-sync
+    echo -e "${GREEN}✓ Synced index.ts${NC}"
+else
+    echo -e "${YELLOW}⚠ art-sync not found in PATH${NC}"
+    echo -e "${YELLOW}  Run manually: /root/.openclaw/workspace/skills/art-sync/art-sync${NC}"
+fi
 
 # ============================================================================
 # Summary
@@ -518,7 +468,7 @@ echo ""
 echo -e "${CYAN}Registry updates:${NC}"
 echo "  • unified-registry.ts — Added to '$CATEGORY' category"
 echo "  • metadata.ts — Added artwork metadata"
-echo "  • index.ts — Added static import"
+echo "  • index.ts — Auto-synced via art-sync"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo "  1. Edit lib/art/$KEBAB_NAME.ts — implement your algorithm"
@@ -526,4 +476,4 @@ echo "  2. Update the TODO description in unified-registry.ts"
 echo "  3. Test: npm run dev (in my-app directory)"
 echo "  4. Commit: git add . && git commit -m \"feat(art): add $KEBAB_NAME\""
 echo ""
-echo -e "${BLUE}💡 Tip:${NC} The generator is already wired up and ready to test!"
+echo -e "${BLUE}💡 Tip:${NC} Run 'art-sync' anytime to regenerate index.ts from the registry!"

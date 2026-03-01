@@ -1,0 +1,322 @@
+#!/usr/bin/env python3
+"""
+art-sync — Auto-generate index.ts imports and registry from unified-registry.ts
+
+This script reads the unified registry and generates:
+1. Static import statements organized by category
+2. The rawGenerators map
+3. Export statements
+
+Usage: art-sync [--check]
+  --check: Verify index.ts is in sync (exit 1 if not)
+
+Benefits:
+- Single source of truth (unified-registry.ts)
+- No manual synchronization needed
+- Always consistent
+- Catches missing generators
+"""
+
+import re
+import sys
+from pathlib import Path
+from datetime import datetime
+
+# Configuration
+ART_DIR = Path("/root/.openclaw/workspace/nemo-portfolio/my-app/lib/art")
+REGISTRY_FILE = ART_DIR / "unified-registry.ts"
+INDEX_FILE = ART_DIR / "index.ts"
+METADATA_FILE = ART_DIR / "metadata.ts"
+
+# Category order (for consistent output)
+CATEGORY_ORDER = [
+    "mathematical",
+    "natural", 
+    "physics",
+    "geometric",
+    "abstract",
+    "traditional",
+    "text",
+    "3d",
+    "interactive",
+]
+
+
+def parse_registry():
+    """Parse the unified registry and extract generator entries."""
+    content = REGISTRY_FILE.read_text()
+    
+    # Find the GENERATOR_REGISTRY array
+    registry_match = re.search(
+        r'export const GENERATOR_REGISTRY: GeneratorEntry\[\] = \[(.*?)\];',
+        content,
+        re.DOTALL
+    )
+    
+    if not registry_match:
+        print("Error: Could not find GENERATOR_REGISTRY array")
+        sys.exit(1)
+    
+    registry_content = registry_match.group(1)
+    
+    # Parse individual entries
+    entries = []
+    # Pattern to match entry objects
+    entry_pattern = r'\{\s*id:\s*"([^"]+)".*?name:\s*"([^"]+)".*?category:\s*"([^"]+)".*?importName:\s*"([^"]+)".*?\},'
+    
+    for match in re.finditer(entry_pattern, registry_content, re.DOTALL):
+        entries.append({
+            'id': match.group(1),
+            'name': match.group(2),
+            'category': match.group(3),
+            'importName': match.group(4),
+        })
+    
+    return entries
+
+
+def group_by_category(entries):
+    """Group entries by category."""
+    groups = {cat: [] for cat in CATEGORY_ORDER}
+    for entry in entries:
+        cat = entry['category']
+        if cat in groups:
+            groups[cat].append(entry)
+        else:
+            # Unknown category, add to end
+            groups[cat] = [entry]
+    return groups
+
+
+def kebab_to_pascal(kebab):
+    """Convert kebab-case to PascalCase."""
+    return ''.join(word.capitalize() for word in kebab.split('-'))
+
+
+def generate_imports(grouped_entries):
+    """Generate import statements."""
+    lines = []
+    lines.append("// ============================================================================")
+    lines.append("// STATIC IMPORTS - Auto-generated from unified-registry.ts")
+    lines.append(f"// Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append("// Do not edit manually - run: art-sync")
+    lines.append("// ============================================================================")
+    lines.append("")
+    
+    for category in CATEGORY_ORDER:
+        entries = grouped_entries.get(category, [])
+        if not entries:
+            continue
+        
+        lines.append(f"// === {category.upper()} ({len(entries)}) ===")
+        
+        for entry in entries:
+            # Import name is already camelCase in registry
+            import_name = entry['importName']
+            file_name = entry['id']
+            lines.append(f'import {{ {import_name} }} from "./{file_name}";')
+        
+        lines.append("")
+    
+    return '\n'.join(lines)
+
+
+def generate_raw_generators(grouped_entries):
+    """Generate the rawGenerators map."""
+    lines = []
+    lines.append("// ============================================================================")
+    lines.append("// GENERATORS MAP - Auto-generated from unified-registry.ts")
+    lines.append("// ============================================================================")
+    lines.append("")
+    lines.append("const rawGenerators: Record<string, ArtGenerator> = {")
+    
+    first_category = True
+    for category in CATEGORY_ORDER:
+        entries = grouped_entries.get(category, [])
+        if not entries:
+            continue
+        
+        if not first_category:
+            lines.append("")
+        first_category = False
+        
+        lines.append(f"  // === {category.upper()} ===")
+        
+        for entry in entries:
+            id_key = entry['id']
+            import_name = entry['importName']
+            lines.append(f'  "{id_key}": {import_name},')
+    
+    lines.append("};")
+    
+    return '\n'.join(lines)
+
+
+def generate_index_content():
+    """Generate complete index.ts content."""
+    entries = parse_registry()
+    grouped = group_by_category(entries)
+    
+    lines = []
+    
+    # Header
+    lines.append("// Unified art index - Auto-synchronized with unified-registry.ts")
+    lines.append("// Run `art-sync` to regenerate after adding entries to the registry")
+    lines.append("")
+    
+    # Core imports
+    lines.append('import { ArtGenerator } from "./core";')
+    lines.append('import { ARTWORK_METADATA } from "./metadata";')
+    lines.append("")
+    
+    # Re-exports
+    lines.append("// Re-export core types")
+    lines.append('export * from "./core";')
+    lines.append('export * from "./metadata";')
+    lines.append('export * from "./statistics";')
+    lines.append("")
+    lines.append("// Re-export registry system")
+    lines.append("export {")
+    lines.append("  GENERATOR_REGISTRY,")
+    lines.append("  type GeneratorId,")
+    lines.append("  type GeneratorEntry,")
+    lines.append("  type LoadedGenerator,")
+    lines.append("  getGeneratorEntry,")
+    lines.append("  getGeneratorIdsByCategory,")
+    lines.append("  getGeneratorsByCategory,")
+    lines.append("  getCategoryStats,")
+    lines.append("  getGeneratorMetadata,")
+    lines.append("  loadGenerator,")
+    lines.append("  validateRegistry,")
+    lines.append("  isValidGeneratorId,")
+    lines.append("  TOTAL_GENERATORS,")
+    lines.append("  GENERATOR_IDS,")
+    lines.append("  CATEGORIES,")
+    lines.append('} from "./unified-registry";')
+    lines.append("")
+    
+    # Static imports
+    lines.append(generate_imports(grouped))
+    lines.append("")
+    
+    # rawGenerators map
+    lines.append(generate_raw_generators(grouped))
+    lines.append("")
+    
+    # Metadata application
+    lines.append("// ============================================================================")
+    lines.append("// APPLY METADATA - Enrich generators with metadata")
+    lines.append("// ============================================================================")
+    lines.append("")
+    lines.append("export const artGenerators: Record<string, ArtGenerator> = {};")
+    lines.append("")
+    lines.append("Object.entries(rawGenerators).forEach(([id, generator]) => {")
+    lines.append("  artGenerators[id] = {")
+    lines.append("    ...generator,")
+    lines.append("    meta: ARTWORK_METADATA[id] || {")
+    lines.append('      category: "abstract",')
+    lines.append('      complexity: "moderate",')
+    lines.append("      tags: [],")
+    lines.append('      created: "2024-01-01",')
+    lines.append("    },")
+    lines.append("  };")
+    lines.append("});")
+    lines.append("")
+    
+    # Convenience exports
+    lines.append("// ============================================================================")
+    lines.append("// CONVENIENCE EXPORTS")
+    lines.append("// ============================================================================")
+    lines.append("")
+    lines.append("/** Get a generator by ID */")
+    lines.append("export function getGenerator(id: string): ArtGenerator | undefined {")
+    lines.append("  return artGenerators[id];")
+    lines.append("}")
+    lines.append("")
+    lines.append("/** Get all generator IDs */")
+    lines.append("export function getAllGeneratorIds(): string[] {")
+    lines.append("  return Object.keys(artGenerators);")
+    lines.append("}")
+    lines.append("")
+    lines.append("/** Check if a generator exists */")
+    lines.append("export function hasGenerator(id: string): boolean {")
+    lines.append("  return id in artGenerators;")
+    lines.append("}")
+    lines.append("")
+    
+    # Validation
+    lines.append("// ============================================================================")
+    lines.append("// VALIDATION (run at module init in development)")
+    lines.append("// ============================================================================")
+    lines.append("")
+    lines.append('if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {')
+    lines.append("  const validation = validateRegistry();")
+    lines.append("  if (!validation.valid) {")
+    lines.append('    console.warn("[art/index] Registry validation issues:", validation);')
+    lines.append("  }")
+    lines.append("}")
+    
+    # Additional exports (non-registry modules)
+    lines.append("")
+    lines.append("// ============================================================================")
+    lines.append("// ADDITIONAL EXPORTS - Standalone modules not in registry")
+    lines.append("// ============================================================================")
+    lines.append("")
+    lines.append('export { renderFlowingMagnetism, flowingMagnetismDefaultParams } from "./flowing-magnetism";')
+    lines.append('export type { FlowingMagnetismParams } from "./flowing-magnetism";')
+    
+    return '\n'.join(lines)
+
+
+def check_sync():
+    """Check if index.ts is in sync with registry."""
+    current_content = INDEX_FILE.read_text()
+    expected_content = generate_index_content()
+    
+    # Normalize whitespace for comparison
+    current_normalized = '\n'.join(line.rstrip() for line in current_content.split('\n') if line.strip())
+    expected_normalized = '\n'.join(line.rstrip() for line in expected_content.split('\n') if line.strip())
+    
+    if current_normalized == expected_normalized:
+        print("✓ index.ts is in sync with unified-registry.ts")
+        return 0
+    else:
+        print("✗ index.ts is out of sync with unified-registry.ts")
+        print("  Run 'art-sync' to regenerate")
+        return 1
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == '--check':
+        return check_sync()
+    
+    print("art-sync — Generating index.ts from unified-registry.ts")
+    print("")
+    
+    # Parse registry
+    entries = parse_registry()
+    print(f"Found {len(entries)} generators in registry")
+    
+    # Generate content
+    new_content = generate_index_content()
+    
+    # Write file
+    INDEX_FILE.write_text(new_content)
+    print(f"✓ Updated {INDEX_FILE}")
+    
+    # Show stats
+    grouped = group_by_category(entries)
+    print("")
+    print("Generator distribution:")
+    for category in CATEGORY_ORDER:
+        count = len(grouped.get(category, []))
+        if count > 0:
+            print(f"  {category:15s}: {count:2d}")
+    
+    print("")
+    print("✓ Synchronization complete!")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
