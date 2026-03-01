@@ -704,6 +704,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderAbelianSandpile",
     importName: "abelianSandpile",
   },
+  {
+    id: "magnetic-poetry",
+    name: "Magnetic Poetry",
+    description: "Interactive physics-based word magnets - drag words to compose poetry with satisfying momentum",
+    category: "interactive",
+    loader: () => import("./magnetic-poetry"),
+    renderFnName: "generate",
+    importName: "magneticPoetry",
+  },
   // === TEXT (2) ===
   {
     id: "poetry-visualizer",

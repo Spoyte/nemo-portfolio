@@ -125,6 +125,7 @@ import { particleNetwork } from "./particle-network";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
+import { magneticPoetry } from "./magnetic-poetry";
 
 
 // ============================================================================
@@ -223,6 +224,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "frequency-visualizer": frequencyVisualizer,
   "topographic-flow": topographicFlow,
   "abelian-sandpile": abelianSandpile,
+  "magnetic-poetry": magneticPoetry,
 };
 
 // ============================================================================
