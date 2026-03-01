@@ -11,6 +11,8 @@ import { TerminalToggle } from "@/components/interactive-terminal";
 import { HolographicBackground } from "@/components/holographic-background";
 import { AIChatWidget } from "@/components/ai-chat-widget";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
+import { MiniMusicPlayer } from "@/components/mini-music-player";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -59,6 +61,8 @@ export default function RootLayout({
           {/* Global Widgets */}
           <AIChatWidget />
           <FloatingMusicPlayer />
+          <MiniMusicPlayer />
+          <ThemeSwitcher />
           
           {/* Easter Egg */}
           <KonamiCodeEasterEgg />

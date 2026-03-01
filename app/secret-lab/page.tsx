@@ -372,8 +372,8 @@ function RealityCheck() {
           className="p-3 bg-green-900/20 border border-green-500/30 rounded-lg"
         >
           <p className="text-sm text-green-400 font-mono">
-            > Wake up, Neo...<br/>
-            > The Matrix has you...
+            {">"} Wake up, Neo...<br/>
+            {">"} The Matrix has you...
           </p>
         </motion.div>
       )}
@@ -500,7 +500,7 @@ function SecretTerminal() {
           ))}
           
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-green-500">></span>
+            <span className="text-green-500">{">"}</span>
             <input
               type="text"
               value={input}

@@ -13,12 +13,17 @@ import {
   Twitter,
   Linkedin,
   Mail,
-  ChevronDown
+  ChevronDown,
+  Layers,
+  Keyboard,
+  MousePointer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnhancedVisitorCounter } from "@/components/enhanced-visitor-counter";
 import { TestimonialsSection } from "@/components/testimonials-section";
 import { FeaturedProjects } from "@/components/featured-projects";
+import { ScrollReveal, Counter, SpotlightCard } from "@/components/scroll-animations";
+import { Badge } from "@/components/ui/badge";
 
 const features = [
   {
@@ -128,16 +133,19 @@ export default function Home() {
                 </Button>
               </Link>
               
-              <Link href="/contact">
-                <Button size="lg" variant="outline">
-                  Get in Touch
+              <Link href="/hire">
+                <Button size="lg" variant="outline" className="group">
+                  Hire Me
+                  <Sparkles className="ml-2 h-4 w-4 group-hover:animate-pulse" />
                 </Button>
               </Link>
               
-              <Button size="lg" variant="ghost" className="group">
-                <Download className="mr-2 h-4 w-4 group-hover:animate-bounce" />
-                Resume
-              </Button>
+              <Link href="/new-features">
+                <Button size="lg" variant="ghost" className="group">
+                  <Zap className="mr-2 h-4 w-4 group-hover:text-yellow-500 transition-colors" />
+                  New Features
+                </Button>
+              </Link>
             </motion.div>
 
             {/* Social Links */}
@@ -261,8 +269,104 @@ export default function Home() {
         </div>
       </section>
 
+      {/* New Features Preview */}
+      <section className="py-24 border-y border-border/50 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+              <Sparkles className="h-4 w-4" />
+              <span className="text-sm font-medium">Just Added</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              New{" "}
+              <span className="text-gradient-animated">Interactive Features</span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Explore the latest additions to my portfolio, from 3D cards to typing games.
+            </p>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ScrollReveal delay={0.1}>
+              <SpotlightCard className="h-full">
+                <Link href="/new-features" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Layers className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">3D Project Cards</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Tilt-responsive cards with dynamic glare effects and smooth animations.
+                  </p>
+                  <Badge variant="outline">Try it →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.2}>
+              <SpotlightCard className="h-full">
+                <Link href="/new-features" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Keyboard className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Typing Challenge</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Test your typing speed with real-time WPM tracking and accuracy scoring.
+                  </p>
+                  <Badge variant="outline">Play now →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.3}>
+              <SpotlightCard className="h-full">
+                <Link href="/new-features" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <MousePointer className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Spotlight Effects</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Mouse-following spotlight that illuminates content as you explore.
+                  </p>
+                  <Badge variant="outline">Explore →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Projects */}
       <FeaturedProjects />
+
+      {/* Stats Section */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">
+              By the{" "}
+              <span className="text-gradient-animated">Numbers</span>
+            </h2>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: 50, suffix: "+", label: "Projects Completed" },
+              { value: 5, suffix: "+", label: "Years Experience" },
+              { value: 100, suffix: "%", label: "Client Satisfaction" },
+              { value: 24, suffix: "h", label: "Response Time" },
+            ].map((stat, index) => (
+              <ScrollReveal key={stat.label} delay={index * 0.1}>
+                <div className="text-center p-6 rounded-2xl bg-card border border-border">
+                  <p className="text-4xl md:text-5xl font-bold text-primary mb-2">
+                    <Counter to={stat.value} suffix={stat.suffix} />
+                  </p>
+                  <p className="text-muted-foreground">{stat.label}</p>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Tech Stack */}
       <section className="py-24 border-y border-border/50 bg-muted/30">

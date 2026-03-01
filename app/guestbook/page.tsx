@@ -163,14 +163,14 @@ function EntryCard({
                 <span className="font-semibold">{entry.name}</span>
                 <span className="text-muted-foreground text-sm">•</span>
                 <span className="text-muted-foreground text-sm flex items-center gap-1">
-                  <Clock className="w-3 h-3" /
+                  <Clock className="w-3 h-3" />
                   {formatRelativeTime(entry.timestamp)}
                 </span>
                 {entry.location && (
                   <>
                     <span className="text-muted-foreground text-sm">•</span>
                     <span className="text-muted-foreground text-sm flex items-center gap-1">
-                      <Globe className="w-3 h-3" /
+                      <Globe className="w-3 h-3" />
                       {entry.location}
                     </span>
                   </>

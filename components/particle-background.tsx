@@ -1,82 +1,55 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { motion, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
+import { useEffect, useRef, useCallback } from "react";
+import { useTheme } from "next-themes";
 
 interface Particle {
-  id: number;
   x: number;
   y: number;
-  size: number;
-  speedX: number;
-  speedY: number;
-  opacity: number;
+  vx: number;
+  vy: number;
+  radius: number;
   color: string;
+  alpha: number;
 }
 
 interface ParticleBackgroundProps {
-  variant?: "default" | "sparse" | "dense" | "snow" | "stars";
-  interactive?: boolean;
-  className?: string;
+  particleCount?: number;
+  connectionDistance?: number;
+  mouseDistance?: number;
+  speed?: number;
 }
 
-const colors = {
-  default: ["#dc2626", "#ea580c", "#f59e0b", "#fbbf24"],
-  sparse: ["#dc2626", "#f87171", "#fca5a5"],
-  dense: ["#dc2626", "#ea580c", "#f59e0b", "#fbbf24", "#fcd34d", "#fed7aa"],
-  snow: ["#ffffff", "#e5e7eb", "#d1d5db", "#f3f4f6"],
-  stars: ["#ffffff", "#fef3c7", "#fde68a", "#fcd34d"],
-};
-
-export function ParticleBackground({ 
-  variant = "default", 
-  interactive = true,
-  className = "" 
+export function ParticleBackground({
+  particleCount = 50,
+  connectionDistance = 150,
+  mouseDistance = 200,
+  speed = 0.5,
 }: ParticleBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const animationRef = useRef<number>();
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const { theme } = useTheme();
 
-  const particleCount = {
-    default: 50,
-    sparse: 25,
-    dense: 100,
-    snow: 80,
-    stars: 60,
-  }[variant];
+  const colors = theme === "dark" 
+    ? ["#f87171", "#fb923c", "#fbbf24", "#a3e635", "#22d3ee"]
+    : ["#dc2626", "#ea580c", "#d97706", "#65a30d", "#0891b2"];
 
-  const colorPalette = colors[variant];
-
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (canvasRef.current) {
-        const { width, height } = canvasRef.current.getBoundingClientRect();
-        setDimensions({ width, height });
-        canvasRef.current.width = width;
-        canvasRef.current.height = height;
-      }
-    };
-
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
-  }, []);
-
-  useEffect(() => {
-    // Initialize particles
-    particlesRef.current = Array.from({ length: particleCount }, (_, i) => ({
-      id: i,
-      x: Math.random() * dimensions.width,
-      y: Math.random() * dimensions.height,
-      size: Math.random() * 3 + 1,
-      speedX: (Math.random() - 0.5) * (variant === "snow" ? 0.5 : 1),
-      speedY: variant === "snow" ? Math.random() * 1 + 0.5 : (Math.random() - 0.5) * 1,
-      opacity: Math.random() * 0.5 + 0.2,
-      color: colorPalette[Math.floor(Math.random() * colorPalette.length)],
-    }));
-  }, [dimensions, particleCount, variant, colorPalette]);
+  const initParticles = useCallback((width: number, height: number) => {
+    particlesRef.current = [];
+    for (let i = 0; i < particleCount; i++) {
+      particlesRef.current.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * speed,
+        vy: (Math.random() - 0.5) * speed,
+        radius: Math.random() * 2 + 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: Math.random() * 0.5 + 0.2,
+      });
+    }
+  }, [particleCount, speed, colors]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -85,58 +58,69 @@ export function ParticleBackground({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const animate = () => {
-      ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles(canvas.width, canvas.height);
+    };
 
-      particlesRef.current.forEach((particle) => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("mousemove", handleMouseMove);
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const particles = particlesRef.current;
+
+      // Update and draw particles
+      particles.forEach((particle, i) => {
         // Update position
-        particle.x += particle.speedX;
-        particle.y += particle.speedY;
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        // Bounce off edges
+        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
 
         // Mouse interaction
-        if (interactive) {
-          const dx = mouseRef.current.x - particle.x;
-          const dy = mouseRef.current.y - particle.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < 100) {
-            const force = (100 - distance) / 100;
-            particle.x -= (dx / distance) * force * 2;
-            particle.y -= (dy / distance) * force * 2;
-          }
-        }
+        const dx = mouseRef.current.x - particle.x;
+        const dy = mouseRef.current.y - particle.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Wrap around edges
-        if (particle.x < 0) particle.x = dimensions.width;
-        if (particle.x > dimensions.width) particle.x = 0;
-        if (particle.y < 0) particle.y = dimensions.height;
-        if (particle.y > dimensions.height) particle.y = 0;
+        if (dist < mouseDistance) {
+          const force = (mouseDistance - dist) / mouseDistance;
+          particle.vx += (dx / dist) * force * 0.02;
+          particle.vy += (dy / dist) * force * 0.02;
+        }
 
         // Draw particle
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
         ctx.fillStyle = particle.color;
-        ctx.globalAlpha = particle.opacity;
+        ctx.globalAlpha = particle.alpha;
         ctx.fill();
 
-        // Draw connections (only for non-snow/stars variants)
-        if (variant !== "snow" && variant !== "stars") {
-          particlesRef.current.forEach((other) => {
-            if (particle.id === other.id) return;
-            
-            const dx = particle.x - other.x;
-            const dy = particle.y - other.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+        // Draw connections
+        for (let j = i + 1; j < particles.length; j++) {
+          const other = particles[j];
+          const dx = particle.x - other.x;
+          const dy = particle.y - other.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < 100) {
-              ctx.beginPath();
-              ctx.moveTo(particle.x, particle.y);
-              ctx.lineTo(other.x, other.y);
-              ctx.strokeStyle = particle.color;
-              ctx.globalAlpha = (1 - distance / 100) * 0.2;
-              ctx.stroke();
-            }
-          });
+          if (dist < connectionDistance) {
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = particle.color;
+            ctx.globalAlpha = (1 - dist / connectionDistance) * 0.2;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
         }
       });
 
@@ -147,165 +131,19 @@ export function ParticleBackground({
     animate();
 
     return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [dimensions, variant, interactive]);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    mouseRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-  };
+  }, [initParticles, connectionDistance, mouseDistance]);
 
   return (
     <canvas
       ref={canvasRef}
-      onMouseMove={handleMouseMove}
-      className={`absolute inset-0 pointer-events-auto ${className}`}
+      className="fixed inset-0 pointer-events-none z-0"
       style={{ opacity: 0.6 }}
     />
-  );
-}
-
-// Floating elements background
-export function FloatingElementsBackground({ className = "" }: { className?: string }) {
-  const elements = [
-    { icon: "⚛️", delay: 0, duration: 20, x: "10%", y: "20%" },
-    { icon: "▲", delay: 2, duration: 25, x: "80%", y: "15%" },
-    { icon: "📘", delay: 4, duration: 22, x: "70%", y: "70%" },
-    { icon: "🌊", delay: 1, duration: 18, x: "20%", y: "80%" },
-    { icon: "🟢", delay: 3, duration: 24, x: "90%", y: "50%" },
-    { icon: "🐘", delay: 5, duration: 21, x: "30%", y: "40%" },
-    { icon: "◈", delay: 2.5, duration: 19, x: "60%", y: "30%" },
-    { icon: "🐳", delay: 4.5, duration: 23, x: "15%", y: "60%" },
-  ];
-
-  return (
-    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
-      {elements.map((el, i) => (
-        <motion.div
-          key={i}
-          className="absolute text-4xl opacity-10"
-          style={{ left: el.x, top: el.y }}
-          animate={{
-            y: [0, -30, 0],
-            rotate: [0, 10, -10, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: el.duration,
-            delay: el.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          {el.icon}
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-// Gradient mesh background
-export function GradientMeshBackground({ className = "" }: { className?: string }) {
-  return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`}>
-      <motion.div
-        className="absolute w-[600px] h-[600px] rounded-full blur-[120px]"
-        style={{
-          background: "linear-gradient(135deg, rgba(220, 38, 38, 0.3), rgba(234, 88, 12, 0.2))",
-          top: "10%",
-          left: "10%",
-        }}
-        animate={{
-          x: [0, 50, 0],
-          y: [0, 30, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 15,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-      <motion.div
-        className="absolute w-[500px] h-[500px] rounded-full blur-[100px]"
-        style={{
-          background: "linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.15))",
-          bottom: "10%",
-          right: "10%",
-        }}
-        animate={{
-          x: [0, -40, 0],
-          y: [0, -50, 0],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 12,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 2,
-        }}
-      />
-      <motion.div
-        className="absolute w-[400px] h-[400px] rounded-full blur-[80px]"
-        style={{
-          background: "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.15))",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-        animate={{
-          scale: [1, 1.3, 1],
-          rotate: [0, 180, 360],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-    </div>
-  );
-}
-
-// Animated grid background
-export function AnimatedGridBackground({ className = "" }: { className?: string }) {
-  return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`}>
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(220, 38, 38, 0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(220, 38, 38, 0.5) 1px, transparent 1px)
-          `,
-          backgroundSize: "50px 50px",
-        }}
-      />
-      <motion.div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(220, 38, 38, 0.8) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(220, 38, 38, 0.8) 1px, transparent 1px)
-          `,
-          backgroundSize: "100px 100px",
-        }}
-        animate={{
-          backgroundPosition: ["0px 0px", "100px 100px"],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-    </div>
   );
 }

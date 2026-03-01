@@ -538,12 +538,8 @@ export default function UsesPage() {
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
-                
-                
-                  
+                >
                   uses.tech
-                
-                
                 </a>{" "}
                 community. This page is a living document - I update it as my workflow evolves.
                 Last updated: March 2025.
