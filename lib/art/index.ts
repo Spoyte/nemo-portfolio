@@ -122,10 +122,11 @@ import { inkDiffusion } from "./ink-diffusion";
 import { kineticTypography } from "./kinetic-typography";
 import { poetryVisualizer } from "./poetry-visualizer";
 
-// === 3D (3) ===
+// === 3D (4) ===
 import { lightCaverns } from "./light-caverns-generator";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
+import { sdfSculptor } from "./sdf-sculptor";
 
 // === INTERACTIVE (4) ===
 import { particleNetwork } from "./particle-network";
@@ -221,6 +222,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "light-caverns": lightCaverns,
   "polyhedral-sculptures": polyhedralSculptures,
   "crystal-lattice": crystalLattice,
+  "sdf-sculptor": sdfSculptor,
 
   // === INTERACTIVE ===
   "particle-network": particleNetwork,

@@ -629,7 +629,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "kineticTypography",
   },
 
-  // === 3D (4) ===
+  // === 3D (5) ===
   {
     id: "light-caverns",
     name: "Light Caverns",
@@ -656,6 +656,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./crystal-lattice"),
     renderFnName: "renderCrystalLattice",
     importName: "crystalLattice",
+  },
+  {
+    id: "sdf-sculptor",
+    name: "SDF Sculptor",
+    description: "Raymarched 3D sculptures using signed distance fields — infinite mathematical forms rendered through sphere tracing",
+    category: "3d",
+    loader: () => import("./sdf-sculptor"),
+    renderFnName: "renderSDFSculptor",
+    importName: "sdfSculptor",
   },
 
   // === INTERACTIVE (3) ===

@@ -468,6 +468,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "colorful", "organic", "detailed"],
     created: "2026-03-01",
   },
+  "sdf-sculptor": {
+    category: "3d",
+    complexity: "expert",
+    tags: ["animated", "futuristic", "geometric", "detailed"],
+    created: "2026-03-01",
+  },
 };
 
 // Helper function to get metadata for a generator
@@ -583,6 +589,7 @@ export const VALID_ARTWORK_IDS = new Set([
   "light-caverns",
   "polyhedral-sculptures",
   "crystal-lattice",
+  "sdf-sculptor",
   "kaleidoscope-chamber",
   // Interactive
   "particle-network",
@@ -635,7 +642,7 @@ export function validateMetadata(): {
     "plasma-arc", "slime-mold", "wave-tank", "solar-flare", "crystal-lattice",
     "kaleidoscope-chamber", "double-pendulum", "fourier-synthesis", "julia-set",
     "barnsley-fern", "chaos-game", "penrose-tiling", "lenia", "bioluminescent-plankton", "self-organizing-map", "abelian-sandpile", "turing-patterns",
-    "n-body-gravity", "sacred-geometry",
+    "n-body-gravity", "sacred-geometry", "sdf-sculptor", "poetry-visualizer",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 
