@@ -1,0 +1,349 @@
+#!/usr/bin/env node
+/**
+ * health-monitor — System & workspace health checks
+ * 
+ * Usage: health [options]
+ *        health --check     # Quick status
+ *        health --json      # JSON output
+ *        health --fix       # Auto-fix issues
+ */
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// Configuration
+const CONFIG = {
+  disk: { warn: 80, critical: 90 },
+  memory: { warn: 85, critical: 95 },
+  load: { warn: 4.0, critical: 8.0 },
+};
+
+// Parse arguments
+const args = process.argv.slice(2);
+const flags = {
+  check: args.includes('--check'),
+  json: args.includes('--json'),
+  quiet: args.includes('--quiet'),
+  fix: args.includes('--fix'),
+  system: args.includes('--system'),
+  workspace: args.includes('--workspace'),
+  help: args.includes('--help') || args.includes('-h'),
+};
+
+if (flags.help) {
+  console.log(`
+health-monitor — System & workspace health checks
+
+Usage:
+  health [options]
+
+Options:
+  --check       Quick status (show issues only)
+  --json        Output as JSON
+  --quiet       Exit codes only (0=healthy, 1=critical, 2=warnings)
+  --fix         Auto-fix issues where possible
+  --system      System checks only
+  --workspace   Workspace checks only
+  --help, -h    Show this help
+
+Exit codes:
+  0  All healthy
+  1  Critical issues
+  2  Warnings only
+`);
+  process.exit(0);
+}
+
+// State
+const results = {
+  system: [],
+  workspace: [],
+  fixed: [],
+};
+let hasCritical = false;
+let hasWarning = false;
+
+// Helper functions
+function run(cmd) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+function addResult(category, check, status, message, fixable = false) {
+  const result = { check, status, message, fixable };
+  results[category].push(result);
+  if (status === 'critical') hasCritical = true;
+  if (status === 'warning') hasWarning = true;
+  return result;
+}
+
+// System checks
+function checkDisk() {
+  const output = run("df -h / | tail -1 | awk '{print $5}' | sed 's/%//'");
+  const usage = parseInt(output, 10);
+  
+  if (isNaN(usage)) {
+    return addResult('system', 'disk', 'error', 'Could not determine disk usage');
+  }
+  
+  if (usage >= CONFIG.disk.critical) {
+    return addResult('system', 'disk', 'critical', `Disk usage: ${usage}% (critical: >${CONFIG.disk.critical}%)`);
+  } else if (usage >= CONFIG.disk.warn) {
+    return addResult('system', 'disk', 'warning', `Disk usage: ${usage}% (warning: >${CONFIG.disk.warn}%)`);
+  } else {
+    return addResult('system', 'disk', 'ok', `Disk usage: ${usage}%`);
+  }
+}
+
+function checkMemory() {
+  const output = run("free | grep Mem | awk '{print ($3/$2) * 100}'");
+  const usage = parseFloat(output);
+  
+  if (isNaN(usage)) {
+    return addResult('system', 'memory', 'error', 'Could not determine memory usage');
+  }
+  
+  const pct = Math.round(usage);
+  if (usage >= CONFIG.memory.critical) {
+    return addResult('system', 'memory', 'critical', `Memory usage: ${pct}% (critical: >${CONFIG.memory.critical}%)`);
+  } else if (usage >= CONFIG.memory.warn) {
+    return addResult('system', 'memory', 'warning', `Memory usage: ${pct}% (warning: >${CONFIG.memory.warn}%)`);
+  } else {
+    return addResult('system', 'memory', 'ok', `Memory usage: ${pct}%`);
+  }
+}
+
+function checkLoad() {
+  const output = run("uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//'");
+  const load = parseFloat(output);
+  
+  if (isNaN(load)) {
+    return addResult('system', 'load', 'error', 'Could not determine load average');
+  }
+  
+  if (load >= CONFIG.load.critical) {
+    return addResult('system', 'load', 'critical', `Load average: ${load} (critical: >${CONFIG.load.critical})`);
+  } else if (load >= CONFIG.load.warn) {
+    return addResult('system', 'load', 'warning', `Load average: ${load} (warning: >${CONFIG.load.warn})`);
+  } else {
+    return addResult('system', 'load', 'ok', `Load average: ${load}`);
+  }
+}
+
+// Workspace checks
+function checkGit(workspaceRoot) {
+  try {
+    const status = run('git status --porcelain');
+    if (status) {
+      const lines = status.split('\n').filter(l => l.trim());
+      const fixable = flags.fix;
+      return addResult('workspace', 'git', 'warning', `${lines.length} uncommitted change(s)`, fixable);
+    } else {
+      return addResult('workspace', 'git', 'ok', 'Working directory clean');
+    }
+  } catch (e) {
+    return addResult('workspace', 'git', 'error', 'Not a git repository');
+  }
+}
+
+function checkBackup(workspaceRoot) {
+  const backupDir = path.join(workspaceRoot, 'backups');
+  if (!fs.existsSync(backupDir)) {
+    const fixable = flags.fix;
+    return addResult('workspace', 'backup', 'warning', 'No backups/ directory', fixable);
+  }
+  
+  const latest = path.join(backupDir, 'latest');
+  if (!fs.existsSync(latest)) {
+    return addResult('workspace', 'backup', 'warning', 'No latest backup symlink');
+  }
+  
+  // Check age of latest backup
+  try {
+    const stats = fs.lstatSync(latest);
+    const ageMs = Date.now() - stats.mtime.getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+    
+    if (ageDays > 7) {
+      return addResult('workspace', 'backup', 'warning', `Latest backup is ${Math.round(ageDays)} days old`);
+    } else {
+      return addResult('workspace', 'backup', 'ok', `Latest backup: ${Math.round(ageDays)} days old`);
+    }
+  } catch (e) {
+    return addResult('workspace', 'backup', 'error', 'Could not read backup info');
+  }
+}
+
+function checkMemoryDir(workspaceRoot) {
+  const memoryDir = path.join(workspaceRoot, 'memory');
+  if (!fs.existsSync(memoryDir)) {
+    const fixable = flags.fix;
+    return addResult('workspace', 'memory', 'warning', 'No memory/ directory', fixable);
+  }
+  
+  // Check for recent entries
+  const files = fs.readdirSync(memoryDir).filter(f => f.endsWith('.md'));
+  if (files.length === 0) {
+    return addResult('workspace', 'memory', 'warning', 'No memory files found');
+  }
+  
+  // Find most recent file
+  const sorted = files.sort().reverse();
+  const latest = sorted[0];
+  return addResult('workspace', 'memory', 'ok', `${files.length} memory file(s), latest: ${latest}`);
+}
+
+function checkSkills(workspaceRoot) {
+  const skillsDir = path.join(workspaceRoot, 'skills');
+  const skillsMd = path.join(workspaceRoot, 'SKILLS.md');
+  
+  if (!fs.existsSync(skillsDir)) {
+    return addResult('workspace', 'skills', 'warning', 'No skills/ directory');
+  }
+  
+  if (!fs.existsSync(skillsMd)) {
+    return addResult('workspace', 'skills', 'warning', 'No SKILLS.md file');
+  }
+  
+  const skills = fs.readdirSync(skillsDir).filter(d => {
+    const skillPath = path.join(skillsDir, d);
+    return fs.statSync(skillPath).isDirectory() && fs.existsSync(path.join(skillPath, 'SKILL.md'));
+  });
+  
+  return addResult('workspace', 'skills', 'ok', `${skills.length} skill(s) documented`);
+}
+
+// Auto-fix functions
+function autoFix(workspaceRoot) {
+  const fixed = [];
+  
+  // Fix: Create memory directory
+  const memoryDir = path.join(workspaceRoot, 'memory');
+  if (!fs.existsSync(memoryDir)) {
+    fs.mkdirSync(memoryDir, { recursive: true });
+    fixed.push('Created memory/ directory');
+  }
+  
+  // Fix: Create backup directory
+  const backupDir = path.join(workspaceRoot, 'backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+    fixed.push('Created backups/ directory');
+  }
+  
+  // Fix: Auto-commit safe files
+  try {
+    const status = run('git status --porcelain');
+    if (status) {
+      const safePatterns = [/\.md$/, /^memory\//, /^skills\//];
+      const lines = status.split('\n').filter(l => l.trim());
+      const safeFiles = lines.filter(line => {
+        const file = line.slice(3); // Remove XY prefix
+        return safePatterns.some(p => p.test(file));
+      });
+      
+      if (safeFiles.length > 0) {
+        const filesToAdd = safeFiles.map(l => l.slice(3)).join(' ');
+        run(`git add ${filesToAdd}`);
+        run('git commit -m "chore: auto-commit safe files from health check"');
+        fixed.push(`Auto-committed ${safeFiles.length} safe file(s)`);
+      }
+    }
+  } catch (e) {
+    // Git operations failed, skip
+  }
+  
+  return fixed;
+}
+
+// Output formatters
+function formatText() {
+  const lines = [];
+  
+  if (!flags.workspace) {
+    lines.push('┌─────────────────────────────────────────┐');
+    lines.push('│  System Health                          │');
+    lines.push('├─────────────────────────────────────────┤');
+    for (const r of results.system) {
+      const icon = r.status === 'ok' ? '✓' : r.status === 'warning' ? '⚠' : r.status === 'critical' ? '✗' : '?';
+      lines.push(`│  ${icon} ${r.check.padEnd(10)} ${r.message.slice(0, 32).padEnd(32)} │`);
+    }
+    lines.push('└─────────────────────────────────────────┘');
+    lines.push('');
+  }
+  
+  if (!flags.system) {
+    lines.push('┌─────────────────────────────────────────┐');
+    lines.push('│  Workspace Health                       │');
+    lines.push('├─────────────────────────────────────────┤');
+    for (const r of results.workspace) {
+      const icon = r.status === 'ok' ? '✓' : r.status === 'warning' ? '⚠' : r.status === 'critical' ? '✗' : '?';
+      const fixTag = r.fixable ? ' [fixable]' : '';
+      lines.push(`│  ${icon} ${r.check.padEnd(10)} ${(r.message + fixTag).slice(0, 32).padEnd(32)} │`);
+    }
+    lines.push('└─────────────────────────────────────────┘');
+  }
+  
+  if (results.fixed.length > 0) {
+    lines.push('');
+    lines.push('┌─────────────────────────────────────────┐');
+    lines.push('│  Auto-fixed                             │');
+    lines.push('├─────────────────────────────────────────┤');
+    for (const f of results.fixed) {
+      lines.push(`│  ✓ ${f.slice(0, 36).padEnd(36)} │`);
+    }
+    lines.push('└─────────────────────────────────────────┘');
+  }
+  
+  return lines.join('\n');
+}
+
+// Main
+const workspaceRoot = process.cwd();
+
+// Run checks
+if (!flags.workspace) {
+  checkDisk();
+  checkMemory();
+  checkLoad();
+}
+
+if (!flags.system) {
+  checkGit(workspaceRoot);
+  checkBackup(workspaceRoot);
+  checkMemoryDir(workspaceRoot);
+  checkSkills(workspaceRoot);
+}
+
+// Auto-fix if requested
+if (flags.fix) {
+  results.fixed = autoFix(workspaceRoot);
+}
+
+// Output
+if (flags.quiet) {
+  // Exit codes only
+  process.exit(hasCritical ? 1 : hasWarning ? 2 : 0);
+} else if (flags.json) {
+  console.log(JSON.stringify(results, null, 2));
+  process.exit(hasCritical ? 1 : hasWarning ? 2 : 0);
+} else if (flags.check) {
+  // Show only issues
+  const issues = [...results.system, ...results.workspace].filter(r => r.status !== 'ok');
+  if (issues.length === 0) {
+    console.log('All checks passed ✓');
+  } else {
+    for (const issue of issues) {
+      const icon = issue.status === 'warning' ? '⚠' : '✗';
+      console.log(`${icon} ${issue.check}: ${issue.message}`);
+    }
+  }
+  process.exit(hasCritical ? 1 : hasWarning ? 2 : 0);
+} else {
+  console.log(formatText());
+  process.exit(hasCritical ? 1 : hasWarning ? 2 : 0);
+}
