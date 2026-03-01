@@ -1,0 +1,571 @@
+#!/bin/bash
+#
+# art-insights — Deep portfolio analytics and visual insights
+#
+
+set -euo pipefail
+
+# Resolve script location (handle symlinks)
+SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SCRIPT_SOURCE" ]]; do
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+    SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
+    [[ "$SCRIPT_SOURCE" != /* ]] && SCRIPT_SOURCE="$SCRIPT_DIR/$SCRIPT_SOURCE"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REGISTRY_FILE="$WORKSPACE_ROOT/lib/art/unified-registry.ts"
+METADATA_FILE="$WORKSPACE_ROOT/lib/art/metadata.ts"
+
+# Colors using tput for portability
+if command -v tput &> /dev/null && [ -t 1 ]; then
+    RED=$(tput setaf 1)
+    GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
+    BLUE=$(tput setaf 4)
+    MAGENTA=$(tput setaf 5)
+    CYAN=$(tput setaf 6)
+    BOLD=$(tput bold)
+    NC=$(tput sgr0)
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    MAGENTA=''
+    CYAN=''
+    BOLD=''
+    NC=''
+fi
+
+# Print with color support
+printc() {
+    echo "$1"
+}
+
+# Show usage
+usage() {
+    cat << 'EOF'
+Usage: art-insights [OPTIONS] [COMMAND]
+
+Deep portfolio analytics with visual insights.
+
+Commands:
+  (default)         Full portfolio dashboard
+  categories        Category distribution analysis
+  timeline          Creation timeline visualization
+  complexity        Complexity breakdown
+  tags              Tag clustering and analysis
+  gaps              Identify portfolio gaps
+  inspire           Daily inspiration picker
+  compare <a> <b>   Compare two algorithms
+
+Options:
+  --json            Output as JSON
+  --ascii           Force ASCII charts (no Unicode)
+  --help            Show this help message
+
+Examples:
+  art-insights              # Full dashboard
+  art-insights categories   # Category breakdown
+  art-insights timeline     # Creation history
+  art-insights inspire      # Random suggestion
+  art-insights gaps         # What's missing
+EOF
+}
+
+# Count algorithms in registry
+get_algorithm_count() {
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        grep -c 'id:' "$REGISTRY_FILE" 2>/dev/null || echo "0"
+    else
+        echo "0"
+    fi
+}
+
+# Get category counts
+get_category_counts() {
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        grep -E '^\s+category:\s*"' "$REGISTRY_FILE" | sed -E 's/.*category:\s*"([^"]+)".*/\1/' | sort | uniq -c | sort -rn
+    fi
+}
+
+# Get complexity counts
+get_complexity_counts() {
+    if [[ -f "$METADATA_FILE" ]]; then
+        grep -E '^\s+complexity:' "$METADATA_FILE" | grep -v 'ArtComplexity' | sed -E 's/.*complexity:\s*"([^"]+)".*/\1/' | sort | uniq -c | sort -rn
+    fi
+}
+
+# Draw horizontal bar chart
+draw_bar() {
+    local value="$1"
+    local max="$2"
+    local width="${3:-30}"
+    local filled=$((value * width / max))
+    local empty=$((width - filled))
+    
+    printf "${CYAN}"
+    for ((i=0; i<filled; i++)); do printf "█"; done
+    printf "${NC}"
+    for ((i=0; i<empty; i++)); do printf "░"; done
+}
+
+# Draw sparkline from dates
+draw_sparkline() {
+    local dates=("$@")
+    local max=0
+    
+    # Count per month
+    declare -A month_counts
+    for date in "${dates[@]}"; do
+        [[ -z "$date" ]] && continue
+        local month="${date:0:7}"
+        month_counts[$month]=$((${month_counts[$month]:-0} + 1))
+    done
+    
+    # Get sorted months
+    local sorted_months=()
+    for m in "${!month_counts[@]}"; do
+        sorted_months+=("$m")
+    done
+    IFS=$'\n' sorted_months=($(sort <<< "${sorted_months[*]}")); unset IFS
+    
+    # Find max
+    for month in "${sorted_months[@]}"; do
+        local count=${month_counts[$month]:-0}
+        ((count > max)) && max=$count
+    done
+    
+    ((max == 0)) && max=1
+    
+    # Draw sparkline
+    local blocks=("▁" "▂" "▃" "▄" "▅" "▆" "▇" "█")
+    printf "${CYAN}"
+    for month in "${sorted_months[@]}"; do
+        local count=${month_counts[$month]:-0}
+        local idx=$((count * 7 / max))
+        ((idx > 7)) && idx=7
+        printf "%s" "${blocks[$idx]}"
+    done
+    printf "${NC}\n"
+    
+    # Show range
+    if [[ ${#sorted_months[@]} -gt 0 ]]; then
+        echo "    ${sorted_months[0]} → ${sorted_months[-1]}"
+    fi
+}
+
+# Get all creation dates
+get_creation_dates() {
+    if [[ -f "$METADATA_FILE" ]]; then
+        grep -E '^\s+created:\s*"' "$METADATA_FILE" | sed -E 's/.*created:\s*"([^"]+)".*/\1/' | sort
+    fi
+}
+
+# Get tags frequency
+get_tag_frequency() {
+    if [[ -f "$METADATA_FILE" ]]; then
+        grep -E 'tags: \[' "$METADATA_FILE" | grep -v 'ArtTag' | sed -E 's/.*tags: \[([^]]*)\].*/\1/' | tr ',' '\n' | sed 's/^[[:space:]]*"//; s/"[[:space:]]*$//' | grep -v '^$' | sort | uniq -c | sort -rn | head -15
+    fi
+}
+
+# Get algorithms by category
+get_algorithms_by_category() {
+    local category="$1"
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        grep -B5 "category:\s*\"$category\"" "$REGISTRY_FILE" | grep 'id:' | sed -E 's/.*id:\s*"([^"]+)".*/\1/'
+    fi
+}
+
+# Get random algorithm
+get_random_algorithm() {
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        grep 'id:' "$REGISTRY_FILE" | sed -E 's/.*id:\s*"([^"]+)".*/\1/' | shuf -n 1
+    fi
+}
+
+# Get algorithm info
+get_algorithm_info() {
+    local algo="$1"
+    if [[ -f "$REGISTRY_FILE" ]]; then
+        local name=$(grep -A10 "id:\s*\"$algo\"" "$REGISTRY_FILE" | grep 'name:' | head -1 | sed -E 's/.*name:\s*"([^"]+)".*/\1/')
+        local category=$(grep -A10 "id:\s*\"$algo\"" "$REGISTRY_FILE" | grep 'category:' | head -1 | sed -E 's/.*category:\s*"([^"]+)".*/\1/')
+        local description=$(grep -A15 "id:\s*\"$algo\"" "$REGISTRY_FILE" | grep 'description:' | head -1 | sed -E 's/.*description:\s*"([^"]+)".*/\1/')
+        echo "$name|$category|$description"
+    fi
+}
+
+# Show full dashboard
+show_dashboard() {
+    local count=$(get_algorithm_count)
+    
+    printc ""
+    printc "${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"
+    printc "${BOLD}║${NC}          🎨 ${BOLD}ART PORTFOLIO INSIGHTS${NC}                          ${BOLD}║${NC}"
+    printc "${BOLD}╚══════════════════════════════════════════════════════════════╝${NC}"
+    printc ""
+    
+    # Stats header
+    printc "  ${BOLD}Total Algorithms:${NC} ${GREEN}$count${NC}"
+    printc ""
+    
+    # Category distribution
+    printc "  ${BOLD}📊 Category Distribution${NC}"
+    printc "  ─────────────────────────────────────────────────────────────"
+    
+    local cat_counts=$(get_category_counts)
+    local max_cat=$(echo "$cat_counts" | awk '{print $1}' | sort -rn | head -1)
+    
+    while IFS= read -r line; do
+        local num=$(echo "$line" | awk '{print $1}')
+        local cat=$(echo "$line" | awk '{print $2}')
+        local emoji=""
+        case "$cat" in
+            mathematical) emoji="🔢" ;;
+            natural) emoji="🌿" ;;
+            physics) emoji="⚡" ;;
+            geometric) emoji="📐" ;;
+            traditional) emoji="✏️" ;;
+            abstract) emoji="🎭" ;;
+            text) emoji="📝" ;;
+            3d) emoji="🧊" ;;
+            interactive) emoji="🎮" ;;
+            *) emoji="🎨" ;;
+        esac
+        printf "  %s %-12s %3d  " "$emoji" "$cat" "$num"
+        draw_bar "$num" "$max_cat" 25
+        printf "\n"
+    done <<< "$cat_counts"
+    
+    printc ""
+    printc "  ${BOLD}📈 Creation Activity${NC}"
+    printc "  ─────────────────────────────────────────────────────────────"
+    
+    local dates=($(get_creation_dates))
+    if [[ ${#dates[@]} -gt 0 ]]; then
+        printf "  Activity: "
+        draw_sparkline "${dates[@]}"
+        printc "  Total pieces: ${#dates[@]}"
+    fi
+    
+    printc ""
+    printc "  ${BOLD}🏷️  Top Tags${NC}"
+    printc "  ─────────────────────────────────────────────────────────────"
+    
+    local tags=$(get_tag_frequency)
+    local max_tag=$(echo "$tags" | awk '{print $1}' | sort -rn | head -1)
+    
+    while IFS= read -r line; do
+        local num=$(echo "$line" | awk '{print $1}')
+        local tag=$(echo "$line" | awk '{print $2}')
+        printf "  #%-15s %3d  " "$tag" "$num"
+        draw_bar "$num" "$max_tag" 20
+        printf "\n"
+    done <<< "$tags"
+    
+    printc ""
+    printc "  ${BOLD}💡 Quick Actions${NC}"
+    printc "  ─────────────────────────────────────────────────────────────"
+    printc "  Run ${CYAN}art-insights inspire${NC} for a random suggestion"
+    printc "  Run ${CYAN}art-insights gaps${NC} to see what's missing"
+    printc "  Run ${CYAN}art-insights timeline${NC} for creation history"
+    printc ""
+}
+
+# Show category analysis
+show_categories() {
+    echo ""
+    echo "${BOLD}📊 CATEGORY ANALYSIS${NC}"
+    echo ""
+    
+    local categories=("mathematical" "natural" "physics" "geometric" "traditional" "abstract" "text" "3d" "interactive")
+    
+    for cat in "${categories[@]}"; do
+        local algos=$(get_algorithms_by_category "$cat")
+        local count=$(echo "$algos" | wc -l)
+        
+        if [[ $count -gt 0 ]]; then
+            local emoji=""
+            case "$cat" in
+                mathematical) emoji="🔢" ;;
+                natural) emoji="🌿" ;;
+                physics) emoji="⚡" ;;
+                geometric) emoji="📐" ;;
+                traditional) emoji="✏️" ;;
+                abstract) emoji="🎭" ;;
+                text) emoji="📝" ;;
+                3d) emoji="🧊" ;;
+                interactive) emoji="🎮" ;;
+            esac
+            
+            echo "  $emoji ${BOLD}$cat${NC} ($count pieces)"
+            echo "  ─────────────────────────────────────────────────────────────"
+            
+            while IFS= read -r algo; do
+                [[ -z "$algo" ]] && continue
+                local info=$(get_algorithm_info "$algo")
+                local name=$(echo "$info" | cut -d'|' -f1)
+                echo "    • $name"
+            done <<< "$algos"
+            
+            echo ""
+        fi
+    done
+}
+
+# Show timeline
+show_timeline() {
+    echo ""
+    echo "${BOLD}📅 CREATION TIMELINE${NC}"
+    echo ""
+    
+    if [[ -f "$METADATA_FILE" ]]; then
+        # Simple approach: extract id and date pairs
+        awk '
+            /^[[:space:]]*"[^"]+":[[:space:]]*\{/ { 
+                match($0, /"([^"]+)"/, arr)
+                id = arr[1]
+            }
+            /created:[[:space:]]*"[0-9]{4}-[0-9]{2}-[0-9]{2}"/ {
+                match($0, /"([0-9]{4}-[0-9]{2}-[0-9]{2})"/, arr)
+                if (id != "") {
+                    print arr[1] "|" id
+                    id = ""
+                }
+            }
+        ' "$METADATA_FILE" | sort | while IFS='|' read -r date id; do
+            [[ -z "$date" ]] && continue
+            local year="${date:0:4}"
+            local month="${date:5:2}"
+            # Convert id to readable name
+            local name=$(echo "$id" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+            echo "  ${CYAN}$year-$month${NC}  $name"
+        done
+    fi
+    
+    echo ""
+}
+
+# Show complexity breakdown
+show_complexity() {
+    echo ""
+    echo "${BOLD}🎯 COMPLEXITY BREAKDOWN${NC}"
+    echo ""
+    
+    local complexity=$(get_complexity_counts)
+    local max=$(echo "$complexity" | awk '{print $1}' | sort -rn | head -1)
+    
+    while IFS= read -r line; do
+        local num=$(echo "$line" | awk '{print $1}')
+        local level=$(echo "$line" | awk '{print $2}')
+        local emoji=""
+        case "$level" in
+            simple) emoji="🟢" ;;
+            moderate) emoji="🟡" ;;
+            complex) emoji="🔴" ;;
+            expert) emoji="🔵" ;;
+        esac
+        printf "  %s %-10s %3d  " "$emoji" "$level" "$num"
+        draw_bar "$num" "$max" 30
+        printf "\n"
+    done <<< "$complexity"
+    
+    echo ""
+}
+
+# Show gaps analysis
+show_gaps() {
+    echo ""
+    echo "${BOLD}🔍 PORTFOLIO GAPS${NC}"
+    echo ""
+    
+    local count=$(get_algorithm_count)
+    local categories=("mathematical" "natural" "physics" "geometric" "traditional" "abstract" "text" "3d" "interactive")
+    local cat_counts=$(get_category_counts)
+    
+    echo "  ${BOLD}Underrepresented Categories${NC}"
+    echo "  ─────────────────────────────────────────────────────────────"
+    
+    for cat in "${categories[@]}"; do
+        local num=$(echo "$cat_counts" | grep "$cat" | awk '{print $1}' || echo "0")
+        if [[ -z "$num" ]]; then num=0; fi
+        
+        if [[ $num -lt 5 ]]; then
+            local emoji=""
+            case "$cat" in
+                mathematical) emoji="🔢" ;;
+                natural) emoji="🌿" ;;
+                physics) emoji="⚡" ;;
+                geometric) emoji="📐" ;;
+                traditional) emoji="✏️" ;;
+                abstract) emoji="🎭" ;;
+                text) emoji="📝" ;;
+                3d) emoji="🧊" ;;
+                interactive) emoji="🎮" ;;
+            esac
+            
+            echo "  $emoji $cat: only $num pieces"
+            
+            # Suggest ideas
+            case "$cat" in
+                text)
+                    echo "    💡 Ideas: kinetic typography, text morphing, ASCII landscapes"
+                    ;;
+                3d)
+                    echo "    💡 Ideas: particle clouds, 3D fractals, volumetric fog"
+                    ;;
+                interactive)
+                    echo "    💡 Ideas: mouse-reactive flows, click-to-generate, parameter explorers"
+                    ;;
+                traditional)
+                    echo "    💡 Ideas: watercolor simulation, charcoal sketch, ink bleeding"
+                    ;;
+            esac
+        fi
+    done
+    
+    echo ""
+    echo "  ${BOLD}Tag Gaps${NC}"
+    echo "  ─────────────────────────────────────────────────────────────"
+    
+    local tags=$(get_tag_frequency)
+    
+    # Check for missing tag categories
+    if ! echo "$tags" | grep -q "interactive"; then
+        echo "  ⚠️  No 'interactive' tagged pieces — consider mouse/touch reactive art"
+    fi
+    
+    if ! echo "$tags" | grep -q "audio"; then
+        echo "  ⚠️  No 'audio' tagged pieces — consider sound-reactive visualizations"
+    fi
+    
+    echo ""
+}
+
+# Show inspiration
+show_inspire() {
+    echo ""
+    echo "${BOLD}✨ DAILY INSPIRATION${NC}"
+    echo ""
+    
+    # Pick a random algorithm
+    local algo=$(get_random_algorithm)
+    local info=$(get_algorithm_info "$algo")
+    local name=$(echo "$info" | cut -d'|' -f1)
+    local category=$(echo "$info" | cut -d'|' -f2)
+    local description=$(echo "$info" | cut -d'|' -f3)
+    
+    echo "  ${BOLD}Featured:${NC} ${CYAN}$name${NC}"
+    echo "  ${BOLD}Category:${NC} $category"
+    echo "  ${BOLD}Description:${NC} $description"
+    echo ""
+    echo "  ${BOLD}Related ideas:${NC}"
+    
+    # Suggest related concepts based on category
+    case "$category" in
+        mathematical)
+            echo "    • Variation with different parameters"
+            echo "    • 3D extension of the same concept"
+            echo "    • Animation showing the math evolving"
+            ;;
+        natural)
+            echo "    • Different ecosystem or environment"
+            echo "    • Seasonal or time-based variations"
+            echo "    • Interaction with other natural forces"
+            ;;
+        physics)
+            echo "    • Different force or field visualization"
+            echo "    • Multi-particle system interactions"
+            echo "    • Real-time parameter adjustment"
+            ;;
+        *)
+            echo "    • Cross-category hybrid (mix with another domain)"
+            echo "    • Interactive parameter exploration"
+            echo "    • Export to different format or medium"
+            ;;
+    esac
+    
+    echo ""
+    echo "  Run ${CYAN}art-insights${NC} for full portfolio stats"
+    echo ""
+}
+
+# Compare two algorithms
+show_compare() {
+    local algo1="$1"
+    local algo2="$2"
+    
+    echo ""
+    echo "${BOLD}⚖️  COMPARISON${NC}"
+    echo ""
+    
+    local info1=$(get_algorithm_info "$algo1")
+    local info2=$(get_algorithm_info "$algo2")
+    
+    if [[ -z "$info1" ]]; then
+        echo "  ${RED}Error:${NC} Algorithm '$algo1' not found"
+        return 1
+    fi
+    
+    if [[ -z "$info2" ]]; then
+        echo "  ${RED}Error:${NC} Algorithm '$algo2' not found"
+        return 1
+    fi
+    
+    echo "  ${BOLD}$(echo "$info1" | cut -d'|' -f1)${NC} vs ${BOLD}$(echo "$info2" | cut -d'|' -f1)${NC}"
+    echo ""
+    echo "  Category:    $(echo "$info1" | cut -d'|' -f2)        $(echo "$info2" | cut -d'|' -f2)"
+    echo ""
+}
+
+# Main
+case "${1:-}" in
+    --help|-h)
+        usage
+        exit 0
+        ;;
+    categories)
+        show_categories
+        ;;
+    timeline)
+        show_timeline
+        ;;
+    complexity)
+        show_complexity
+        ;;
+    tags)
+        get_tag_frequency | while read line; do
+            num=$(echo "$line" | awk '{print $1}')
+            tag=$(echo "$line" | awk '{print $2}')
+            echo "$tag: $num"
+        done
+        ;;
+    gaps)
+        show_gaps
+        ;;
+    inspire)
+        show_inspire
+        ;;
+    compare)
+        if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+            echo "Usage: art-insights compare <algorithm1> <algorithm2>"
+            exit 1
+        fi
+        show_compare "$2" "$3"
+        ;;
+    --json)
+        # JSON output mode
+        count=$(get_algorithm_count)
+        echo "{"
+        echo "  \"totalAlgorithms\": $count,"
+        echo "  \"categories\": {"
+        get_category_counts | awk '{printf "    \"%s\": %s,\n", $2, $1}' | sed '$ s/,$//'
+        echo "  }"
+        echo "}"
+        ;;
+    *)
+        show_dashboard
+        ;;
+esac
