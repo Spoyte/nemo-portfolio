@@ -1,1053 +1,578 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nemo's Generative Art Portfolio</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    :root {
-      --bg-primary: #0a0a0f;
-      --bg-secondary: #12121a;
-      --bg-card: #1a1a24;
-      --text-primary: #f0f0f5;
-      --text-secondary: #888899;
-      --accent: #6366f1;
-      --accent-hover: #818cf8;
-      --border: #2a2a3a;
-    }
-    
-    body {
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      line-height: 1.6;
-    }
-    
-    header {
-      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-      padding: 4rem 2rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .emoji {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      display: block;
-    }
-    
-    h1 {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 800;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .subtitle {
-      color: var(--text-secondary);
-      font-size: 1.1rem;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    .stats {
-      display: flex;
-      justify-content: center;
-      gap: 3rem;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-    
-    .stat {
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-    
-    .stat-label {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    
-    .controls {
-      padding: 1.5rem 2rem;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      justify-content: center;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    
-    .filter-btn {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-    
-    .filter-btn:hover {
-      border-color: var(--accent);
-      color: var(--text-primary);
-    }
-    
-    .filter-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: white;
-    }
-    
-    .search-box {
-      position: relative;
-    }
-    
-    .search-box input {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-      padding: 0.5rem 1rem 0.5rem 2.5rem;
-      border-radius: 2rem;
-      font-size: 0.875rem;
-      width: 250px;
-      outline: none;
-    }
-    
-    .search-box input:focus {
-      border-color: var(--accent);
-    }
-    
-    .search-box::before {
-      content: "🔍";
-      position: absolute;
-      left: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.875rem;
-      opacity: 0.5;
-    }
-    
-    main {
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.5rem;
-    }
-    
-    .art-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
-      overflow: hidden;
-      transition: all 0.3s;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .art-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--accent);
-      box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15);
-    }
-    
-    .art-card.hidden {
-      display: none;
-    }
-    
-    .thumbnail {
-      aspect-ratio: 4/3;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .thumbnail canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    
-    .thumbnail-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    
-    .art-card:hover .thumbnail-overlay {
-      opacity: 1;
-    }
-    
-    .open-btn {
-      background: var(--accent);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 2rem;
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-    
-    .open-btn:hover {
-      background: var(--accent-hover);
-      transform: scale(1.05);
-    }
-    
-    .card-content {
-      padding: 1.25rem;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-    
-    .card-desc {
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-      line-height: 1.5;
-      flex: 1;
-    }
-    
-    .card-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-    
-    .tag {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.625rem;
-      border-radius: 1rem;
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-    }
-    
-    .tag.animated { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
-    .tag.nature { background: rgba(34, 197, 94, 0.2); color: #86efac; }
-    .tag.physics { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-    .tag.geometric { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
-    .tag.fractal { background: rgba(236, 72, 153, 0.2); color: #f9a8d4; }
-    .tag.ai { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
-    
-    footer {
-      text-align: center;
-      padding: 3rem 2rem;
-      color: var(--text-secondary);
-      border-top: 1px solid var(--border);
-      margin-top: 2rem;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--text-secondary);
-    }
-    
-    .empty-state-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      opacity: 0.5;
-    }
-    
-    @media (max-width: 640px) {
-      .gallery {
-        grid-template-columns: 1fr;
-      }
-      
-      .stats {
-        gap: 1.5rem;
-      }
-      
-      .search-box input {
-        width: 200px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nemo — Generative Art Exhibition</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-panel: rgba(10, 10, 15, 0.9);
+            --bg-card: rgba(20, 20, 30, 0.8);
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --text-muted: #666;
+            --accent-start: #00d4ff;
+            --accent-end: #7b2cbf;
+            --accent-mid: #ff6b6b;
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --border-hover: rgba(255, 255, 255, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 20px 40px;
+            background: linear-gradient(to bottom, var(--bg-primary) 0%, transparent 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 14px;
+            letter-spacing: 4px;
+            background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 2px;
+            transition: color 0.2s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text-primary);
+        }
+        
+        /* Hero */
+        .hero {
+            min-height: 60vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 120px 40px 60px;
+            position: relative;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% 30%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 70%, rgba(123, 44, 191, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .hero h1 {
+            font-size: clamp(48px, 10vw, 96px);
+            font-weight: 300;
+            letter-spacing: 20px;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, var(--accent-start), var(--accent-mid), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 8s ease infinite;
+            background-size: 200% 100%;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .hero p {
+            color: var(--text-muted);
+            font-size: 14px;
+            letter-spacing: 4px;
+            max-width: 600px;
+            line-height: 1.8;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 60px;
+            margin-top: 60px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 48px;
+            font-weight: 300;
+            color: var(--text-primary);
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+        
+        /* Gallery Grid */
+        .gallery-section {
+            padding: 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .gallery-title {
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .gallery-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            border-color: var(--accent-start);
+            color: var(--accent-start);
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .artwork-card {
+            position: relative;
+            aspect-ratio: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .artwork-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .artwork-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                rgba(0, 212, 255, 0.03) 0%, 
+                transparent 50%,
+                rgba(123, 44, 191, 0.03) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1;
+        }
+        
+        .artwork-card:hover::before {
+            opacity: 1;
+        }
+        
+        .artwork-preview {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+        
+        .artwork-card:hover .artwork-preview {
+            opacity: 0.5;
+        }
+        
+        .artwork-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(10, 10, 15, 0.95) 0%, transparent 100%);
+            transform: translateY(10px);
+            opacity: 0.8;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+        
+        .artwork-card:hover .artwork-info {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .artwork-number {
+            font-size: 10px;
+            color: var(--accent-start);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        
+        .artwork-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+        
+        .artwork-category {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .artwork-link {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+        }
+        
+        /* Category Colors */
+        .category-mathematical { --cat-color: #00d4ff; }
+        .category-natural { --cat-color: #4ade80; }
+        .category-physics { --cat-color: #a78bfa; }
+        .category-geometric { --cat-color: #fb923c; }
+        .category-abstract { --cat-color: #f472b6; }
+        .category-interactive { --cat-color: #818cf8; }
+        
+        .artwork-card.category-mathematical:hover { border-color: #00d4ff; }
+        .artwork-card.category-natural:hover { border-color: #4ade80; }
+        .artwork-card.category-physics:hover { border-color: #a78bfa; }
+        .artwork-card.category-geometric:hover { border-color: #fb923c; }
+        .artwork-card.category-abstract:hover { border-color: #f472b6; }
+        .artwork-card.category-interactive:hover { border-color: #818cf8; }
+        
+        /* Live Exhibition CTA */
+        .exhibition-cta {
+            margin: 80px 40px;
+            padding: 60px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.05) 0%, rgba(123, 44, 191, 0.05) 100%);
+            border: 1px solid var(--border-subtle);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .exhibition-cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-start), var(--accent-end), transparent);
+        }
+        
+        .exhibition-cta h2 {
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .exhibition-cta p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 500px;
+            margin: 0 auto 30px;
+            line-height: 1.6;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 16px 40px;
+            background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+            color: var(--bg-primary);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 3px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        /* Footer */
+        footer {
+            padding: 60px 40px;
+            text-align: center;
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        footer p {
+            color: var(--text-muted);
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 15px 20px;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .hero {
+                padding: 100px 20px 40px;
+            }
+            
+            .hero h1 {
+                letter-spacing: 10px;
+            }
+            
+            .stats {
+                gap: 30px;
+                flex-wrap: wrap;
+            }
+            
+            .stat-value {
+                font-size: 36px;
+            }
+            
+            .gallery-section {
+                padding: 20px;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 15px;
+            }
+            
+            .exhibition-cta {
+                margin: 40px 20px;
+                padding: 40px 20px;
+            }
+        }
+        
+        /* Loading animation */
+        .artwork-card {
+            animation: fadeInUp 0.6s ease backwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <span class="emoji">🦑</span>
-    <h1>Nemo's Generative Art</h1>
-    <p class="subtitle">A collection of algorithmic art pieces created through code, mathematics, and controlled randomness. Each piece is uniquely generated in your browser.</p>
+    <header>
+        <div class="logo">NEMO</div>
+        <nav class="nav-links">
+            <a href="index.html" class="active">Gallery</a>
+            <a href="exhibition.html">Live Exhibition</a>
+            <a href="/">Portfolio</a>
+        </nav>
+    </header>
     
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-value">27</div>
-        <div class="stat-label">Algorithms</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">7</div>
-        <div class="stat-label">Categories</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">∞</div>
-        <div class="stat-label">Possibilities</div>
-      </div>
-    </div>
-  </header>
-  
-  <div class="controls">
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="animated">Animated</button>
-    <button class="filter-btn" data-filter="nature">Nature</button>
-    <button class="filter-btn" data-filter="physics">Physics</button>
-    <button class="filter-btn" data-filter="geometric">Geometric</button>
-    <button class="filter-btn" data-filter="fractal">Fractal</button>
-    <button class="filter-btn" data-filter="ai">AI/ML</button>
-    <div class="search-box">
-      <input type="text" id="search" placeholder="Search pieces...">
-    </div>
-  </div>
-  
-  <main>
-    <div class="gallery" id="gallery"></div>
-    <div class="empty-state" id="emptyState" style="display: none;">
-      <div class="empty-state-icon">🔍</div>
-      <p>No pieces match your search.</p>
-    </div>
-  </main>
-  
-  <footer>
-    <p>Created with code • Generated in your browser • Open each piece to explore</p>
-  </footer>
+    <section class="hero">
+        <h1>EXHIBITION</h1>
+        <p>A curated collection of generative art algorithms exploring mathematics, nature, physics, and the beauty of emergent systems through code.</p>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-value" id="artwork-count">39</span>
+                <div class="stat-label">Artworks</div>
+            </div>
+            <div class="stat">
+                <span class="stat-value">6</span>
+                <div class="stat-label">Categories</div>
+            </div>
+            <div class="stat">
+                <span class="stat-value">∞</span>
+                <div class="stat-label">Variations</div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="gallery-section">
+        <div class="gallery-header">
+            <h2 class="gallery-title">Complete Collection</h2>
+            <div class="gallery-filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="mathematical">Mathematical</button>
+                <button class="filter-btn" data-filter="natural">Natural</button>
+                <button class="filter-btn" data-filter="physics">Physics</button>
+                <button class="filter-btn" data-filter="geometric">Geometric</button>
+                <button class="filter-btn" data-filter="abstract">Abstract</button>
+            </div>
+        </div>
+        
+        <div class="gallery-grid" id="gallery-grid">
+            <!-- Artworks will be generated by JavaScript -->
+        </div>
+    </section>
+    
+    <section class="exhibition-cta">
+        <h2>LIVE EXHIBITION</h2>
+        <p>Experience the artworks in full-screen, auto-advancing mode. Each piece generates infinite variations in real-time.</p>
+        <a href="exhibition.html" class="cta-button">ENTER EXHIBITION</a>
+    </section>
+    
+    <footer>
+        <p>GENERATIVE ART PORTFOLIO — CRAFTED WITH CODE</p>
+    </footer>
 
-  <script>
-    // Art pieces data
-    const artPieces = [
-      {
-        id: "flow-field",
-        name: "Flow Field",
-        description: "Organic flowing lines following Perlin noise vectors. Particles leave trails as they flow through a vector field.",
-        tags: ["animated", "nature"],
-        thumbnail: "flowField"
-      },
-      {
-        id: "geometric-mandala",
-        name: "Geometric Mandala",
-        description: "Symmetrical patterns generated through recursive geometric shapes and sacred geometry principles.",
-        tags: ["geometric"],
-        thumbnail: "mandala"
-      },
-      {
-        id: "particle-network",
-        name: "Particle Network",
-        description: "Connected nodes forming dynamic networks. Particles attract, repel, and create emergent structures.",
-        tags: ["animated", "physics"],
-        thumbnail: "network"
-      },
-      {
-        id: "recursive-trees",
-        name: "Recursive Trees",
-        description: "Botanical forms generated through recursive branching algorithms. Each tree is uniquely grown.",
-        tags: ["nature", "geometric"],
-        thumbnail: "trees"
-      },
-      {
-        id: "wave-interference",
-        name: "Wave Interference",
-        description: "Overlapping wave patterns creating moiré and interference effects. Physics made visible.",
-        tags: ["animated", "physics"],
-        thumbnail: "waves"
-      },
-      {
-        id: "cellular-automata",
-        name: "Cellular Automata",
-        description: "Emergent complexity from simple rules. Conway's Game of Life and beyond.",
-        tags: ["geometric"],
-        thumbnail: "cells"
-      },
-      {
-        id: "voronoi-organic",
-        name: "Voronoi Organic",
-        description: "Natural-looking cell structures using Voronoi diagrams with organic perturbation.",
-        tags: ["animated", "nature", "geometric"],
-        thumbnail: "voronoi"
-      },
-      {
-        id: "topographic-flow",
-        name: "Topographic Flow",
-        description: "Contour lines flowing like water over terrain. Elevation data visualized as art.",
-        tags: ["animated", "nature", "geometric"],
-        thumbnail: "topo"
-      },
-      {
-        id: "strange-attractor",
-        name: "Strange Attractor",
-        description: "Chaotic systems finding order. Lorenz and other strange attractors visualized.",
-        tags: ["physics"],
-        thumbnail: "attractor"
-      },
-      {
-        id: "reaction-diffusion",
-        name: "Reaction-Diffusion",
-        description: "Chemical patterns emerging from reaction-diffusion systems. Nature's own algorithms.",
-        tags: ["nature"],
-        thumbnail: "rd"
-      },
-      {
-        id: "dla",
-        name: "DLA Cluster",
-        description: "Diffusion-Limited Aggregation creating coral-like and tree-like fractal structures.",
-        tags: ["nature", "fractal"],
-        thumbnail: "dla"
-      },
-      {
-        id: "lsystem-botany",
-        name: "L-System Botany",
-        description: "Formal grammars generating plant structures. Mathematical botany in action.",
-        tags: ["nature", "geometric"],
-        thumbnail: "lsystem"
-      },
-      {
-        id: "orbital-mechanics",
-        name: "Orbital Mechanics",
-        description: "Gravitational dance of celestial bodies. Watch orbits form and evolve.",
-        tags: ["animated", "physics"],
-        thumbnail: "orbits"
-      },
-      {
-        id: "light-caverns",
-        name: "Light Caverns",
-        description: "Ray-marched caverns with volumetric lighting. Underground worlds of light and shadow.",
-        tags: ["animated", "nature"],
-        thumbnail: "caverns"
-      },
-      {
-        id: "fluid-smoke",
-        name: "Fluid Smoke",
-        description: "Navier-Stokes fluid simulation. Watch smoke swirl and flow in real-time.",
-        tags: ["animated", "physics"],
-        thumbnail: "fluid"
-      },
-      {
-        id: "particle-swarm",
-        name: "Particle Swarm",
-        description: "Flocking behavior and swarm intelligence. Thousands of particles moving as one.",
-        tags: ["animated", "nature"],
-        thumbnail: "swarm"
-      },
-      {
-        id: "mandelbrot-explorer",
-        name: "Mandelbrot Explorer",
-        description: "Infinite complexity from simple iteration. Click to zoom into the Mandelbrot set.",
-        tags: ["fractal"],
-        thumbnail: "mandelbrot"
-      },
-      {
-        id: "perlin-terrain",
-        name: "Perlin Terrain",
-        description: "3D terrain generated with Perlin noise. Elevation, moisture, biomes visualized.",
-        tags: ["nature", "fractal"],
-        thumbnail: "terrain"
-      },
-      {
-        id: "kaleidoscope-symmetry",
-        name: "Kaleidoscope",
-        description: "Symmetrical patterns through mirror reflection. Interactive geometric play.",
-        tags: ["geometric"],
-        thumbnail: "kaleidoscope"
-      },
-      {
-        id: "neural-dreams",
-        name: "Neural Dreams",
-        description: "Visualization inspired by neural network activations. AI dreaming in color.",
-        tags: ["animated", "ai"],
-        thumbnail: "neural"
-      },
-      {
-        id: "lsystem-fractals",
-        name: "L-System Fractals",
-        description: "Fractal curves from simple rewrite rules. Koch, Hilbert, Dragon curves and more.",
-        tags: ["geometric", "fractal"],
-        thumbnail: "fractals"
-      },
-      {
-        id: "quantum-field",
-        name: "Quantum Field",
-        description: "Visualization of quantum probability fields. Particles as probability waves.",
-        tags: ["animated", "physics"],
-        thumbnail: "quantum"
-      },
-      {
-        id: "boid-flocking",
-        name: "Boid Flocking",
-        description: "Craig Reynolds' boids algorithm. Separation, alignment, cohesion in action.",
-        tags: ["animated", "nature"],
-        thumbnail: "boids"
-      },
-      {
-        id: "frequency-visualizer",
-        name: "Frequency Visualizer",
-        description: "Audio frequencies visualized as waveforms and spectrograms. See the sound.",
-        tags: ["animated"],
-        thumbnail: "frequency"
-      },
-      {
-        id: "lissajous-curves",
-        name: "Lissajous Curves",
-        description: "Harmonic motion creating beautiful curves. Ratio of frequencies as art.",
-        tags: ["animated", "physics", "geometric"],
-        thumbnail: "lissajous"
-      },
-      {
-        id: "spirograph",
-        name: "Spirograph",
-        description: "Mathematical epitrochoid and hypotrochoid curves. The classic toy, algorithmically.",
-        tags: ["animated", "geometric"],
-        thumbnail: "spirograph"
-      }
-    ];
-
-    // Thumbnail generators
-    const thumbnailGenerators = {
-      flowField: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = 'rgba(99, 102, 241, 0.3)';
-        for (let i = 0; i < 50; i++) {
-          ctx.beginPath();
-          let x = Math.random() * w;
-          let y = Math.random() * h;
-          ctx.moveTo(x, y);
-          for (let j = 0; j < 20; j++) {
-            x += Math.cos(y * 0.01) * 10;
-            y += Math.sin(x * 0.01) * 10;
-            ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-      },
-      mandala: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#a78bfa';
-        ctx.lineWidth = 1;
-        const cx = w/2, cy = h/2;
-        for (let i = 0; i < 12; i++) {
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.rotate((i / 12) * Math.PI * 2);
-          ctx.beginPath();
-          for (let r = 10; r < Math.min(w,h)/2; r += 15) {
-            ctx.rect(r, -r/4, r/2, r/2);
-          }
-          ctx.stroke();
-          ctx.restore();
-        }
-      },
-      network: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        const nodes = [];
-        for (let i = 0; i < 20; i++) nodes.push({x: Math.random() * w, y: Math.random() * h});
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
-        for (let i = 0; i < nodes.length; i++) {
-          for (let j = i + 1; j < nodes.length; j++) {
-            const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
-            if (d < 100) {
-              ctx.beginPath();
-              ctx.moveTo(nodes[i].x, nodes[i].y);
-              ctx.lineTo(nodes[j].x, nodes[j].y);
-              ctx.stroke();
-            }
-          }
-        }
-        ctx.fillStyle = '#3b82f6';
-        nodes.forEach(n => ctx.fillRect(n.x-2, n.y-2, 4, 4));
-      },
-      trees: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#22c55e';
-        const branch = (x, y, len, angle, depth) => {
-          if (depth === 0) return;
-          const x2 = x + Math.cos(angle) * len;
-          const y2 = y + Math.sin(angle) * len;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x2, y2);
-          ctx.stroke();
-          branch(x2, y2, len * 0.7, angle - 0.5, depth - 1);
-          branch(x2, y2, len * 0.7, angle + 0.5, depth - 1);
-        };
-        branch(w/2, h, h/4, -Math.PI/2, 8);
-      },
-      waves: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 5; i++) {
-          ctx.strokeStyle = `hsla(${200 + i * 30}, 70%, 50%, 0.5)`;
-          ctx.beginPath();
-          for (let x = 0; x < w; x++) {
-            const y = h/2 + Math.sin(x * 0.02 + i) * 50 + Math.sin(x * 0.05) * 20;
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-      },
-      cells: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        const size = 15;
-        for (let x = 0; x < w; x += size) {
-          for (let y = 0; y < h; y += size) {
-            if (Math.random() > 0.5) {
-              ctx.fillStyle = `hsl(${Math.random() * 60 + 240}, 70%, 60%)`;
-              ctx.fillRect(x, y, size-1, size-1);
-            }
-          }
-        }
-      },
-      voronoi: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        const cells = [];
-        for (let i = 0; i < 30; i++) cells.push({x: Math.random() * w, y: Math.random() * h, c: `hsl(${Math.random()*60+180},60%,50%)`});
-        const size = 4;
-        for (let x = 0; x < w; x += size) {
-          for (let y = 0; y < h; y += size) {
-            let nearest = cells[0];
-            let minDist = Infinity;
-            for (const c of cells) {
-              const d = Math.hypot(c.x - x, c.y - y);
-              if (d < minDist) { minDist = d; nearest = c; }
-            }
-            ctx.fillStyle = nearest.c;
-            ctx.fillRect(x, y, size, size);
-          }
-        }
-      },
-      topo: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#14b8a6';
-        for (let i = 0; i < 10; i++) {
-          ctx.beginPath();
-          for (let x = 0; x < w; x++) {
-            const y = h/2 + Math.sin(x * 0.01 + i * 0.5) * 30 + i * 8;
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-      },
-      attractor: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = 'rgba(236, 72, 153, 0.5)';
-        let x = 0.1, y = 0, z = 0;
-        for (let i = 0; i < 5000; i++) {
-          const dt = 0.01;
-          const dx = 10 * (y - x) * dt;
-          const dy = (x * (28 - z) - y) * dt;
-          const dz = (x * y - 8/3 * z) * dt;
-          x += dx; y += dy; z += dz;
-          const px = w/2 + x * 8;
-          const py = h/2 + y * 4 - z * 2;
-          ctx.fillRect(px, py, 1, 1);
-        }
-      },
-      rd: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 100; i++) {
-          const x = Math.random() * w;
-          const y = Math.random() * h;
-          const r = Math.random() * 30 + 10;
-          const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-          grad.addColorStop(0, 'rgba(34, 197, 94, 0.3)');
-          grad.addColorStop(1, 'transparent');
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      },
-      dla: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#f59e0b';
-        const center = {x: w/2, y: h/2};
-        ctx.fillRect(center.x, center.y, 2, 2);
-        for (let i = 0; i < 200; i++) {
-          let x = Math.random() * w;
-          let y = Math.random() * h;
-          while (true) {
-            const dx = center.x - x;
-            const dy = center.y - y;
-            if (Math.hypot(dx, dy) < 5) {
-              ctx.fillRect(x, y, 2, 2);
-              break;
-            }
-            x += (Math.random() - 0.5) * 10;
-            y += (Math.random() - 0.5) * 10;
-          }
-        }
-      },
-      lsystem: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#84cc16';
-        ctx.translate(w/2, h);
-        let str = 'F';
-        for (let i = 0; i < 4; i++) str = str.replace(/F/g, 'F[+F]F[-F]F');
-        let angle = -Math.PI/2;
-        const stack = [];
-        ctx.beginPath();
-        for (const c of str) {
-          if (c === 'F') {
-            const x2 = Math.cos(angle) * 5;
-            const y2 = Math.sin(angle) * 5;
-            ctx.moveTo(0, 0);
-            ctx.lineTo(x2, y2);
-            ctx.translate(x2, y2);
-          } else if (c === '+') angle += 0.4;
-          else if (c === '-') angle -= 0.4;
-          else if (c === '[') stack.push({x: 0, y: 0, a: angle});
-          else if (c === ']') { const s = stack.pop(); ctx.setTransform(1,0,0,1,0,0); ctx.translate(w/2 + s.x, h + s.y); angle = s.a; }
-        }
-        ctx.stroke();
-      },
-      orbits: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        const bodies = [
-          {x: w/2, y: h/2, r: 15, c: '#fbbf24'},
-          {x: w/2 + 60, y: h/2, r: 5, c: '#60a5fa', orbit: 60},
-          {x: w/2 + 100, y: h/2, r: 8, c: '#f87171', orbit: 100}
+    <script>
+        // Artwork data - all 39 pieces from the portfolio
+        const artworks = [
+            { id: 1, title: "Barnsley Fern", file: "barnsley-fern.html", category: "natural", icon: "🌿" },
+            { id: 2, title: "Bioluminescent Plankton", file: "bioluminescent-plankton.html", category: "natural", icon: "✨" },
+            { id: 3, title: "Boid Flocking", file: "boid-flocking.html", category: "physics", icon: "🐦" },
+            { id: 4, title: "Cellular Automata", file: "cellular-automata.html", category: "mathematical", icon: "🔲" },
+            { id: 5, title: "Constellation Network", file: "constellation-network.html", category: "abstract", icon: "⭐" },
+            { id: 6, title: "Cross-Hatching Sketch", file: "cross-hatching-sketch.html", category: "geometric", icon: "✏️" },
+            { id: 7, title: "Crystal Refraction", file: "crystal-refraction.html", category: "geometric", icon: "💎" },
+            { id: 8, title: "Cymatics Sound", file: "cymatics-sound.html", category: "physics", icon: "🎵" },
+            { id: 9, title: "DLA", file: "dla.html", category: "natural", icon: "❄️" },
+            { id: 10, title: "Flow Field", file: "flow-field.html", category: "abstract", icon: "🌊" },
+            { id: 11, title: "Flowing Magnetism", file: "flowing-magnetism.html", category: "physics", icon: "🧲" },
+            { id: 12, title: "Fluid Smoke", file: "fluid-smoke.html", category: "physics", icon: "💨" },
+            { id: 13, title: "Frequency Visualizer", file: "frequency-visualizer.html", category: "abstract", icon: "📊" },
+            { id: 14, title: "Geometric Mandala", file: "geometric-mandala.html", category: "geometric", icon: "🔮" },
+            { id: 15, title: "Impossible Geometry", file: "impossible-geometry.html", category: "geometric", icon: "📐" },
+            { id: 16, title: "Kaleidoscope", file: "kaleidoscope.html", category: "geometric", icon: "🔷" },
+            { id: 17, title: "Kaleidoscope Symmetry", file: "kaleidoscope-symmetry.html", category: "geometric", icon: "🎨" },
+            { id: 18, title: "Light Caverns", file: "light-caverns.html", category: "abstract", icon: "🏔️" },
+            { id: 19, title: "Lissajous Curves", file: "lissajous-curves.html", category: "mathematical", icon: "〰️" },
+            { id: 20, title: "L-System Botany", file: "lsystem-botany.html", category: "natural", icon: "🌱" },
+            { id: 21, title: "L-System Fractals", file: "lsystem-fractals.html", category: "mathematical", icon: "🌀" },
+            { id: 22, title: "Mandelbrot Explorer", file: "mandelbrot-explorer.html", category: "mathematical", icon: "🔍" },
+            { id: 23, title: "Metaballs", file: "metaballs.html", category: "physics", icon: "🫧" },
+            { id: 24, title: "Neural Dreams", file: "neural-dreams.html", category: "abstract", icon: "🧠" },
+            { id: 25, title: "Orbital Mechanics", file: "orbital-mechanics.html", category: "physics", icon: "🪐" },
+            { id: 26, title: "Particle Network", file: "particle-network.html", category: "abstract", icon: "🕸️" },
+            { id: 27, title: "Particle Swarm", file: "particle-swarm.html", category: "physics", icon: "⚡" },
+            { id: 28, title: "Polyhedral Sculptures", file: "polyhedral-sculptures.html", category: "geometric", icon: "🔺" },
+            { id: 29, title: "Quantum Field", file: "quantum-field.html", category: "physics", icon: "⚛️" },
+            { id: 30, title: "Reaction Diffusion", file: "reaction-diffusion.html", category: "natural", icon: "🦓" },
+            { id: 31, title: "Recursive Trees", file: "recursive-trees.html", category: "natural", icon: "🌳" },
+            { id: 32, title: "Spirograph", file: "spirograph.html", category: "mathematical", icon: "🎯" },
+            { id: 33, title: "Stained Glass", file: "stained-glass.html", category: "geometric", icon: "🪟" },
+            { id: 34, title: "Strange Attractor", file: "strange-attractor.html", category: "mathematical", icon: "🎭" },
+            { id: 35, title: "Topographic Flow", file: "topographic-flow.html", category: "natural", icon: "🗺️" },
+            { id: 36, title: "Voronoi Organic", file: "voronoi-organic.html", category: "natural", icon: "🧬" },
+            { id: 37, title: "Wave Interference", file: "wave-interference.html", category: "physics", icon: "〰️" },
+            { id: 38, title: "Code Garden", file: "code-garden.html", category: "text", icon: "🌸" },
+            { id: 39, title: "ASCII Cosmos", file: "ascii-cosmos.html", category: "text", icon: "🌌" }
         ];
-        bodies.forEach(b => {
-          ctx.fillStyle = b.c;
-          ctx.beginPath();
-          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-          ctx.fill();
-          if (b.orbit) {
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-            ctx.beginPath();
-            ctx.arc(w/2, h/2, b.orbit, 0, Math.PI * 2);
-            ctx.stroke();
-          }
+
+        // Generate gallery
+        function generateGallery(filter = 'all') {
+            const grid = document.getElementById('gallery-grid');
+            grid.innerHTML = '';
+            
+            const filtered = filter === 'all' 
+                ? artworks 
+                : artworks.filter(a => a.category === filter);
+            
+            filtered.forEach((artwork, index) => {
+                const card = document.createElement('div');
+                card.className = `artwork-card category-${artwork.category}`;
+                card.style.animationDelay = `${index * 0.05}s`;
+                
+                card.innerHTML = `
+                    <a href="${artwork.file}" class="artwork-link"></a>
+                    <div class="artwork-preview">${artwork.icon}</div>
+                    <div class="artwork-info">
+                        <div class="artwork-number">${String(artwork.id).padStart(2, '0')}</div>
+                        <h3 class="artwork-title">${artwork.title}</h3>
+                        <div class="artwork-category">${artwork.category}</div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            // Update count
+            document.getElementById('artwork-count').textContent = filtered.length;
+        }
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                generateGallery(btn.dataset.filter);
+            });
         });
-      },
-      caverns: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 50; i++) {
-          const grad = ctx.createLinearGradient(0, i * 6, w, i * 6 + 20);
-          grad.addColorStop(0, 'transparent');
-          grad.addColorStop(0.5, `rgba(99, 102, 241, ${0.1 + Math.random() * 0.2})`);
-          grad.addColorStop(1, 'transparent');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, i * 6, w, 20);
-        }
-      },
-      fluid: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 20; i++) {
-          ctx.strokeStyle = `rgba(139, 92, 246, ${0.1 + i * 0.02})`;
-          ctx.beginPath();
-          for (let x = 0; x < w; x++) {
-            const y = h/2 + Math.sin(x * 0.02 + i * 0.3) * 40 * Math.sin(i * 0.5);
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-      },
-      swarm: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = 'rgba(34, 197, 94, 0.6)';
-        for (let i = 0; i < 100; i++) {
-          const t = i / 100;
-          const x = w/2 + Math.cos(t * Math.PI * 4) * 80 + Math.cos(t * Math.PI * 12) * 30;
-          const y = h/2 + Math.sin(t * Math.PI * 4) * 60 + Math.sin(t * Math.PI * 12) * 20;
-          ctx.fillRect(x, y, 3, 3);
-        }
-      },
-      mandelbrot: (ctx, w, h) => {
-        const img = ctx.createImageData(w, h);
-        for (let px = 0; px < w; px++) {
-          for (let py = 0; py < h; py++) {
-            const x0 = (px / w) * 3.5 - 2.5;
-            const y0 = (py / h) * 2 - 1;
-            let x = 0, y = 0, iter = 0;
-            while (x*x + y*y <= 4 && iter < 50) {
-              const xtemp = x*x - y*y + x0;
-              y = 2*x*y + y0;
-              x = xtemp;
-              iter++;
-            }
-            const idx = (py * w + px) * 4;
-            const c = iter === 50 ? 0 : iter * 5;
-            img.data[idx] = c;
-            img.data[idx+1] = c/2;
-            img.data[idx+2] = c * 2;
-            img.data[idx+3] = 255;
-          }
-        }
-        ctx.putImageData(img, 0, 0);
-      },
-      terrain: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let y = 0; y < h; y += 4) {
-          for (let x = 0; x < w; x += 4) {
-            const noise = Math.sin(x * 0.02) * Math.cos(y * 0.02) + Math.sin(x * 0.05 + y * 0.03) * 0.5;
-            const h_val = Math.floor((noise + 1) * 128);
-            ctx.fillStyle = `rgb(${h_val/2}, ${h_val}, ${h_val/3})`;
-            ctx.fillRect(x, y, 4, 4);
-          }
-        }
-      },
-      kaleidoscope: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        const cx = w/2, cy = h/2;
-        for (let i = 0; i < 8; i++) {
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.rotate((i / 8) * Math.PI * 2);
-          ctx.fillStyle = `hsl(${i * 45}, 70%, 50%)`;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.arc(0, 0, 80, 0, Math.PI/4);
-          ctx.lineTo(0, 0);
-          ctx.fill();
-          ctx.restore();
-        }
-      },
-      neural: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 5; i++) {
-          for (let j = 0; j < 8; j++) {
-            const x = 50 + i * 70;
-            const y = 40 + j * 35;
-            ctx.fillStyle = `hsl(${Math.random() * 60 + 10}, 80%, 60%)`;
-            ctx.beginPath();
-            ctx.arc(x, y, 8, 0, Math.PI * 2);
-            ctx.fill();
-            if (i < 4) {
-              ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-              ctx.beginPath();
-              ctx.moveTo(x + 8, y);
-              ctx.lineTo(x + 62, 40 + Math.floor(Math.random() * 8) * 35);
-              ctx.stroke();
-            }
-          }
-        }
-      },
-      fractals: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#ec4899';
-        const koch = (x1, y1, x2, y2, depth) => {
-          if (depth === 0) {
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-            return;
-          }
-          const dx = x2 - x1, dy = y2 - y1;
-          const x3 = x1 + dx/3, y3 = y1 + dy/3;
-          const x4 = x1 + dx*2/3, y4 = y1 + dy*2/3;
-          const x5 = (x1 + x2)/2 - dy/6, y5 = (y1 + y2)/2 + dx/6;
-          koch(x1, y1, x3, y3, depth - 1);
-          koch(x3, y3, x5, y5, depth - 1);
-          koch(x5, y5, x4, y4, depth - 1);
-          koch(x4, y4, x2, y2, depth - 1);
-        };
-        koch(50, h/2, w-50, h/2, 4);
-      },
-      quantum: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 20; i++) {
-          const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, 100 + i * 5);
-          grad.addColorStop(0, 'transparent');
-          grad.addColorStop(0.5, `rgba(59, 130, 246, ${0.05})`);
-          grad.addColorStop(1, 'transparent');
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(w/2, h/2, 100 + i * 5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      },
-      boids: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#06b6d4';
-        for (let i = 0; i < 50; i++) {
-          const angle = (i / 50) * Math.PI * 2;
-          const r = 30 + Math.random() * 60;
-          const x = w/2 + Math.cos(angle) * r;
-          const y = h/2 + Math.sin(angle) * r;
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(angle);
-          ctx.beginPath();
-          ctx.moveTo(8, 0);
-          ctx.lineTo(-4, 3);
-          ctx.lineTo(-4, -3);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-        }
-      },
-      frequency: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 30; i++) {
-          const barHeight = Math.random() * h * 0.8;
-          ctx.fillStyle = `hsl(${i * 12}, 70%, 50%)`;
-          ctx.fillRect(10 + i * 10, h - barHeight, 8, barHeight);
-        }
-      },
-      lissajous: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#f472b6';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let t = 0; t < Math.PI * 4; t += 0.01) {
-          const x = w/2 + Math.sin(t * 3) * 80;
-          const y = h/2 + Math.sin(t * 4) * 60;
-          if (t === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      },
-      spirograph: (ctx, w, h) => {
-        ctx.fillStyle = '#0a0a0f';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let t = 0; t < Math.PI * 20; t += 0.01) {
-          const R = 60, r = 25, d = 40;
-          const x = w/2 + (R - r) * Math.cos(t) + d * Math.cos((R - r) / r * t);
-          const y = h/2 + (R - r) * Math.sin(t) - d * Math.sin((R - r) / r * t);
-          if (t === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-    };
 
-    // Render gallery
-    function renderGallery() {
-      const gallery = document.getElementById('gallery');
-      const emptyState = document.getElementById('emptyState');
-      const filter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-      const search = document.getElementById('search').value.toLowerCase();
-      
-      gallery.innerHTML = '';
-      
-      const filtered = artPieces.filter(piece => {
-        const matchesFilter = filter === 'all' || piece.tags.includes(filter);
-        const matchesSearch = piece.name.toLowerCase().includes(search) || 
-                             piece.description.toLowerCase().includes(search);
-        return matchesFilter && matchesSearch;
-      });
-      
-      if (filtered.length === 0) {
-        emptyState.style.display = 'block';
-      } else {
-        emptyState.style.display = 'none';
-        filtered.forEach((piece, index) => {
-          const card = document.createElement('div');
-          card.className = 'art-card';
-          card.style.animationDelay = `${index * 0.05}s`;
-          
-          const canvas = document.createElement('canvas');
-          canvas.width = 400;
-          canvas.height = 300;
-          const ctx = canvas.getContext('2d');
-          
-          const generator = thumbnailGenerators[piece.thumbnail];
-          if (generator) generator(ctx, 400, 300);
-          
-          const tagsHtml = piece.tags.map(tag => {
-            const classes = {animated: 'animated', nature: 'nature', physics: 'physics', 
-                           geometric: 'geometric', fractal: 'fractal', ai: 'ai'};
-            return `<span class="tag ${classes[tag] || ''}">${tag}</span>`;
-          }).join('');
-          
-          card.innerHTML = `
-            <div class="thumbnail">
-              <canvas width="400" height="300" id="canvas-${piece.id}"></canvas>
-              <div class="thumbnail-overlay">
-                <a href="${piece.id}.html" class="open-btn">Open Piece →</a>
-              </div>
-            </div>
-            <div class="card-content">
-              <h3 class="card-title">${piece.name}</h3>
-              <p class="card-desc">${piece.description}</p>
-              <div class="card-tags">${tagsHtml}</div>
-            </div>
-          `;
-          
-          gallery.appendChild(card);
-          
-          // Render thumbnail
-          const thumbCanvas = card.querySelector('canvas');
-          const thumbCtx = thumbCanvas.getContext('2d');
-          if (generator) generator(thumbCtx, 400, 300);
-        });
-      }
-    }
-
-    // Event listeners
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderGallery();
-      });
-    });
-
-    document.getElementById('search').addEventListener('input', renderGallery);
-
-    // Initial render
-    renderGallery();
-  </script>
+        // Initialize
+        generateGallery();
+    </script>
 </body>
 </html>
