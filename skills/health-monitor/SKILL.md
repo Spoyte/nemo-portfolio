@@ -43,6 +43,7 @@ health --workspace  # Workspace health only
 | `workspace.backup` | Backup freshness | Yes |
 | `workspace.skills` | SKILL.md consistency | No |
 | `workspace.skill_gaps` | Scripts that could be skills | No |
+| `workspace.symlinks` | Broken symlinks in bin/ | No |
 | `workspace.trend` | Health trend analysis | No |
 
 ## Auto-fix Behavior

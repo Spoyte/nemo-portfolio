@@ -217,6 +217,40 @@ function checkSkills(workspaceRoot) {
   return addResult('workspace', 'skills', 'ok', `${skills.length} skill(s) documented`);
 }
 
+function checkSymlinks(workspaceRoot) {
+  const binDir = path.join(workspaceRoot, 'bin');
+  if (!fs.existsSync(binDir)) {
+    return addResult('workspace', 'symlinks', 'ok', 'No bin/ directory');
+  }
+  
+  const broken = [];
+  const links = fs.readdirSync(binDir).filter(f => {
+    const fullPath = path.join(binDir, f);
+    try {
+      return fs.lstatSync(fullPath).isSymbolicLink();
+    } catch (e) {
+      return false;
+    }
+  });
+  
+  for (const link of links) {
+    const fullPath = path.join(binDir, link);
+    try {
+      // This throws if the target doesn't exist
+      fs.accessSync(fullPath, fs.constants.F_OK);
+    } catch (e) {
+      const target = fs.readlinkSync(fullPath);
+      broken.push(`${link} -> ${path.basename(target)}`);
+    }
+  }
+  
+  if (broken.length > 0) {
+    return addResult('workspace', 'symlinks', 'warning', `${broken.length} broken symlink(s): ${broken[0]}${broken.length > 1 ? '...' : ''}`);
+  } else {
+    return addResult('workspace', 'symlinks', 'ok', `${links.length} symlink(s), all valid`);
+  }
+}
+
 // Auto-fix functions
 function autoFix(workspaceRoot) {
   const fixed = [];
@@ -317,6 +351,7 @@ if (!flags.system) {
   checkBackup(workspaceRoot);
   checkMemoryDir(workspaceRoot);
   checkSkills(workspaceRoot);
+  checkSymlinks(workspaceRoot);
 }
 
 // Auto-fix if requested
