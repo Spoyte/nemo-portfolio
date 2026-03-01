@@ -15,9 +15,16 @@ const navItems = [
   { href: "/timeline", label: "Timeline" },
   { href: "/skills", label: "Skills" },
   { href: "/projects", label: "Projects" },
-  { href: "/playground", label: "Playground" },
   { href: "/blog", label: "Blog" },
+  { href: "/uses", label: "Uses" },
   { href: "/contact", label: "Contact" },
+];
+
+// Secret pages (not shown in nav)
+const secretPages = [
+  { href: "/code-cinema", label: "Code Cinema" },
+  { href: "/trading-cards", label: "Trading Cards" },
+  { href: "/secret-lab", label: "Secret Lab" },
 ];
 
 export function Navigation() {
