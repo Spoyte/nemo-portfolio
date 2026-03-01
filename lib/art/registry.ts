@@ -51,7 +51,7 @@ interface ParamMapping {
 // ============================================================================
 
 /**
- * Central registry of all 52 art generators
+ * Central registry of all 53 art generators
  * This single source of truth replaces scattered imports across index.ts
  */
 export const GENERATOR_REGISTRY: GeneratorEntry[] = [
@@ -423,6 +423,14 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     category: "abstract",
     loader: () => import("./neural-dreams"),
     renderFnName: "renderNeuralDreams",
+  },
+  {
+    id: "neural-cellular-automata",
+    name: "Neural Cellular Automata",
+    description: "Cells learn to grow patterns through neural network rules - self-organizing life",
+    category: "abstract",
+    loader: () => import("./neural-cellular-automata"),
+    renderFnName: "renderNeuralCA",
   },
 
   // === TRADITIONAL (6) ===
