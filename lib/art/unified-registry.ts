@@ -856,81 +856,172 @@ export function isValidGeneratorId(id: string): id is GeneratorId {
 }
 
 // ============================================================================
-// CODE GENERATION (for build-time use)
+// CODE GENERATION (single source of truth)
 // ============================================================================
 
+// Category display order for generated code
+const CATEGORY_ORDER = [
+  'mathematical', 'natural', 'physics', 'geometric',
+  'abstract', 'traditional', 'text', '3d', 'interactive'
+] as const;
+
 /**
- * Generate static import statements for index.ts
- * Run this to update imports when adding new generators
+ * Get generators grouped by category in display order
+ * Single source of truth for category ordering
  */
-export function generateIndexImports(): string {
-  const lines: string[] = ["// Auto-generated imports from unified-registry.ts"];
+export function getGeneratorsGroupedByCategory(): Map<string, GeneratorEntry[]> {
+  const groups = new Map<string, GeneratorEntry[]>();
 
-  const byCategory = CATEGORIES.reduce((acc, cat) => {
-    acc[cat] = GENERATOR_REGISTRY.filter((g) => g.category === cat);
-    return acc;
-  }, {} as Record<string, GeneratorEntry[]>);
+  // Initialize in preferred order
+  for (const cat of CATEGORY_ORDER) {
+    groups.set(cat, []);
+  }
 
-  Object.entries(byCategory).forEach(([category, generators]) => {
-    lines.push(`\n// === ${category.toUpperCase()} (${generators.length}) ===`);
-    generators.forEach((g) => {
-      lines.push(`import { ${g.importName} } from "./${g.id}";`);
-    });
-  });
+  // Populate groups
+  for (const entry of GENERATOR_REGISTRY) {
+    const existing = groups.get(entry.category) || [];
+    existing.push(entry);
+    groups.set(entry.category, existing);
+  }
 
-  return lines.join("\n");
+  // Remove empty categories
+  for (const [cat, items] of groups) {
+    if (items.length === 0) {
+      groups.delete(cat);
+    }
+  }
+
+  return groups;
 }
 
 /**
- * Generate the generators map for index.ts
+ * Generate complete index.ts content
+ * This is the single source of truth for index generation
  */
-export function generateGeneratorsMap(): string {
+export function generateIndexContent(): string {
+  const groups = getGeneratorsGroupedByCategory();
+
   const lines: string[] = [
-    "// Auto-generated from unified-registry.ts",
-    "const rawGenerators: Record<string, ArtGenerator> = {",
+    '// Auto-generated from unified-registry.ts',
+    '// Do not edit manually - run: node scripts/generate-art-index.ts',
+    '',
+    'import { ArtGenerator } from "./core";',
+    'import { ARTWORK_METADATA } from "./metadata";',
+    'import {',
+    '  GENERATOR_REGISTRY,',
+    '  GeneratorId,',
+    '  getGeneratorEntry,',
+    '  getGeneratorIdsByCategory,',
+    '  getCategoryStats,',
+    '  loadGenerator,',
+    '  validateRegistry,',
+    '} from "./unified-registry";',
+    '',
+    '// Re-export core types',
+    'export * from "./core";',
+    'export * from "./metadata";',
+    'export * from "./statistics";',
+    '',
+    '// Re-export registry system',
+    'export {',
+    '  GENERATOR_REGISTRY,',
+    '  type GeneratorId,',
+    '  type GeneratorEntry,',
+    '  type LoadedGenerator,',
+    '  getGeneratorEntry,',
+    '  getGeneratorIdsByCategory,',
+    '  getGeneratorsByCategory,',
+    '  getCategoryStats,',
+    '  getGeneratorMetadata,',
+    '  loadGenerator,',
+    '  validateRegistry,',
+    '  isValidGeneratorId,',
+    '  TOTAL_GENERATORS,',
+    '  GENERATOR_IDS,',
+    '  CATEGORIES,',
+    '} from "./unified-registry";',
+    '',
+    '// ============================================================================',
+    '// STATIC IMPORTS - Eagerly loaded generators',
+    '// Auto-generated from unified-registry.ts',
+    '// ============================================================================',
+    '',
   ];
 
-  const byCategory = CATEGORIES.reduce((acc, cat) => {
-    acc[cat] = GENERATOR_REGISTRY.filter((g) => g.category === cat);
-    return acc;
-  }, {} as Record<string, GeneratorEntry[]>);
+  // Generate imports grouped by category
+  for (const [category, items] of groups) {
+    lines.push(`// === ${category.toUpperCase()} (${items.length}) ===`);
+    for (const entry of items) {
+      lines.push(`import { ${entry.importName} } from "./${entry.id}";`);
+    }
+    lines.push('');
+  }
 
-  Object.entries(byCategory).forEach(([category, generators]) => {
-    lines.push(`  // ${category}`);
-    generators.forEach((g) => {
-      lines.push(`  "${g.id}": ${g.importName},`);
-    });
-    lines.push("");
-  });
+  lines.push('// ============================================================================');
+  lines.push('// GENERATORS MAP - Connects IDs to implementations');
+  lines.push('// ============================================================================');
+  lines.push('');
+  lines.push('const rawGenerators: Record<string, ArtGenerator> = {');
+  lines.push('');
 
-  lines.push("};");
-  return lines.join("\n");
-}
+  // Generate the map
+  for (const [category, items] of groups) {
+    lines.push(`  // === ${category.toUpperCase()} ===`);
+    for (const entry of items) {
+      lines.push(`  "${entry.id}": ${entry.importName},`);
+    }
+    lines.push('');
+  }
 
-/**
- * Generate TypeScript union type of all generator IDs
- */
-export function generateGeneratorIdType(): string {
-  const ids = GENERATOR_IDS.map((id) => `  | "${id}"`).join("\n");
-  return `export type GeneratorId =\n${ids};`;
-}
+  lines.push('};');
+  lines.push('');
+  lines.push('// Apply metadata to generators');
+  lines.push('export const artGenerators: Record<string, ArtGenerator> = {};');
+  lines.push('');
+  lines.push('Object.entries(rawGenerators).forEach(([id, generator]) => {');
+  lines.push('  artGenerators[id] = {');
+  lines.push('    ...generator,');
+  lines.push('    meta: ARTWORK_METADATA[id] || {');
+  lines.push('      category: "abstract",');
+  lines.push('      complexity: "moderate",');
+  lines.push('      tags: [],');
+  lines.push('      created: "2024-01-01",');
+  lines.push('    },');
+  lines.push('  };');
+  lines.push('});');
+  lines.push('');
+  lines.push('// ============================================================================');
+  lines.push('// CONVENIENCE EXPORTS');
+  lines.push('// ============================================================================');
+  lines.push('');
+  lines.push('/** Get a generator by ID */');
+  lines.push('export function getGenerator(id: string): ArtGenerator | undefined {');
+  lines.push('  return artGenerators[id];');
+  lines.push('}');
+  lines.push('');
+  lines.push('/** Get all generator IDs */');
+  lines.push('export function getAllGeneratorIds(): string[] {');
+  lines.push('  return Object.keys(artGenerators);');
+  lines.push('}');
+  lines.push('');
+  lines.push('/** Check if a generator exists */');
+  lines.push('export function hasGenerator(id: string): boolean {');
+  lines.push('  return id in artGenerators;');
+  lines.push('}');
+  lines.push('');
+  lines.push('// ============================================================================');
+  lines.push('// VALIDATION (run at module init in development)');
+  lines.push('// ============================================================================');
+  lines.push('');
+  lines.push('if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {');
+  lines.push('  const validation = validateRegistry();');
+  lines.push('  if (!validation.valid) {');
+  lines.push('    console.warn("[art/index] Registry validation issues:", validation);');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('');
 
-/**
- * Generate re-exports for backward compatibility
- */
-export function generateReExports(): string[] {
-  return GENERATOR_REGISTRY.map((g) => {
-    const exports: string[] = [];
-    exports.push(`export { ${g.importName} } from './${g.id}';`);
-    exports.push(`export { ${g.importName}DefaultParams } from './${g.id}';`);
-    exports.push(`export type { ${toPascalCase(g.importName)}Params } from './${g.id}';`);
-    return exports.join("\n");
-  });
-}
-
-// Helper: camelCase to PascalCase
-function toPascalCase(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  return lines.join('\n');
 }
 
 // ============================================================================
