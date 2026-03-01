@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 #
-# art-new — Scaffold new generative art algorithms
-# Usage: art-new <kebab-name> "Descriptive Name"
+# art-new — Complete generative art scaffolding with automatic registry integration
+# Usage: art-new <kebab-name> "Descriptive Name" [category]
+#
+# Automatically:
+# 1. Creates generator file with proper template
+# 2. Creates thumbnail variant
+# 3. Updates unified-registry.ts with new entry
+# 4. Updates metadata.ts with artwork metadata
+# 5. Updates index.ts with static import
 #
 
 set -euo pipefail
@@ -11,6 +18,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Paths
@@ -19,35 +27,44 @@ REGISTRY_FILE="$ART_DIR/unified-registry.ts"
 METADATA_FILE="$ART_DIR/metadata.ts"
 INDEX_FILE="$ART_DIR/index.ts"
 
+# Category options
+CATEGORIES=("mathematical" "natural" "physics" "geometric" "abstract" "traditional" "text" "3d" "interactive")
+
 # Help
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-    echo "art-new — Scaffold new generative art algorithms"
+    echo -e "${BLUE}art-new — Complete generative art scaffolding${NC}"
     echo ""
     echo "Usage:"
-    echo "  art-new <kebab-name> \"Descriptive Name\""
+    echo "  art-new <kebab-name> \"Descriptive Name\" [category]"
+    echo ""
+    echo "Categories:"
+    for i in "${!CATEGORIES[@]}"; do
+        echo "  $((i+1))) ${CATEGORIES[$i]}"
+    done
     echo ""
     echo "Examples:"
-    echo "  art-new neural-flow \"Neural Flow Fields\""
+    echo "  art-new neural-flow \"Neural Flow Fields\" 5"
     echo "  art-new reaction-diffusion \"Reaction Diffusion Patterns\""
-    echo ""
-    echo "Categories: mathematical, natural, physics, geometric, abstract, 3d, interactive"
     exit 0
 fi
 
 # Validate arguments
 if [[ $# -lt 2 ]]; then
     echo -e "${RED}Error: Missing arguments${NC}"
-    echo "Usage: art-new <kebab-name> \"Descriptive Name\""
+    echo "Usage: art-new <kebab-name> \"Descriptive Name\" [category]"
     exit 1
 fi
 
 KEBAB_NAME="$1"
 DISPLAY_NAME="$2"
+CATEGORY_INPUT="${3:-}"
 
 # Convert kebab to camelCase for function names
 CAMEL_NAME=$(echo "$KEBAB_NAME" | sed -E 's/-([a-z])/\U\1/g; s/^([A-Z])/\L\1/')
 # Convert kebab to PascalCase for type names
 PASCAL_NAME=$(echo "$KEBAB_NAME" | sed -E 's/(^|-)([a-z])/\U\2/g')
+# Convert kebab to snake_case for render function
+SNAKE_NAME=$(echo "$KEBAB_NAME" | tr '-' '_')
 
 # Check if file already exists
 if [[ -f "$ART_DIR/$KEBAB_NAME.ts" ]]; then
@@ -55,264 +72,458 @@ if [[ -f "$ART_DIR/$KEBAB_NAME.ts" ]]; then
     exit 1
 fi
 
-# Prompt for category
-echo -e "${BLUE}Select category:${NC}"
-echo "  1) mathematical"
-echo "  2) natural"
-echo "  3) physics"
-echo "  4) geometric"
-echo "  5) abstract"
-echo "  6) 3d"
-echo "  7) interactive"
-read -p "Enter number (1-7): " CATEGORY_NUM
-
-case $CATEGORY_NUM in
-    1) CATEGORY="mathematical" ;;
-    2) CATEGORY="natural" ;;
-    3) CATEGORY="physics" ;;
-    4) CATEGORY="geometric" ;;
-    5) CATEGORY="abstract" ;;
-    6) CATEGORY="3d" ;;
-    7) CATEGORY="interactive" ;;
-    *) echo -e "${RED}Invalid category${NC}"; exit 1 ;;
-esac
+# Get category
+if [[ -n "$CATEGORY_INPUT" && "$CATEGORY_INPUT" =~ ^[0-9]+$ ]]; then
+    CATEGORY_IDX=$((CATEGORY_INPUT - 1))
+    if [[ $CATEGORY_IDX -ge 0 && $CATEGORY_IDX -lt ${#CATEGORIES[@]} ]]; then
+        CATEGORY="${CATEGORIES[$CATEGORY_IDX]}"
+    else
+        echo -e "${RED}Error: Invalid category number${NC}"
+        exit 1
+    fi
+elif [[ -n "$CATEGORY_INPUT" ]]; then
+    # Check if valid category name
+    CATEGORY=""
+    for cat in "${CATEGORIES[@]}"; do
+        if [[ "$cat" == "$CATEGORY_INPUT" ]]; then
+            CATEGORY="$cat"
+            break
+        fi
+    done
+    if [[ -z "$CATEGORY" ]]; then
+        echo -e "${RED}Error: Invalid category '$CATEGORY_INPUT'${NC}"
+        echo "Valid categories: ${CATEGORIES[*]}"
+        exit 1
+    fi
+else
+    # Interactive category selection
+    echo -e "${BLUE}Select category:${NC}"
+    for i in "${!CATEGORIES[@]}"; do
+        echo "  $((i+1))) ${CATEGORIES[$i]}"
+    done
+    read -p "Enter number (1-${#CATEGORIES[@]}): " CATEGORY_NUM
+    
+    CATEGORY_IDX=$((CATEGORY_NUM - 1))
+    if [[ $CATEGORY_IDX -ge 0 && $CATEGORY_IDX -lt ${#CATEGORIES[@]} ]]; then
+        CATEGORY="${CATEGORIES[$CATEGORY_IDX]}"
+    else
+        echo -e "${RED}Invalid category${NC}"
+        exit 1
+    fi
+fi
 
 echo -e "${GREEN}Creating $DISPLAY_NAME ($KEBAB_NAME) in category: $CATEGORY${NC}"
 
 # ============================================================================
 # Create main generator file
 # ============================================================================
-cat > "$ART_DIR/$KEBAB_NAME.ts" << 'EOF'
+cat > "$ART_DIR/$KEBAB_NAME.ts" << EOF
 import { ArtGenerator, GeneratorContext, ExportOptions } from "./core";
 
-export interface DISPLAY_NAMEConfig {
-  // TODO: Add your parameters here
-  parameter1: number;
-  parameter2: string;
-  colorScheme: "warm" | "cool" | "monochrome";
+export interface ${PASCAL_NAME}Params {
+  // Visual parameters
+  density: number;        // 10-100: Pattern density
+  speed: number;          // 0.1-5: Animation speed
+  colorScheme: "neon" | "pastel" | "monochrome" | "warm" | "cool";
+  complexity: "simple" | "moderate" | "complex";
   animated: boolean;
 }
 
-export const defaultDISPLAY_NAMEConfig: DISPLAY_NAMEConfig = {
-  parameter1: 50,
-  parameter2: "default",
-  colorScheme: "warm",
+export const ${CAMEL_NAME}DefaultParams: ${PASCAL_NAME}Params = {
+  density: 50,
+  speed: 1,
+  colorScheme: "neon",
+  complexity: "moderate",
   animated: true,
 };
 
-export class DISPLAY_NAMEGenerator implements ArtGenerator {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private config: DISPLAY_NAMEConfig;
-  private animationId: number | null = null;
-  private time: number = 0;
+export function render${PASCAL_NAME}(
+  ctx: CanvasRenderingContext2D,
+  params: Partial<${PASCAL_NAME}Params> = {},
+  time: number = 0
+): void {
+  const config = { ...${CAMEL_NAME}DefaultParams, ...params };
+  const { width, height } = ctx.canvas;
 
-  constructor(canvas: HTMLCanvasElement, config: Partial<DISPLAY_NAMEConfig> = {}) {
-    this.canvas = canvas;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not get 2D context");
-    this.ctx = ctx;
-    this.config = { ...defaultDISPLAY_NAMEConfig, ...config };
-  }
+  // Color palettes
+  const palettes: Record<string, string[]> = {
+    neon: ["#FF006E", "#FB5607", "#FFBE0B", "#8338EC", "#3A86FF"],
+    pastel: ["#FFB5BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF"],
+    monochrome: ["#000000", "#333333", "#666666", "#999999", "#CCCCCC"],
+    warm: ["#FF6B35", "#F7931E", "#FFD23F", "#EE4266", "#540D6E"],
+    cool: ["#3B82F6", "#06B6D4", "#10B981", "#8B5CF6", "#6366F1"],
+  };
+  const colors = palettes[config.colorScheme] || palettes.neon;
 
-  private getColors(scheme: string): string[] {
-    const palettes: Record<string, string[]> = {
-      warm: ["#FF6B35", "#F7931E", "#FFD23F", "#EE4266", "#540D6E"],
-      cool: ["#3B82F6", "#06B6D4", "#10B981", "#8B5CF6", "#6366F1"],
-      monochrome: ["#000000", "#333333", "#666666", "#999999", "#CCCCCC"],
-    };
-    return palettes[scheme] || palettes.warm;
-  }
+  // Clear with dark background
+  ctx.fillStyle = "#0a0a0a";
+  ctx.fillRect(0, 0, width, height);
 
-  generate(): void {
-    const { width, height } = this.canvas;
-    const colors = this.getColors(this.config.colorScheme);
+  // Center point
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxRadius = Math.min(width, height) * 0.45;
 
-    // Clear canvas
-    this.ctx.fillStyle = "#0a0a0a";
-    this.ctx.fillRect(0, 0, width, height);
+  // Animation time factor
+  const t = config.animated ? time * config.speed * 0.001 : 0;
 
-    // TODO: Implement your algorithm here
-    // This is where the magic happens!
+  // TODO: Implement your algorithm here
+  // This is a starter pattern - replace with your creative vision!
 
-    // Example: Draw a simple pattern
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const maxRadius = Math.min(width, height) * 0.4;
-
-    for (let i = 0; i < 100; i++) {
-      const angle = (i / 100) * Math.PI * 2 + this.time;
-      const radius = (i / 100) * maxRadius;
-      const x = centerX + Math.cos(angle) * radius;
-      const y = centerY + Math.sin(angle) * radius;
-
-      this.ctx.beginPath();
-      this.ctx.arc(x, y, 5 + i * 0.1, 0, Math.PI * 2);
-      this.ctx.fillStyle = colors[i % colors.length];
-      this.ctx.fill();
+  const numElements = Math.floor(config.density * 2);
+  
+  for (let i = 0; i < numElements; i++) {
+    const angle = (i / numElements) * Math.PI * 2 + t;
+    const radius = (i / numElements) * maxRadius * (0.5 + 0.5 * Math.sin(t + i * 0.1));
+    
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+    
+    const size = 3 + (i / numElements) * 15;
+    
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    
+    // Connect to center for complexity
+    if (config.complexity !== "simple") {
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = colors[i % colors.length];
+      ctx.globalAlpha = 0.2;
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
   }
 
-  animate(): void {
-    if (!this.config.animated) return;
-
-    const loop = () => {
-      this.time += 0.01;
-      this.generate();
-      this.animationId = requestAnimationFrame(loop);
-    };
-
-    this.stop();
-    loop();
-  }
-
-  stop(): void {
-    if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-    }
-  }
-
-  updateConfig(newConfig: Partial<DISPLAY_NAMEConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-    this.generate();
-  }
-
-  export(options: ExportOptions = {}): string {
-    return this.canvas.toDataURL(options.format || "image/png", options.quality);
-  }
-
-  getMetadata() {
-    return {
-      name: "DISPLAY_NAME",
-      description: "TODO: Add description",
-      category: "CATEGORY",
-      tags: ["TODO", "add", "tags"],
-      complexity: "medium",
-    };
-  }
+  // Reset alpha
+  ctx.globalAlpha = 1;
 }
 
-// Factory function for easy instantiation
-export function createDISPLAY_NAME(
-  canvas: HTMLCanvasElement,
-  config?: Partial<DISPLAY_NAMEConfig>
-): DISPLAY_NAMEGenerator {
-  return new DISPLAY_NAMEGenerator(canvas, config);
-}
+// Backward compatibility: ArtGenerator interface
+export const ${CAMEL_NAME}: ArtGenerator = {
+  id: "${KEBAB_NAME}",
+  name: "${DISPLAY_NAME}",
+  category: "${CATEGORY}",
+  render: (ctx, params, time) => render${PASCAL_NAME}(ctx, params as ${PASCAL_NAME}Params, time),
+  defaultParams: ${CAMEL_NAME}DefaultParams,
+};
 
-// Default export
-export default DISPLAY_NAMEGenerator;
+export default ${CAMEL_NAME};
 EOF
 
-# Replace placeholders in the template
-sed -i "s/DISPLAY_NAME/$PASCAL_NAME/g" "$ART_DIR/$KEBAB_NAME.ts"
-sed -i "s/CATEGORY/$CATEGORY/g" "$ART_DIR/$KEBAB_NAME.ts"
+echo -e "${GREEN}✓ Created $KEBAB_NAME.ts${NC}"
 
 # ============================================================================
 # Create thumbnail variant
 # ============================================================================
-cat > "$ART_DIR/$KEBAB_NAME-thumb.ts" << 'EOF'
-import { ArtGenerator, GeneratorContext } from "./core";
+cat > "$ART_DIR/$KEBAB_NAME-thumb.ts" << EOF
+import { ArtGenerator } from "./core";
+import { render${PASCAL_NAME}, ${CAMEL_NAME}DefaultParams } from "./${KEBAB_NAME}";
 
-export class DISPLAY_NAMEMini implements ArtGenerator {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not get 2D context");
-    this.ctx = ctx;
-  }
-
-  generate(): void {
-    const { width, height } = this.canvas;
-
-    // Simplified version for thumbnails
-    this.ctx.fillStyle = "#0a0a0a";
-    this.ctx.fillRect(0, 0, width, height);
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    // Quick preview pattern
-    this.ctx.strokeStyle = "#FF6B35";
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.arc(centerX, centerY, width * 0.3, 0, Math.PI * 2);
-    this.ctx.stroke();
-  }
-
-  animate(): void {
-    // Thumbnails are static
-    this.generate();
-  }
-
-  stop(): void {
-    // No-op for thumbnails
-  }
+export function render${PASCAL_NAME}Thumb(
+  ctx: CanvasRenderingContext2D,
+  time: number = 0
+): void {
+  // Simplified version for thumbnails - static, faster rendering
+  render${PASCAL_NAME}(ctx, { 
+    ...${CAMEL_NAME}DefaultParams, 
+    animated: false,
+    density: 30,  // Reduced for performance
+    complexity: "simple"
+  }, time);
 }
 
-export function createDISPLAY_NAMEMini(canvas: HTMLCanvasElement): DISPLAY_NAMEMini {
-  return new DISPLAY_NAMEMini(canvas);
-}
+// ArtGenerator interface for thumbnail
+export const ${CAMEL_NAME}Thumb: ArtGenerator = {
+  id: "${KEBAB_NAME}-thumb",
+  name: "${DISPLAY_NAME} (Thumbnail)",
+  category: "${CATEGORY}",
+  render: (ctx, _params, time) => render${PASCAL_NAME}Thumb(ctx, time),
+  defaultParams: ${CAMEL_NAME}DefaultParams,
+};
 
-export default DISPLAY_NAMEMini;
+export default ${CAMEL_NAME}Thumb;
 EOF
 
-sed -i "s/DISPLAY_NAME/$PASCAL_NAME/g" "$ART_DIR/$KEBAB_NAME-thumb.ts"
-
-echo -e "${GREEN}✓ Created $KEBAB_NAME.ts${NC}"
 echo -e "${GREEN}✓ Created $KEBAB_NAME-thumb.ts${NC}"
-
-# ============================================================================
-# Update index.ts with new export
-# ============================================================================
-echo -e "${YELLOW}⚠ Manual step required:${NC}"
-echo "  Add the following to $INDEX_FILE:"
-echo ""
-echo "  import { $CAMEL_NAME } from \"./$KEBAB_NAME\";"
-echo "  // In the appropriate category section"
-echo ""
 
 # ============================================================================
 # Update unified-registry.ts
 # ============================================================================
-echo -e "${YELLOW}⚠ Manual step required:${NC}"
-echo "  Add to $REGISTRY_FILE in the $CATEGORY section:"
-echo ""
-echo "    $KEBAB_NAME: {"
-echo "      id: \"$KEBAB_NAME\","
-echo "      name: \"$DISPLAY_NAME\","
-echo "      category: \"$CATEGORY\","
-echo "      loader: () => import(\"./$KEBAB_NAME\"),"
-echo "      thumbnailLoader: () => import(\"./$KEBAB_NAME-thumb\"),"
-echo "    },"
-echo ""
+echo -e "${CYAN}→ Updating unified-registry.ts...${NC}"
+
+# Find the category section and add new entry
+# We need to insert before the next category or at end of current category
+
+# Create a temporary file with the new entry
+NEW_ENTRY=$(cat << EOF
+  {
+    id: "${KEBAB_NAME}",
+    name: "${DISPLAY_NAME}",
+    description: "TODO: Add description for ${DISPLAY_NAME}",
+    category: "${CATEGORY}",
+    loader: () => import("./${KEBAB_NAME}"),
+    renderFnName: "render${PASCAL_NAME}",
+    importName: "${CAMEL_NAME}",
+  },
+EOF
+)
+
+# Use Python for reliable multi-line text manipulation
+python3 << PYTHON_SCRIPT
+import re
+
+registry_file = "$REGISTRY_FILE"
+kebab_name = "$KEBAB_NAME"
+category = "$CATEGORY"
+camel_name = "$CAMEL_NAME"
+pascal_name = "$PASCAL_NAME"
+display_name = "$DISPLAY_NAME"
+
+with open(registry_file, 'r') as f:
+    content = f.read()
+
+# Find the category section
+# Pattern: // === CATEGORY (count) ===
+category_pattern = rf"(// === {category.upper()} \(\d+\) ===)"
+match = re.search(category_pattern, content)
+
+if match:
+    # Find the end of this category section (next // === or end of array)
+    section_start = match.end()
+    next_section = re.search(r"\n// === [A-Z]+", content[section_start:])
+    
+    if next_section:
+        insert_pos = section_start + next_section.start()
+    else:
+        # Find the last entry before the closing of the array
+        # Look for the last }, before ]
+        last_bracket = content.rfind("];")
+        # Find the last }, before that
+        last_entry = content.rfind("},", section_start, last_bracket)
+        if last_entry != -1:
+            insert_pos = last_entry + 2
+        else:
+            insert_pos = section_start
+    
+    # Create new entry
+    new_entry = f'''  {{
+    id: "{kebab_name}",
+    name: "{display_name}",
+    description: "TODO: Add description for {display_name}",
+    category: "{category}",
+    loader: () => import("./{kebab_name}"),
+    renderFnName: "render{pascal_name}",
+    importName: "{camel_name}",
+  }},'''
+    
+    # Insert the new entry
+    new_content = content[:insert_pos] + "\n" + new_entry + content[insert_pos:]
+    
+    # Update the count in the category header
+    count_match = re.search(rf"// === {category.upper()} \((\d+)\) ===", new_content)
+    if count_match:
+        old_count = int(count_match.group(1))
+        new_count = old_count + 1
+        new_content = new_content[:count_match.start()] + f"// === {category.upper()} ({new_count}) ===" + new_content[count_match.end():]
+    
+    with open(registry_file, 'w') as f:
+        f.write(new_content)
+    
+    print(f"Added {kebab_name} to {category} category")
+else:
+    print(f"Category {category} not found, adding to end")
+    # Add to end before the closing bracket
+    insert_pos = content.rfind("];")
+    new_entry = f'''  {{
+    id: "{kebab_name}",
+    name: "{display_name}",
+    description: "TODO: Add description for {display_name}",
+    category: "{category}",
+    loader: () => import("./{kebab_name}"),
+    renderFnName: "render{pascal_name}",
+    importName: "{camel_name}",
+  }},'''
+    new_content = content[:insert_pos] + new_entry + "\n" + content[insert_pos:]
+    with open(registry_file, 'w') as f:
+        f.write(new_content)
+PYTHON_SCRIPT
+
+echo -e "${GREEN}✓ Updated unified-registry.ts${NC}"
 
 # ============================================================================
 # Update metadata.ts
 # ============================================================================
-echo -e "${YELLOW}⚠ Manual step required:${NC}"
-echo "  Add to $METADATA_FILE:"
-echo ""
-echo "    $KEBAB_NAME: {"
-echo "      title: \"$DISPLAY_NAME\","
-echo "      description: \"TODO: Add description\","
-echo "      category: \"$CATEGORY\","
-echo "      tags: [\"TODO\", \"add\", \"tags\"],"
-echo "      complexity: \"medium\","
-echo "      animated: true,"
-echo "    },"
-echo ""
+echo -e "${CYAN}→ Updating metadata.ts...${NC}"
 
+python3 << PYTHON_SCRIPT
+import re
+from datetime import datetime
+
+metadata_file = "$METADATA_FILE"
+kebab_name = "$KEBAB_NAME"
+category = "$CATEGORY"
+display_name = "$DISPLAY_NAME"
+
+with open(metadata_file, 'r') as f:
+    content = f.read()
+
+# Determine tags based on category
+tag_map = {
+    "mathematical": ["animated", "geometric", "detailed"],
+    "natural": ["animated", "organic", "nature"],
+    "physics": ["animated", "chaotic", "detailed"],
+    "geometric": ["animated", "geometric", "ordered"],
+    "abstract": ["animated", "chaotic", "abstract"],
+    "traditional": ["animated", "detailed", "colorful"],
+    "text": ["animated", "colorful", "futuristic"],
+    "3d": ["animated", "3d", "detailed", "futuristic"],
+    "interactive": ["animated", "interactive", "colorful"],
+}
+tags = tag_map.get(category, ["animated", "colorful"])
+tags_str = ', '.join([f'"{t}"' for t in tags])
+
+# Determine complexity
+complexity_map = {
+    "mathematical": "complex",
+    "natural": "moderate",
+    "physics": "complex",
+    "geometric": "moderate",
+    "abstract": "moderate",
+    "traditional": "complex",
+    "text": "moderate",
+    "3d": "expert",
+    "interactive": "complex",
+}
+complexity = complexity_map.get(category, "moderate")
+
+today = datetime.now().strftime("%Y-%m-%d")
+
+# Create new metadata entry
+new_metadata = f'''  "{kebab_name}": {{
+    category: "{category}",
+    complexity: "{complexity}",
+    tags: [{tags_str}],
+    created: "{today}",
+  }},'''
+
+# Find the category section in metadata
+# Look for // === CATEGORY === or similar
+# Or find a good insertion point - after the last entry of the same category
+
+# Find the end of ARTWORK_METADATA object
+# Look for the pattern: }; (possibly with whitespace)
+closing_match = re.search(r'\n};', content)
+if closing_match:
+    insert_pos = closing_match.start()
+    new_content = content[:insert_pos] + "\n" + new_metadata + content[insert_pos:]
+    
+    with open(metadata_file, 'w') as f:
+        f.write(new_content)
+    print(f"Added metadata for {kebab_name}")
+else:
+    # Try alternative: find the last }; in the file
+    last_close = content.rfind('};')
+    if last_close != -1:
+        insert_pos = last_close
+        new_content = content[:insert_pos] + "\n" + new_metadata + content[insert_pos:]
+        with open(metadata_file, 'w') as f:
+            f.write(new_content)
+        print(f"Added metadata for {kebab_name}")
+    else:
+        print("Could not find insertion point in metadata.ts")
+PYTHON_SCRIPT
+
+echo -e "${GREEN}✓ Updated metadata.ts${NC}"
+
+# ============================================================================
+# Update index.ts - Add static import
+# ============================================================================
+echo -e "${CYAN}→ Updating index.ts...${NC}"
+
+python3 << PYTHON_SCRIPT
+import re
+
+index_file = "$INDEX_FILE"
+kebab_name = "$KEBAB_NAME"
+camel_name = "$CAMEL_NAME"
+category = "$CATEGORY"
+
+with open(index_file, 'r') as f:
+    content = f.read()
+
+# Find the category import section
+# Pattern: // === CATEGORY (count) ===
+category_pattern = rf"(// === {category.upper()} \([^)]+\) ===)"
+match = re.search(category_pattern, content)
+
+if match:
+    # Find the end of imports in this section (next // === or the generators map)
+    section_start = match.end()
+    next_section = re.search(r"\n// === [A-Z]+|\n// =", content[section_start:])
+    
+    if next_section:
+        insert_pos = section_start + next_section.start()
+    else:
+        # Find before the generators map comment
+        gen_map = content.find("// ============================================================================")
+        insert_pos = gen_map if gen_map != -1 else len(content)
+    
+    # Create import line
+    import_line = f'import {{ {camel_name} }} from "./{kebab_name}";'
+    
+    # Insert
+    new_content = content[:insert_pos] + "\n" + import_line + content[insert_pos:]
+    
+    with open(index_file, 'w') as f:
+        f.write(new_content)
+    
+    print(f"Added import for {kebab_name}")
+else:
+    print(f"Category section not found in index.ts")
+    # Add to end of imports section
+    # Find the last import before the generators map
+    gen_map = content.find("const rawGenerators")
+    if gen_map != -1:
+        # Find last import before this
+        last_import = content.rfind("import {", 0, gen_map)
+        if last_import != -1:
+            # Find end of that line
+            line_end = content.find("\n", last_import)
+            import_line = f'import {{ {camel_name} }} from "./{kebab_name}";'
+            new_content = content[:line_end+1] + import_line + "\n" + content[line_end+1:]
+            with open(index_file, 'w') as f:
+                f.write(new_content)
+            print(f"Added import for {kebab_name} at end of imports")
+PYTHON_SCRIPT
+
+echo -e "${GREEN}✓ Updated index.ts${NC}"
+
+# ============================================================================
+# Summary
+# ============================================================================
+echo ""
 echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  $DISPLAY_NAME scaffolded successfully!${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
 echo ""
-echo "Next steps:"
-echo "  1. Edit $KEBAB_NAME.ts — implement your algorithm"
-echo "  2. Update registry and metadata (see manual steps above)"
-echo "  3. Test in browser"
+echo -e "${CYAN}Files created:${NC}"
+echo "  • lib/art/$KEBAB_NAME.ts (main generator)"
+echo "  • lib/art/$KEBAB_NAME-thumb.ts (thumbnail variant)"
+echo ""
+echo -e "${CYAN}Registry updates:${NC}"
+echo "  • unified-registry.ts — Added to '$CATEGORY' category"
+echo "  • metadata.ts — Added artwork metadata"
+echo "  • index.ts — Added static import"
+echo ""
+echo -e "${YELLOW}Next steps:${NC}"
+echo "  1. Edit lib/art/$KEBAB_NAME.ts — implement your algorithm"
+echo "  2. Update the TODO description in unified-registry.ts"
+echo "  3. Test: npm run dev (in my-app directory)"
 echo "  4. Commit: git add . && git commit -m \"feat(art): add $KEBAB_NAME\""
+echo ""
+echo -e "${BLUE}💡 Tip:${NC} The generator is already wired up and ready to test!"
