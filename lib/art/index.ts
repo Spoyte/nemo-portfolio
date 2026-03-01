@@ -8,6 +8,7 @@ import { ARTWORK_METADATA } from "./metadata";
 export * from "./core";
 export * from "./metadata";
 export * from "./statistics";
+export * from "./config";
 
 // Re-export registry system
 export {

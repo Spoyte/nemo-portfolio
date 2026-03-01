@@ -15,12 +15,8 @@ import {
   Play,
   Pause,
   Shuffle,
-  Info,
-  X,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Share2,
   Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,76 +42,13 @@ import {
   artGenerators,
   getAllGeneratorIds,
   ArtGenerator,
+  // Unified config - single source of truth
+  CATEGORY_CONFIG,
+  COMPLEXITY_CONFIG,
+  getCategoryConfig,
+  getComplexityConfig,
+  getComplexityOrder,
 } from "@/lib/art";
-
-// Category configuration with colors and icons
-const CATEGORY_CONFIG: Record<
-  string,
-  { label: string; color: string; bgColor: string; borderColor: string }
-> = {
-  mathematical: {
-    label: "Mathematical",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/20",
-  },
-  natural: {
-    label: "Natural",
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
-    borderColor: "border-green-500/20",
-  },
-  physics: {
-    label: "Physics",
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/10",
-    borderColor: "border-purple-500/20",
-  },
-  geometric: {
-    label: "Geometric",
-    color: "text-orange-500",
-    bgColor: "bg-orange-500/10",
-    borderColor: "border-orange-500/20",
-  },
-  abstract: {
-    label: "Abstract",
-    color: "text-pink-500",
-    bgColor: "bg-pink-500/10",
-    borderColor: "border-pink-500/20",
-  },
-  traditional: {
-    label: "Traditional",
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/10",
-    borderColor: "border-amber-500/20",
-  },
-  "3d": {
-    label: "3D",
-    color: "text-cyan-500",
-    bgColor: "bg-cyan-500/10",
-    borderColor: "border-cyan-500/20",
-  },
-  text: {
-    label: "Text",
-    color: "text-red-500",
-    bgColor: "bg-red-500/10",
-    borderColor: "border-red-500/20",
-  },
-  interactive: {
-    label: "Interactive",
-    color: "text-indigo-500",
-    bgColor: "bg-indigo-500/10",
-    borderColor: "border-indigo-500/20",
-  },
-};
-
-// Complexity badges
-const COMPLEXITY_CONFIG: Record<string, { label: string; color: string }> = {
-  simple: { label: "Simple", color: "bg-green-500/20 text-green-600" },
-  moderate: { label: "Moderate", color: "bg-yellow-500/20 text-yellow-600" },
-  complex: { label: "Complex", color: "bg-orange-500/20 text-orange-600" },
-  expert: { label: "Expert", color: "bg-red-500/20 text-red-600" },
-};
 
 // Artwork card component with live preview
 function ArtworkCard({
@@ -136,13 +69,12 @@ function ArtworkCard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
 
   const category = generator.meta?.category || "abstract";
   const complexity = generator.meta?.complexity || "moderate";
   const tags = generator.meta?.tags || [];
-  const catConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.abstract;
-  const compConfig = COMPLEXITY_CONFIG[complexity] || COMPLEXITY_CONFIG.moderate;
+  const catConfig = getCategoryConfig(category);
+  const compConfig = getComplexityConfig(complexity);
   const isAnimated = tags.includes("animated");
 
   // Generate thumbnail
@@ -163,7 +95,7 @@ function ArtworkCard({
     generator.generate(ctx, params, 0);
 
     // Animation loop for animated pieces
-    if (isAnimated && isPlaying) {
+    if (isAnimated) {
       let startTime = Date.now();
       const animate = () => {
         const time = (Date.now() - startTime) / 1000;
@@ -178,7 +110,7 @@ function ArtworkCard({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [generator, isPlaying, isAnimated]);
+  }, [generator, isAnimated]);
 
   if (viewMode === "list") {
     return (
@@ -396,8 +328,8 @@ function ArtworkDetail({
   const category = generator.meta?.category || "abstract";
   const complexity = generator.meta?.complexity || "moderate";
   const tags = generator.meta?.tags || [];
-  const catConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.abstract;
-  const compConfig = COMPLEXITY_CONFIG[complexity] || COMPLEXITY_CONFIG.moderate;
+  const catConfig = getCategoryConfig(category);
+  const compConfig = getComplexityConfig(complexity);
   const isAnimated = tags.includes("animated");
 
   // Initialize params
@@ -696,10 +628,9 @@ export default function GenerativeArtGallery() {
             b.generator.meta?.category || ""
           );
         case "complexity":
-          const complexityOrder = { simple: 0, moderate: 1, complex: 2, expert: 3 };
           return (
-            complexityOrder[a.generator.meta?.complexity || "moderate"] -
-            complexityOrder[b.generator.meta?.complexity || "moderate"]
+            getComplexityOrder(a.generator.meta?.complexity || "moderate") -
+            getComplexityOrder(b.generator.meta?.complexity || "moderate")
           );
         default:
           return 0;
@@ -855,19 +786,7 @@ export default function GenerativeArtGallery() {
                     value={key}
                     className={cn(
                       "data-[state=active]:text-white",
-                      key === "mathematical" &&
-                        "data-[state=active]:bg-blue-500",
-                      key === "natural" && "data-[state=active]:bg-green-500",
-                      key === "physics" && "data-[state=active]:bg-purple-500",
-                      key === "geometric" &&
-                        "data-[state=active]:bg-orange-500",
-                      key === "abstract" && "data-[state=active]:bg-pink-500",
-                      key === "traditional" &&
-                        "data-[state=active]:bg-amber-500",
-                      key === "3d" && "data-[state=active]:bg-cyan-500",
-                      key === "text" && "data-[state=active]:bg-red-500",
-                      key === "interactive" &&
-                        "data-[state=active]:bg-indigo-500"
+                      config.activeBg && `data-[state=active]:${config.activeBg}`
                     )}
                   >
                     {config.label} ({categoryCounts[key] || 0})
