@@ -636,7 +636,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "paperMarbling",
   },
 
-  // === TEXT (2) ===
+  // === TEXT (3) ===
   {
     id: "kinetic-typography",
     name: "Kinetic Typography",
@@ -694,7 +694,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sdfSculptor",
   },
 
-  // === INTERACTIVE (3) ===
+  // === INTERACTIVE (6) ===
   {
     id: "particle-network",
     name: "Particle Network",
@@ -740,7 +740,17 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "generate",
     importName: "magneticPoetry",
   },
-  // === TEXT (2) ===
+  {
+    id: "kinetic-sculpture",
+    name: "Kinetic Sculpture",
+    description: "Interactive 3D text sculpture — words float in space, responding to your touch, forming ephemeral poetry structures",
+    category: "interactive",
+    loader: () => import("./kinetic-sculpture"),
+    renderFnName: "renderKineticSculpture",
+    importName: "kineticSculpture",
+  },
+
+  // === TEXT (3) ===
   {
     id: "poetry-visualizer",
     name: "Poetry Visualizer",

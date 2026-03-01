@@ -504,6 +504,20 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "detailed"],
     created: "2026-03-01",
   },
+
+  // === INTERACTIVE ===
+  "magnetic-poetry": {
+    category: "interactive",
+    complexity: "moderate",
+    tags: ["animated", "interactive", "colorful", "futuristic"],
+    created: "2026-03-01",
+  },
+  "kinetic-sculpture": {
+    category: "interactive",
+    complexity: "complex",
+    tags: ["animated", "interactive", "colorful", "futuristic", "3d"],
+    created: "2026-03-01",
+  },
 };
 
 // Helper function to get metadata for a generator
@@ -625,6 +639,8 @@ export const VALID_ARTWORK_IDS = new Set([
   "particle-network",
   "frequency-visualizer",
   "topographic-flow",
+  "magnetic-poetry",
+  "kinetic-sculpture",
 ]);
 
 /**
@@ -673,6 +689,7 @@ export function validateMetadata(): {
     "kaleidoscope-chamber", "double-pendulum", "fourier-synthesis", "julia-set",
     "barnsley-fern", "chaos-game", "penrose-tiling", "lenia", "bioluminescent-plankton", "self-organizing-map", "abelian-sandpile", "turing-patterns",
     "n-body-gravity", "sacred-geometry", "sdf-sculptor", "poetry-visualizer",
+    "magnetic-poetry", "kinetic-sculpture",
   ]);
   const orphanedMetadata = Array.from(metadataIds).filter(id => !exportedIds.has(id));
 

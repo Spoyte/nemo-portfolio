@@ -131,12 +131,13 @@ import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
 import { sdfSculptor } from "./sdf-sculptor";
 
-// === INTERACTIVE (5) ===
+// === INTERACTIVE (6) ===
 import { particleNetwork } from "./particle-network";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
 import { magneticPoetry } from "./magnetic-poetry";
+import { kineticSculpture } from "./kinetic-sculpture";
 
 // ============================================================================
 // GENERATORS MAP - Connects IDs to implementations
@@ -239,6 +240,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "topographic-flow": topographicFlow,
   "abelian-sandpile": abelianSandpile,
   "magnetic-poetry": magneticPoetry,
+  "kinetic-sculpture": kineticSculpture,
 
 };
 

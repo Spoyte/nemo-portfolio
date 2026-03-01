@@ -1,144 +1,157 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { 
   Quote, 
   ChevronLeft, 
   ChevronRight, 
   Star,
-  Sparkles,
-  MessageSquare,
-  ThumbsUp,
+  Heart,
   Share2,
-  Bookmark
+  Twitter,
+  Linkedin,
+  Copy,
+  Check
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import confetti from "canvas-confetti";
 
 interface Testimonial {
   id: string;
-  name: string;
+  quote: string;
+  author: string;
   role: string;
   company: string;
-  content: string;
+  avatar: string;
   rating: number;
-  avatar?: string;
-  initials: string;
+  tags: string[];
   color: string;
-  project: string;
 }
 
 const testimonials: Testimonial[] = [
   {
     id: "1",
-    name: "Sarah Chen",
-    role: "Product Manager",
-    company: "TechCorp",
-    content: "Nemo delivered exceptional work on our platform redesign. The attention to detail and user experience improvements exceeded our expectations. Our conversion rate increased by 40% after the launch.",
+    quote: "Nemo's attention to detail is unmatched. They transformed our vision into a stunning reality that exceeded all expectations. The codebase is clean, maintainable, and beautifully architected.",
+    author: "Sarah Chen",
+    role: "CTO",
+    company: "TechStart Inc.",
+    avatar: "SC",
     rating: 5,
-    initials: "SC",
-    color: "#dc2626",
-    project: "E-commerce Platform",
+    tags: ["React", "TypeScript", "UI/UX"],
+    color: "from-blue-500 to-cyan-500",
   },
   {
     id: "2",
-    name: "Marcus Johnson",
-    role: "CTO",
-    company: "StartupXYZ",
-    content: "Working with Nemo was a game-changer for our startup. The technical architecture decisions and clean code practices have made our platform scalable and maintainable. Highly recommended!",
+    quote: "Working with Nemo was an absolute pleasure. Their technical expertise combined with creative problem-solving made our project a huge success. Highly recommended!",
+    author: "Marcus Johnson",
+    role: "Product Manager",
+    company: "Digital Ventures",
+    avatar: "MJ",
     rating: 5,
-    initials: "MJ",
-    color: "#0891b2",
-    project: "SaaS Dashboard",
+    tags: ["Next.js", "Node.js", "PostgreSQL"],
+    color: "from-purple-500 to-pink-500",
   },
   {
     id: "3",
-    name: "Emily Rodriguez",
-    role: "Design Director",
-    company: "Creative Studio",
-    content: "The collaboration was seamless. Nemo has a rare ability to translate complex design systems into pixel-perfect implementations. The animations and micro-interactions added that extra polish.",
+    quote: "The best developer I've worked with. Nemo doesn't just write code—they craft experiences. Our conversion rate increased by 40% after the redesign.",
+    author: "Emily Rodriguez",
+    role: "Founder",
+    company: "GrowthLabs",
+    avatar: "ER",
     rating: 5,
-    initials: "ER",
-    color: "#7c3aed",
-    project: "Design System",
+    tags: ["Performance", "SEO", "Analytics"],
+    color: "from-orange-500 to-red-500",
   },
   {
     id: "4",
-    name: "David Kim",
-    role: "Founder",
-    company: "InnovateLab",
-    content: "From concept to deployment, Nemo handled everything professionally. The project was delivered on time and the communication throughout was excellent. Will definitely work together again.",
+    quote: "Nemo's ability to understand complex requirements and translate them into elegant solutions is remarkable. They're a true full-stack magician.",
+    author: "David Kim",
+    role: "Engineering Lead",
+    company: "CloudScale",
+    avatar: "DK",
     rating: 5,
-    initials: "DK",
-    color: "#059669",
-    project: "Mobile App",
+    tags: ["System Design", "AWS", "DevOps"],
+    color: "from-emerald-500 to-teal-500",
   },
   {
     id: "5",
-    name: "Lisa Thompson",
-    role: "Marketing Lead",
-    company: "GrowthCo",
-    content: "Our website performance improved dramatically after Nemo's optimization work. Page load times dropped by 60% and our SEO rankings have never been better. Incredible technical expertise!",
+    quote: "Exceptional work on our design system. Nemo created components that are not only beautiful but also accessible and performant. Our team productivity doubled.",
+    author: "Lisa Thompson",
+    role: "Design Director",
+    company: "Creative Agency",
+    avatar: "LT",
     rating: 5,
-    initials: "LT",
-    color: "#ea580c",
-    project: "Website Optimization",
+    tags: ["Design System", "Accessibility", "Storybook"],
+    color: "from-amber-500 to-yellow-500",
   },
 ];
 
 export function InteractiveTestimonials() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [liked, setLiked] = useState<string[]>([]);
-  const [bookmarked, setBookmarked] = useState<string[]>([]);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [likedTestimonials, setLikedTestimonials] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const currentTestimonial = testimonials[currentIndex];
 
-  // Auto-advance carousel
+  // Auto-advance
   useEffect(() => {
     if (!isAutoPlaying) return;
     
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % testimonials.length);
     }, 6000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [isAutoPlaying]);
 
-  const handlePrev = () => {
+  const goToPrevious = () => {
     setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
     setIsAutoPlaying(false);
   };
 
-  const handleNext = () => {
+  const goToNext = () => {
     setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % testimonials.length);
     setIsAutoPlaying(false);
   };
 
   const handleLike = (id: string) => {
-    if (!liked.includes(id)) {
-      setLiked([...liked, id]);
-      confetti({
-        particleCount: 30,
-        spread: 50,
-        origin: { y: 0.8 },
-        colors: ["#dc2626", "#ea580c"],
-      });
-    }
+    setLikedTestimonials(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+        confetti({
+          particleCount: 30,
+          spread: 50,
+          origin: { y: 0.7 },
+          colors: ["#ef4444", "#f87171", "#fca5a5"],
+        });
+      }
+      return newSet;
+    });
   };
 
-  const handleBookmark = (id: string) => {
-    if (bookmarked.includes(id)) {
-      setBookmarked(bookmarked.filter((b) => b !== id));
-    } else {
-      setBookmarked([...bookmarked, id]);
+  const handleShare = async (platform: string, testimonial: Testimonial) => {
+    const text = `"${testimonial.quote}" - ${testimonial.author}, ${testimonial.role} at ${testimonial.company}`;
+    
+    if (platform === "twitter") {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+    } else if (platform === "linkedin") {
+      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, "_blank");
+    } else if (platform === "copy") {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(testimonial.id);
+      setTimeout(() => setCopiedId(null), 2000);
     }
   };
 
@@ -147,227 +160,231 @@ export function InteractiveTestimonials() {
       x: direction > 0 ? 300 : -300,
       opacity: 0,
       scale: 0.9,
+      rotateY: direction > 0 ? 45 : -45,
     }),
     center: {
       x: 0,
       opacity: 1,
       scale: 1,
+      rotateY: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1],
+      },
     },
     exit: (direction: number) => ({
       x: direction < 0 ? 300 : -300,
       opacity: 0,
       scale: 0.9,
+      rotateY: direction < 0 ? 45 : -45,
+      transition: {
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1],
+      },
     }),
   };
 
+  // 3D tilt effect
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-100, 100], [10, -10]);
+  const rotateY = useTransform(x, [-100, 100], [-10, 10]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set(e.clientX - centerX);
+    y.set(e.clientY - centerY);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
   return (
-    <section className="py-24 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-            <MessageSquare className="h-4 w-4" />
-            <span className="text-sm font-medium">Testimonials</span>
-          </div>          
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            What People Say
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Feedback from clients and collaborators I&apos;ve had the pleasure of working with.
-          </p>
-        </motion.div>
+    <div className="w-full max-w-4xl mx-auto py-12" ref={containerRef}>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="text-center mb-12"
+      >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
+          <Quote className="w-4 h-4" />
+          <span className="text-sm font-medium">Testimonials</span>
+        </div>
+        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          What People <span className="text-gradient-animated">Say</span>
+        </h2>
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          Kind words from clients and colleagues I've had the pleasure of working with.
+        </p>
+      </motion.div>
 
-        {/* Main Carousel */}
-        <div className="relative max-w-4xl mx-auto">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={currentIndex}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-              }}
-            >
-              <Card className="overflow-hidden">
-                <CardContent className="p-8 md:p-12">
-                  <div className="flex flex-col md:flex-row gap-8">
-                    {/* Avatar Section */}
-                    <div className="flex flex-col items-center md:items-start">
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        className="relative"
-                      >
-                        <Avatar className="w-24 h-24 border-4 border-background shadow-xl">
-                          <AvatarFallback 
-                            style={{ backgroundColor: currentTestimonial.color }}
-                            className="text-white text-2xl font-bold"
-                          >
-                            {currentTestimonial.initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.2, type: "spring" }}
-                          className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground p-2 rounded-full shadow-lg"
-                        >
-                          <Quote className="h-4 w-4" />
-                        </motion.div>
-                      </motion.div>
+      {/* Main Card */}
+      <div 
+        className="relative h-[400px] perspective-1000"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentIndex}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            style={{
+              rotateX,
+              rotateY,
+              transformStyle: "preserve-3d",
+            }}
+            className="absolute inset-0"
+          >
+            <Card className="h-full overflow-hidden">
+              <CardContent className="p-8 h-full flex flex-col">
+                {/* Rating */}
+                <div className="flex items-center gap-1 mb-6">
+                  {[...Array(5)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                    >
+                      <Star 
+                        className={`w-5 h-5 ${
+                          i < currentTestimonial.rating 
+                            ? "text-yellow-500 fill-yellow-500" 
+                            : "text-muted"
+                        }`} 
+                      />
+                    </motion.div>
+                  ))}
+                </div>
 
-                      <div className="mt-4 text-center md:text-left">
-                        <h3 className="font-bold text-lg">{currentTestimonial.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {currentTestimonial.role}
-                        </p>
-                        <p className="text-sm text-primary">
-                          {currentTestimonial.company}
-                        </p>
-                      </div>
+                {/* Quote */}
+                <div className="flex-1 flex items-center">
+                  <blockquote className="text-xl md:text-2xl font-medium leading-relaxed">
+                    "{currentTestimonial.quote}"
+                  </blockquote>
+                </div>
 
-                      {/* Rating */}
-                      <div className="flex gap-1 mt-3">
-                        {[...Array(currentTestimonial.rating)].map((_, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.3 + i * 0.1 }}
-                          >
-                            <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                          </motion.div>
-                        ))}
-                      </div>
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {currentTestimonial.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Author */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${currentTestimonial.color} flex items-center justify-center text-white font-bold`}>
+                      {currentTestimonial.avatar}
                     </div>
-
-                    {/* Content Section */}
-                    <div className="flex-1">
-                      <div className="mb-4">
-                        <span 
-                          className="inline-block px-3 py-1 rounded-full text-xs font-medium"
-                          style={{ 
-                            backgroundColor: `${currentTestimonial.color}20`,
-                            color: currentTestimonial.color 
-                          }}
-                        >
-                          {currentTestimonial.project}
-                        </span>
-                      </div>
-
-                      <blockquote className="text-lg md:text-xl leading-relaxed text-muted-foreground mb-6">
-                        &ldquo;{currentTestimonial.content}&rdquo;
-                      </blockquote>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleLike(currentTestimonial.id)}
-                          className={liked.includes(currentTestimonial.id) ? "text-red-500" : ""}
-                        >
-                          <ThumbsUp className={`h-4 w-4 mr-2 ${liked.includes(currentTestimonial.id) ? "fill-current" : ""}`} />
-                          {liked.includes(currentTestimonial.id) ? "Liked" : "Like"}
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleBookmark(currentTestimonial.id)}
-                          className={bookmarked.includes(currentTestimonial.id) ? "text-primary" : ""}
-                        >
-                          <Bookmark className={`h-4 w-4 mr-2 ${bookmarked.includes(currentTestimonial.id) ? "fill-current" : ""}`} />
-                        </Button>
-
-                        <Button variant="outline" size="sm">
-                          <Share2 className="h-4 w-4 mr-2" />
-                          Share
-                        </Button>
-                      </div>
+                    <div>
+                      <p className="font-semibold">{currentTestimonial.author}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {currentTestimonial.role} at {currentTestimonial.company}
+                      </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-center gap-4 mt-8">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handlePrev}
-              className="rounded-full"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={likedTestimonials.has(currentTestimonial.id) ? "text-red-500" : ""}
+                      onClick={() => handleLike(currentTestimonial.id)}
+                    >
+                      <Heart className={`w-5 h-5 ${likedTestimonials.has(currentTestimonial.id) ? "fill-current" : ""}`} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleShare("copy", currentTestimonial)}
+                    >
+                      {copiedId === currentTestimonial.id ? (
+                        <Check className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <Copy className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
 
-            <div className="flex gap-2">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setDirection(index > currentIndex ? 1 : -1);
-                    setCurrentIndex(index);
-                    setIsAutoPlaying(false);
-                  }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentIndex 
-                      ? "w-8 bg-primary" 
-                      : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                  }`}
-                />
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleNext}
-              className="rounded-full"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
+        {/* Navigation */}
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 z-10">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-full shadow-lg"
+            onClick={goToPrevious}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
         </div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 max-w-3xl mx-auto"
-        >
-          {[
-            { label: "Happy Clients", value: "50+" },
-            { label: "Projects Completed", value: "100+" },
-            { label: "5-Star Reviews", value: "47" },
-            { label: "Years Experience", value: "7+" },
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 + index * 0.1 }}
-              className="text-center p-4 rounded-xl bg-muted/50"
-            >
-              <p className="text-2xl md:text-3xl font-bold text-primary">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </motion.div>
-          ))}
-        </motion.div>
+        <div className="absolute -right-4 top-1/2 -translate-y-1/2 z-10">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-full shadow-lg"
+            onClick={goToNext}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
-    </section>
+
+      {/* Indicators */}
+      <div className="flex justify-center gap-2 mt-8">
+        {testimonials.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => {
+              setDirection(index > currentIndex ? 1 : -1);
+              setCurrentIndex(index);
+              setIsAutoPlaying(false);
+            }}
+            className={`h-2 rounded-full transition-all duration-300 ${
+              index === currentIndex 
+                ? "w-8 bg-primary" 
+                : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="grid grid-cols-3 gap-6 mt-12 text-center"
+      >
+        {[
+          { value: "50+", label: "Projects Delivered" },
+          { value: "100%", label: "Client Satisfaction" },
+          { value: "5★", label: "Average Rating" },
+        ].map((stat, index) => (
+          <div key={index} className="p-4 rounded-xl bg-muted/50">
+            <p className="text-2xl font-bold text-primary">{stat.value}</p>
+            <p className="text-sm text-muted-foreground">{stat.label}</p>
+          </div>
+        ))}
+      </motion.div>
+    </div>
   );
 }

@@ -8,6 +8,9 @@ import { Toaster } from "@/components/toaster";
 import { KonamiCodeEasterEgg } from "@/components/konami-easter-egg";
 import { AchievementSystem } from "@/components/achievement-system-portfolio";
 import { TerminalToggle } from "@/components/interactive-terminal";
+import { HolographicBackground } from "@/components/holographic-background";
+import { AIChatWidget } from "@/components/ai-chat-widget";
+import { FloatingMusicPlayer } from "@/components/floating-music-player";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -42,6 +45,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
+          {/* Holographic Background */}
+          <HolographicBackground />
+          
           <ScrollProgress />
           <Toaster />
           <div className="flex flex-col min-h-screen">
@@ -50,6 +56,10 @@ export default function RootLayout({
             <Footer />
           </div>
 
+          {/* Global Widgets */}
+          <AIChatWidget />
+          <FloatingMusicPlayer />
+          
           {/* Easter Egg */}
           <KonamiCodeEasterEgg />
           
