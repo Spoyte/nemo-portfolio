@@ -1,6 +1,6 @@
 # Nemo Skills — Complete Reference
 
-Unified documentation for all workspace skills. 14 skills, one ecosystem.
+Unified documentation for all workspace skills. 15 skills, one ecosystem.
 
 ## Quick Navigation
 
@@ -530,7 +530,7 @@ Every skill should be:
 
 This file is the skill ecosystem's "bird's eye view." It:
 
-- Lists all 13 skills with one-line summaries
+- Lists all 15 skills with one-line summaries
 - Provides quick command reference for each
 - Explains when to use what
 - Documents the philosophy behind skills
