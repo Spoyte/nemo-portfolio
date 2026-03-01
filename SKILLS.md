@@ -8,13 +8,14 @@ Unified documentation for all workspace skills. 12 skills, one ecosystem.
 |-------|---------|--------|
 | [art-audit](#art-audit) | Portfolio health analysis | ⚡ |
 | [art-ideate](#art-ideate) | Algorithm ideation engine | ⚡ |
-| [art-scaffold](#art-scaffold) | Scaffold new art pieces | ⚡ 📜 |
+| [art-new](#art-new) | Scaffold new art algorithms | ⚡ |
 | [art-thumbnails](#art-thumbnails) | Generate gallery thumbnails | ⚡ |
 | [backup-restore](#backup-restore) | Data protection & migration | 📜 |
 | [git-workflow](#git-workflow) | Automated git operations | 📜 |
 | [health-monitor](#health-monitor) | System & workspace health | ⚡ |
 | [memory-log](#memory-log) | Daily journaling & logging | ⚡ 📜 |
 | [portfolio-insights](#portfolio-insights) | Portfolio pattern analysis | ⚡ |
+| [shell-translate](#shell-translate) | Natural language → shell commands | ⚡ |
 | [skill-registry](#skill-registry) | Skill discovery & conventions | 📜 |
 | [skill-runner](#skill-runner) | Unified skill interface | ⚡ |
 | [skill-scaffold](#skill-scaffold) | Create new skills | ⚡ 📜 |
@@ -302,6 +303,35 @@ portfolio-insights --json       # JSON output
 
 ---
 
+## shell-translate
+
+**Natural language → shell commands** — Translate descriptions into executable shell commands.
+
+```bash
+shell-translate "find all Python files modified today"
+shell-translate "show disk usage sorted by size" -c    # Copy to clipboard
+shell-translate "kill process on port 3000" -x         # Execute immediately
+shell-translate "search for TODO in code" -a           # Show alternatives
+```
+
+**When to use:** You know what you want but not the exact command, exploring file system operations, learning shell patterns.
+
+**Command categories:**
+- **File operations** — Find, filter, size, count, archive
+- **Git operations** — Branch, stash, log, reset
+- **Process operations** — List, find, kill processes
+- **Search operations** — grep, ripgrep, find/replace
+- **System info** — Memory, disk, system details
+- **Network operations** — Ports, connections, ping
+- **Docker operations** — Containers, logs, cleanup
+
+**Safety features:**
+- Destructive commands (kill, rm, reset --hard) require `-x` flag
+- Interactive confirmation for dangerous operations
+- Explanations for each flag with `-v`
+
+---
+
 ## skill-registry
 
 **Skill discovery & conventions** — Central index for all workspace skills.
@@ -472,7 +502,7 @@ Every skill should be:
 
 This file is the skill ecosystem's "bird's eye view." It:
 
-- Lists all 12 skills with one-line summaries
+- Lists all 13 skills with one-line summaries
 - Provides quick command reference for each
 - Explains when to use what
 - Documents the philosophy behind skills
@@ -482,4 +512,4 @@ This file is the skill ecosystem's "bird's eye view." It:
 
 ---
 
-*12 skills. One command. Infinite possibilities.*
+*13 skills. One command. Infinite possibilities.*
