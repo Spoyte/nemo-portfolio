@@ -1,8 +1,17 @@
-// Unified art index - Auto-synchronized with unified-registry.ts
-// Run `art-sync` to regenerate after adding entries to the registry
+// Unified art index - Clean, minimal exports using the registry system
+// All generator metadata and loading is centralized in unified-registry.ts
 
 import { ArtGenerator } from "./core";
 import { ARTWORK_METADATA } from "./metadata";
+import {
+  GENERATOR_REGISTRY,
+  GeneratorId,
+  getGeneratorEntry,
+  getGeneratorIdsByCategory,
+  getCategoryStats,
+  loadGenerator,
+  validateRegistry,
+} from "./unified-registry";
 
 // Re-export core types
 export * from "./core";
@@ -29,16 +38,16 @@ export {
 } from "./unified-registry";
 
 // ============================================================================
-// STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-01 14:58:10
-// Do not edit manually - run: art-sync
+// STATIC IMPORTS - Eagerly loaded generators (all 70+)
+// These are imported statically to maintain backward compatibility
+// and enable tree-shaking for unused generators
 // ============================================================================
 
-// === MATHEMATICAL (12) ===
+// === MATHEMATICAL (10) ===
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { juliaSet } from "./julia-set";
 import { strangeAttractor } from "./strange-attractor";
-import { lissajousCurves } from "./lissajous-curves";
+import { lissajousCurves } from "./lissajous-curves-generator";
 import { spirograph } from "./spirograph";
 import { harmonograph } from "./harmonograph";
 import { spaceFillingCurves } from "./space-filling-curves";
@@ -46,22 +55,21 @@ import { fourierSynthesis } from "./fourier-synthesis";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
 import { sierpinskiTriangle } from "./sierpinski-triangle";
-import { dragonCurve } from "./dragon-curve";
 
 // === NATURAL (8) ===
 import { auroraBorealis } from "./aurora-borealis";
 import { recursiveTrees } from "./recursive-trees";
 import { lsystemBotany } from "./lsystem-botany";
-import { lsystemFractals } from "./lsystem-fractals";
-import { perlinTerrain } from "./perlin-terrain";
+import { lsystemFractals } from "./lsystem-fractals-generator";
+import { perlinTerrainGenerator as perlinTerrain } from "./perlin-terrain";
 import { dla } from "./dla";
 import { slimeMold } from "./slime-mold";
 import { bioluminescentPlankton } from "./bioluminescent-plankton";
 
 // === PHYSICS (14) ===
 import { waveInterference } from "./wave-interference";
-import { orbitalMechanics } from "./orbital-mechanics";
-import { fluidSmoke } from "./fluid-smoke";
+import { orbitalMechanics } from "./orbital-mechanics-generator";
+import { fluidSmoke } from "./fluid-smoke-generator";
 import { particleSwarm } from "./particle-swarm";
 import { boidFlocking } from "./boid-flocking";
 import { chladniFigures } from "./chladni-figures";
@@ -72,11 +80,11 @@ import { plasmaArc } from "./plasma-arc";
 import { waveTank } from "./wave-tank";
 import { solarFlare } from "./solar-flare";
 import { doublePendulum } from "./double-pendulum";
-import { nBodyGravity } from "./n-body-gravity";
+import { nBodyGravity } from "./n-body-gravity-generator";
 
 // === GEOMETRIC (11) ===
 import { geometricMandala } from "./geometric-mandala";
-import { kaleidoscope } from "./kaleidoscope";
+import { kaleidoscopeSymmetry as kaleidoscope } from "./kaleidoscope-symmetry";
 import { islamicPatterns } from "./islamic-patterns";
 import { voronoiOrganic } from "./voronoi-organic";
 import { stringArt } from "./string-art";
@@ -87,7 +95,7 @@ import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 import { penroseTiling } from "./penrose-tiling";
 import { sacredGeometry } from "./sacred-geometry";
 
-// === ABSTRACT (12) ===
+// === ABSTRACT (11) ===
 import { impossibleGeometry } from "./impossible-geometry";
 import { metaballs } from "./metaballs";
 import { flowField } from "./flow-field";
@@ -101,36 +109,32 @@ import { lenia } from "./lenia";
 import { selfOrganizingMap } from "./self-organizing-map";
 import { langtonsAnt } from "./langtons-ant";
 
-// === TRADITIONAL (8) ===
+// === TRADITIONAL (6) ===
 import { digitalWeave } from "./digital-weave";
 import { stainedGlass } from "./stained-glass";
 import { watercolorDreams } from "./watercolor-dreams";
-import { asciiArt } from "./ascii-art";
-import { crossHatching } from "./cross-hatching";
+import { asciiArtGenerator as asciiArt } from "./ascii-art";
+import { crossHatchingSketch as crossHatching } from "./cross-hatching";
 import { weavingLoom } from "./weaving-loom";
 import { inkDiffusion } from "./ink-diffusion";
-import { paperMarbling } from "./paper-marbling";
 
 // === TEXT (2) ===
 import { kineticTypography } from "./kinetic-typography";
-import { poetryVisualizer } from "./poetry-visualizer";
+import { poetryRain } from "./poetry-rain";
 
-// === 3D (4) ===
-import { lightCaverns } from "./light-caverns";
+// === 3D (3) ===
+import { lightCaverns } from "./light-caverns-generator";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
-import { sdfSculptor } from "./sdf-sculptor";
 
-// === INTERACTIVE (5) ===
+// === INTERACTIVE (4) ===
 import { particleNetwork } from "./particle-network";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
-import { magneticPoetry } from "./magnetic-poetry";
-
 
 // ============================================================================
-// GENERATORS MAP - Auto-generated from unified-registry.ts
+// GENERATORS MAP - Connects IDs to implementations
 // ============================================================================
 
 const rawGenerators: Record<string, ArtGenerator> = {
@@ -146,7 +150,6 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
   "sierpinski-triangle": sierpinskiTriangle,
-  "dragon-curve": dragonCurve,
 
   // === NATURAL ===
   "aurora-borealis": auroraBorealis,
@@ -209,30 +212,24 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "cross-hatching": crossHatching,
   "weaving-loom": weavingLoom,
   "ink-diffusion": inkDiffusion,
-  "paper-marbling": paperMarbling,
 
   // === TEXT ===
   "kinetic-typography": kineticTypography,
-  "poetry-visualizer": poetryVisualizer,
+  "poetry-rain": poetryRain,
 
   // === 3D ===
   "light-caverns": lightCaverns,
   "polyhedral-sculptures": polyhedralSculptures,
   "crystal-lattice": crystalLattice,
-  "sdf-sculptor": sdfSculptor,
 
   // === INTERACTIVE ===
   "particle-network": particleNetwork,
   "frequency-visualizer": frequencyVisualizer,
   "topographic-flow": topographicFlow,
   "abelian-sandpile": abelianSandpile,
-  "magnetic-poetry": magneticPoetry,
 };
 
-// ============================================================================
-// APPLY METADATA - Enrich generators with metadata
-// ============================================================================
-
+// Apply metadata to generators
 export const artGenerators: Record<string, ArtGenerator> = {};
 
 Object.entries(rawGenerators).forEach(([id, generator]) => {
@@ -277,9 +274,6 @@ if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {
   }
 }
 
-// ============================================================================
-// ADDITIONAL EXPORTS - Standalone modules not in registry
-// ============================================================================
-
-export { renderFlowingMagnetism, flowingMagnetismDefaultParams } from "./flowing-magnetism";
-export type { FlowingMagnetismParams } from "./flowing-magnetism";
+// Flowing Magnetism
+export { renderFlowingMagnetism, flowingMagnetismDefaultParams } from './flowing-magnetism';
+export type { FlowingMagnetismParams } from './flowing-magnetism';

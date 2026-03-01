@@ -1,0 +1,515 @@
+#!/usr/bin/env bash
+#
+# shell-translate: Natural language → Shell command
+# Usage: shell-translate "description" [options]
+#
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+GRAY='\033[0;90m'
+NC='\033[0m' # No Color
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Default options
+COPY_TO_CLIPBOARD=false
+EXECUTE=false
+SHOW_ALTERNATIVES=false
+VERBOSE=false
+
+# Show usage
+usage() {
+    cat << 'EOF'
+Usage: shell-translate "description" [options]
+
+Translate natural language descriptions into shell commands.
+
+Arguments:
+  description    Natural language description of what you want to do
+
+Options:
+  -c, --copy     Copy the command to clipboard
+  -x, --execute  Execute the command immediately (use with caution!)
+  -a, --alternatives  Show multiple alternative approaches
+  -v, --verbose  Show explanations and flag descriptions
+  -h, --help     Show this help message
+
+Examples:
+  shell-translate "find all Python files modified today"
+  shell-translate "show disk usage sorted by size" -c
+  shell-translate "kill process on port 3000" -x
+  shell-translate "search for TODO in code" -a
+
+EOF
+}
+
+# Parse arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -c|--copy)
+                COPY_TO_CLIPBOARD=true
+                shift
+                ;;
+            -x|--execute)
+                EXECUTE=true
+                shift
+                ;;
+            -a|--alternatives)
+                SHOW_ALTERNATIVES=true
+                shift
+                ;;
+            -v|--verbose)
+                VERBOSE=true
+                shift
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -*)
+                echo -e "${RED}Error: Unknown option $1${NC}" >&2
+                usage
+                exit 1
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    # Remaining arguments form the description
+    if [[ $# -eq 0 ]]; then
+        echo -e "${RED}Error: No description provided${NC}" >&2
+        usage
+        exit 1
+    fi
+    
+    DESCRIPTION="$*"
+}
+
+# Pattern database - associative array
+# Keys are lowercase, space-normalized patterns
+# Values are the corresponding commands
+declare -A PATTERNS
+declare -A EXPLANATIONS
+declare -A ALTERNATIVES
+
+# File operations
+PATTERNS["find all python files"]="find . -name '*.py' -type f"
+EXPLANATIONS["find all python files"]="Recursively find all .py files from current directory"
+
+PATTERNS["find files modified today"]="find . -type f -mtime -1"
+EXPLANATIONS["find files modified today"]="Files modified less than 1 day ago"
+
+PATTERNS["find files modified in the last 3 days"]="find . -type f -mtime -3"
+EXPLANATIONS["find files modified in the last 3 days"]="Files modified less than 3 days ago"
+
+PATTERNS["find large files over 100mb"]="find . -type f -size +100M -exec ls -lh {} \;"
+EXPLANATIONS["find large files over 100mb"]="Find files >100MB and show their sizes"
+
+PATTERNS["show disk usage of current directory"]="du -sh * | sort -h"
+EXPLANATIONS["show disk usage of current directory"]="du=disk usage, -s=summary, -h=human-readable, sorted by size"
+
+PATTERNS["show disk usage sorted by size"]="du -sh * 2>/dev/null | sort -h"
+EXPLANATIONS["show disk usage sorted by size"]="Suppress errors, human-readable, sorted ascending"
+
+PATTERNS["count files in directory"]="ls -1 | wc -l"
+EXPLANATIONS["count files in directory"]="List one per line, count lines"
+
+PATTERNS["count all files recursively"]="find . -type f | wc -l"
+EXPLANATIONS["count all files recursively"]="Find all files, count them"
+
+# Git operations
+PATTERNS["show git log as graph"]="git log --oneline --graph --all --decorate"
+EXPLANATIONS["show git log as graph"]="Visual branch history with decorations"
+
+PATTERNS["show git log one line per commit"]="git log --oneline -20"
+EXPLANATIONS["show git log one line per commit"]="Last 20 commits, one per line"
+
+PATTERNS["show all git branches merged to main"]="git branch --merged main"
+EXPLANATIONS["show all git branches merged to main"]="Branches whose commits are all in main"
+
+PATTERNS["delete merged branches"]="git branch --merged | grep -v '\\*' | xargs -n 1 git branch -d"
+EXPLANATIONS["delete merged branches"]="Delete local branches already merged (safe)"
+
+PATTERNS["show last commit details"]="git show --stat"
+EXPLANATIONS["show last commit details"]="Show files changed in last commit"
+
+PATTERNS["undo last commit keep changes"]="git reset --soft HEAD~1"
+EXPLANATIONS["undo last commit keep changes"]="Remove commit but keep changes staged"
+
+PATTERNS["undo last commit discard changes"]="git reset --hard HEAD~1"
+EXPLANATIONS["undo last commit discard changes"]="⚠️ DESTRUCTIVE: Remove commit and changes"
+
+PATTERNS["stash changes"]="git stash push -m 'WIP'"
+EXPLANATIONS["stash changes"]="Save current changes with message"
+
+PATTERNS["list stashes"]="git stash list"
+EXPLANATIONS["list stashes"]="Show all stashed changes"
+
+PATTERNS["pop last stash"]="git stash pop"
+EXPLANATIONS["pop last stash"]="Apply and remove most recent stash"
+
+# Process operations
+PATTERNS["list running processes"]="ps aux | head -20"
+EXPLANATIONS["list running processes"]="Show top 20 processes by CPU/memory"
+
+PATTERNS["find process by name"]="ps aux | grep -i"
+EXPLANATIONS["find process by name"]="Filter processes by name (append name)"
+
+PATTERNS["kill process on port"]="lsof -ti :PORT | xargs kill -9"
+EXPLANATIONS["kill process on port"]="⚠️ DESTRUCTIVE: Replace PORT with actual port number"
+
+PATTERNS["show ports in use"]="lsof -i -P -n | grep LISTEN"
+EXPLANATIONS["show ports in use"]="Show all listening network ports"
+
+PATTERNS["kill all node processes"]="pkill -f node"
+EXPLANATIONS["kill all node processes"]="⚠️ DESTRUCTIVE: Kill all node processes"
+
+PATTERNS["kill all python processes"]="pkill -f python"
+EXPLANATIONS["kill all python processes"]="⚠️ DESTRUCTIVE: Kill all python processes"
+
+# Search operations
+PATTERNS["search for text in files"]="grep -r 'PATTERN' ."
+EXPLANATIONS["search for text in files"]="Recursive grep (use rg if available)"
+
+PATTERNS["search for todo in code"]="grep -r -i 'todo\\|fixme\\|hack' --include='*.{js,ts,py,jsx,tsx}' ."
+EXPLANATIONS["search for todo in code"]="Find TODO/FIXME/HACK in source files"
+
+PATTERNS["search with ripgrep"]="rg 'PATTERN'"
+EXPLANATIONS["search with ripgrep"]="Fast recursive search (install: cargo install ripgrep)"
+
+PATTERNS["find and replace in files"]="sed -i 's/OLD/NEW/g' file"
+EXPLANATIONS["find and replace in files"]="Replace all occurrences in file (GNU sed)"
+
+# System info
+PATTERNS["show system info"]="uname -a && lsb_release -a 2>/dev/null || cat /etc/os-release"
+EXPLANATIONS["show system info"]="Kernel and distribution information"
+
+PATTERNS["show memory usage"]="free -h"
+EXPLANATIONS["show memory usage"]="Human-readable memory statistics"
+
+PATTERNS["show disk space"]="df -h"
+EXPLANATIONS["show disk space"]="Human-readable disk usage by filesystem"
+
+PATTERNS["show current directory size"]="du -sh ."
+EXPLANATIONS["show current directory size"]="Total size of current directory"
+
+# Archive operations
+PATTERNS["compress folder to tar.gz"]="tar -czvf archive.tar.gz folder/"
+EXPLANATIONS["compress folder to tar.gz"]="c=create, z=gzip, v=verbose, f=file"
+
+PATTERNS["extract tar.gz"]="tar -xzvf archive.tar.gz"
+EXPLANATIONS["extract tar.gz"]="x=extract, z=gzip, v=verbose, f=file"
+
+PATTERNS["compress to zip"]="zip -r archive.zip folder/"
+EXPLANATIONS["compress to zip"]="Recursive compression to zip"
+
+PATTERNS["extract zip"]="unzip archive.zip"
+EXPLANATIONS["extract zip"]="Extract zip archive"
+
+# Network operations
+PATTERNS["check if port is open"]="nc -zv localhost PORT"
+EXPLANATIONS["check if port is open"]="Test connection to port (replace PORT)"
+
+PATTERNS["show network connections"]="ss -tuln"
+EXPLANATIONS["show network connections"]="Show TCP/UDP listening sockets"
+
+PATTERNS["ping with count"]="ping -c 4 google.com"
+EXPLANATIONS["ping with count"]="Send 4 ping packets and stop"
+
+PATTERNS["show public ip"]="curl -s ifconfig.me"
+EXPLANATIONS["show public ip"]="Get public IP address"
+
+# Backup operations
+PATTERNS["backup file with timestamp"]="cp file file.backup.\$(date +%Y%m%d_%H%M%S)"
+EXPLANATIONS["backup file with timestamp"]="Copy file with timestamp suffix"
+
+PATTERNS["backup directory with timestamp"]="tar -czvf backup_\$(date +%Y%m%d_%H%M%S).tar.gz directory/"
+EXPLANATIONS["backup directory with timestamp"]="Archive with timestamp"
+
+# Docker operations
+PATTERNS["list running docker containers"]="docker ps"
+EXPLANATIONS["list running docker containers"]="Show active containers"
+
+PATTERNS["list all docker containers"]="docker ps -a"
+EXPLANATIONS["list all docker containers"]="Show all containers including stopped"
+
+PATTERNS["stop all docker containers"]="docker stop \$(docker ps -q)"
+EXPLANATIONS["stop all docker containers"]="Stop all running containers"
+
+PATTERNS["remove stopped containers"]="docker container prune"
+EXPLANATIONS["remove stopped containers"]="Remove all stopped containers"
+
+PATTERNS["show docker logs"]="docker logs -f container_name"
+EXPLANATIONS["show docker logs"]="Follow logs for container (replace name)"
+
+# Development helpers
+PATTERNS["start simple http server"]="python3 -m http.server 8000"
+EXPLANATIONS["start simple http server"]="Serve current directory on port 8000"
+
+PATTERNS["start python http server"]="python3 -m http.server 8000"
+EXPLANATIONS["start python http server"]="Serve current directory on port 8000"
+
+PATTERNS["format json file"]="cat file.json | python3 -m json.tool"
+EXPLANATIONS["format json file"]="Pretty-print JSON file"
+
+PATTERNS["watch file changes"]="watch -n 1 'command'"
+EXPLANATIONS["watch file changes"]="Run command every 1 second"
+
+# Normalize description for matching
+normalize() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]/ /g' | tr -s ' ' | sed 's/^ *//;s/ *$//'
+}
+
+# Calculate simple similarity score (0-100)
+similarity() {
+    local str1="$1"
+    local str2="$2"
+    
+    # Convert to word arrays
+    read -ra words1 <<< "$str1"
+    read -ra words2 <<< "$str2"
+    
+    local matches=0
+    for w1 in "${words1[@]}"; do
+        for w2 in "${words2[@]}"; do
+            if [[ "$w1" == "$w2" ]]; then
+                ((matches++))
+                break
+            fi
+        done
+    done
+    
+    local max_len=${#words1[@]}
+    if [[ ${#words2[@]} -gt $max_len ]]; then
+        max_len=${#words2[@]}
+    fi
+    
+    if [[ $max_len -eq 0 ]]; then
+        echo 0
+        return
+    fi
+    
+    echo $(( matches * 100 / max_len ))
+}
+
+# Find best matching pattern
+find_match() {
+    local query="$1"
+    local best_match=""
+    local best_score=0
+    local min_threshold=30  # Minimum similarity to consider a match
+    
+    for pattern in "${!PATTERNS[@]}"; do
+        local score=$(similarity "$query" "$pattern")
+        if [[ $score -gt $best_score && $score -ge $min_threshold ]]; then
+            best_score=$score
+            best_match="$pattern"
+        fi
+    done
+    
+    echo "$best_match"
+}
+
+# Find all matches above threshold
+find_all_matches() {
+    local query="$1"
+    local min_threshold=25
+    local matches=()
+    
+    for pattern in "${!PATTERNS[@]}"; do
+        local score=$(similarity "$query" "$pattern")
+        if [[ $score -ge $min_threshold ]]; then
+            matches+=("$score:$pattern")
+        fi
+    done
+    
+    # Sort by score (descending)
+    IFS=$'\n' sorted=($(sort -t: -k1 -nr <<< "${matches[*]}"))
+    unset IFS
+    
+    printf '%s\n' "${sorted[@]}"
+}
+
+# Copy to clipboard
+copy_to_clipboard() {
+    local cmd="$1"
+    if command -v xclip &> /dev/null; then
+        echo -n "$cmd" | xclip -selection clipboard
+        return 0
+    elif command -v pbcopy &> /dev/null; then
+        echo -n "$cmd" | pbcopy
+        return 0
+    elif command -v wl-copy &> /dev/null; then
+        echo -n "$cmd" | wl-copy
+        return 0
+    fi
+    return 1
+}
+
+# Check if command is destructive
+is_destructive() {
+    local cmd="$1"
+    if [[ "$cmd" == *"kill"* ]] || [[ "$cmd" == *"rm -"* ]] || [[ "$cmd" == *"delete"* ]] || [[ "$cmd" == *"drop"* ]] || [[ "$cmd" == *"prune"* ]] || [[ "$cmd" == *"reset --hard"* ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Main execution
+main() {
+    parse_args "$@"
+    
+    local normalized_query
+    normalized_query=$(normalize "$DESCRIPTION")
+    
+    echo -e "${GRAY}Query: $DESCRIPTION${NC}"
+    echo ""
+    
+    if $SHOW_ALTERNATIVES; then
+        # Show multiple matches
+        echo -e "${BLUE}Alternative commands:${NC}"
+        echo ""
+        
+        local count=0
+        while IFS=: read -r score pattern; do
+            [[ -z "$pattern" ]] && continue
+            ((count++))
+            
+            local cmd="${PATTERNS[$pattern]}"
+            local expl="${EXPLANATIONS[$pattern]:-}"
+            
+            echo -e "${GREEN}$count.${NC} $cmd"
+            if $VERBOSE && [[ -n "$expl" ]]; then
+                echo -e "   ${GRAY}$expl${NC}"
+            fi
+            echo ""
+            
+            if [[ $count -ge 5 ]]; then
+                break
+            fi
+        done < <(find_all_matches "$normalized_query")
+        
+        if [[ $count -eq 0 ]]; then
+            echo -e "${YELLOW}No matching patterns found.${NC}"
+            echo "Try: shell-translate list  # to see all available patterns"
+        fi
+    else
+        # Show best match
+        local match
+        match=$(find_match "$normalized_query")
+        
+        if [[ -z "$match" ]]; then
+            echo -e "${YELLOW}No exact match found for: $DESCRIPTION${NC}"
+            echo ""
+            echo "Similar patterns:"
+            local count=0
+            while IFS=: read -r score pattern; do
+                [[ -z "$pattern" ]] && continue
+                ((count++))
+                echo -e "  ${GREEN}$count.${NC} ${PATTERNS[$pattern]}"
+                if [[ $count -ge 3 ]]; then
+                    break
+                fi
+            done < <(find_all_matches "$normalized_query")
+            
+            if [[ $count -eq 0 ]]; then
+                echo "  (none found)"
+                echo ""
+                echo "Available categories: files, git, process, search, system, archive, network, backup, docker, dev"
+            fi
+            exit 1
+        fi
+        
+        local cmd="${PATTERNS[$match]}"
+        local expl="${EXPLANATIONS[$match]:-}"
+        
+        # Output the command
+        echo -e "${GREEN}$cmd${NC}"
+        
+        if $VERBOSE && [[ -n "$expl" ]]; then
+            echo ""
+            echo -e "${GRAY}$expl${NC}"
+        fi
+        
+        # Copy to clipboard if requested
+        if $COPY_TO_CLIPBOARD; then
+            if copy_to_clipboard "$cmd"; then
+                echo ""
+                echo -e "${BLUE}📋 Copied to clipboard${NC}"
+            else
+                echo ""
+                echo -e "${YELLOW}⚠️ No clipboard utility found (install xclip, pbcopy, or wl-copy)${NC}"
+            fi
+        fi
+        
+        # Execute if requested
+        if $EXECUTE; then
+            echo ""
+            
+            if is_destructive "$cmd"; then
+                echo -e "${RED}⚠️ This command may be destructive: $cmd${NC}"
+                read -p "Execute anyway? [y/N] " -n 1 -r
+                echo ""
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    echo "Aborted."
+                    exit 0
+                fi
+            fi
+            
+            echo -e "${BLUE}▶ Executing...${NC}"
+            echo ""
+            eval "$cmd"
+        fi
+    fi
+}
+
+# Handle special "list" command to show all patterns
+if [[ "${1:-}" == "list" ]]; then
+    echo "Available patterns:"
+    echo ""
+    
+    # Group by category (simple heuristic)
+    echo -e "${BLUE}File Operations:${NC}"
+    for key in "${!PATTERNS[@]}"; do
+        if [[ "$key" == *"file"* ]] || [[ "$key" == *"find"* ]] || [[ "$key" == *"count"* ]] || [[ "$key" == *"size"* ]] || [[ "$key" == *"disk"* ]]; then
+            echo "  ${PATTERNS[$key]}"
+        fi
+    done | sort -u
+    
+    echo ""
+    echo -e "${BLUE}Git Operations:${NC}"
+    for key in "${!PATTERNS[@]}"; do
+        if [[ "$key" == *"git"* ]] || [[ "$key" == *"stash"* ]] || [[ "$key" == *"commit"* ]] || [[ "$key" == *"branch"* ]]; then
+            echo "  ${PATTERNS[$key]}"
+        fi
+    done | sort -u
+    
+    echo ""
+    echo -e "${BLUE}Process Operations:${NC}"
+    for key in "${!PATTERNS[@]}"; do
+        if [[ "$key" == *"process"* ]] || [[ "$key" == *"kill"* ]] || [[ "$key" == *"port"* ]]; then
+            echo "  ${PATTERNS[$key]}"
+        fi
+    done | sort -u
+    
+    echo ""
+    echo -e "${BLUE}Search Operations:${NC}"
+    for key in "${!PATTERNS[@]}"; do
+        if [[ "$key" == *"search"* ]] || [[ "$key" == *"find"* ]] || [[ "$key" == *"grep"* ]]; then
+            echo "  ${PATTERNS[$key]}"
+        fi
+    done | sort -u
+    
+    exit 0
+fi
+
+main "$@"

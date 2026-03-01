@@ -627,7 +627,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "paperMarbling",
   },
 
-  // === TEXT (1) ===
+  // === TEXT (2) ===
   {
     id: "kinetic-typography",
     name: "Kinetic Typography",
@@ -636,6 +636,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./kinetic-typography"),
     renderFnName: "renderKineticTypography",
     importName: "kineticTypography",
+  },
+  {
+    id: "poetry-rain",
+    name: "Poetry Rain",
+    description: "Matrix-style cascading text with lyrical, code, and symbolic content streams",
+    category: "text",
+    loader: () => import("./poetry-rain"),
+    renderFnName: "renderPoetryRain",
+    importName: "poetryRain",
   },
 
   // === 3D (5) ===

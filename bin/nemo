@@ -138,6 +138,12 @@ def cmd_list(args: argparse.Namespace) -> int:
     """List all available skills."""
     skills = discover_skills()
     
+    # Quiet mode: just output names
+    if getattr(args, 'quiet', False):
+        for skill in skills:
+            print(skill.name)
+        return 0
+    
     print(f"\n🦑 Nemo Skills ({len(skills)} found)\n")
     
     # Group by capability indicators
@@ -233,7 +239,7 @@ def cmd_docs(args: argparse.Namespace) -> int:
 def cmd_run(args: argparse.Namespace) -> int:
     """Run a skill with arguments."""
     skills = discover_skills()
-    skill = next((s for s in skills if s.name == args.skill_name), None)
+    skill = next((s for s in skills if s.matches(args.skill_name)), None)
     
     if not skill:
         print(f"❌ Skill not found: {args.skill_name}")
@@ -260,9 +266,240 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 130
 
 
+def cmd_search(args: argparse.Namespace) -> int:
+    """Search for skills by name or description."""
+    skills = discover_skills()
+    query = args.query.lower()
+    
+    matches = []
+    for skill in skills:
+        score = 0
+        # Name match is highest priority
+        if query in skill.name.lower():
+            score += 100
+        # Alias match
+        if any(query in alias.lower() for alias in skill.aliases):
+            score += 90
+        # Description match
+        if query in skill.description.lower():
+            score += 50
+        # Partial word matches in description
+        if any(query in word.lower() for word in skill.description.split()):
+            score += 10
+            
+        if score > 0:
+            matches.append((score, skill))
+    
+    if not matches:
+        print(f"\n🔍 No skills found matching '{args.query}'")
+        print(f"\nRun 'nemo list' to see all available skills.")
+        return 1
+    
+    # Sort by score descending
+    matches.sort(key=lambda x: x[0], reverse=True)
+    
+    print(f"\n🔍 Found {len(matches)} skill(s) matching '{args.query}'\n")
+    
+    for score, skill in matches:
+        indicators = []
+        if skill.executable:
+            indicators.append("⚡")
+        if skill.has_scripts:
+            indicators.append("📜")
+        
+        indicator_str = " " + "".join(indicators) if indicators else ""
+        
+        # Highlight matching parts
+        name_display = skill.name
+        if args.query.lower() in skill.name.lower():
+            name_display = highlight_match(skill.name, args.query)
+        
+        desc_display = skill.description[:60]
+        if args.query.lower() in skill.description.lower():
+            desc_display = highlight_match(skill.description[:60], args.query)
+        
+        print(f"  {name_display:22}{indicator_str}")
+        print(f"    {desc_display}...")
+        if skill.aliases:
+            print(f"    Aliases: {', '.join(skill.aliases)}")
+        print()
+    
+    return 0
+
+
+def highlight_match(text: str, query: str) -> str:
+    """Highlight matching substring in text."""
+    lower_text = text.lower()
+    lower_query = query.lower()
+    
+    result = []
+    i = 0
+    while i < len(text):
+        idx = lower_text.find(lower_query, i)
+        if idx == -1:
+            result.append(text[i:])
+            break
+        result.append(text[i:idx])
+        result.append(f"\033[1m\033[33m{text[idx:idx+len(query)]}\033[0m")
+        i = idx + len(query)
+    
+    return "".join(result)
+
+
+def cmd_exec(args: argparse.Namespace) -> int:
+    """Execute a specific script from a skill's scripts/ directory."""
+    skills = discover_skills()
+    skill = next((s for s in skills if s.matches(args.skill_name)), None)
+    
+    if not skill:
+        print(f"❌ Skill not found: {args.skill_name}")
+        return 1
+    
+    if not skill.has_scripts:
+        print(f"❌ Skill '{skill.name}' has no scripts directory")
+        return 1
+    
+    scripts_dir = skill.scripts_dir
+    available_scripts = list(scripts_dir.iterdir())
+    
+    if not available_scripts:
+        print(f"❌ No scripts found in {skill.name}/scripts/")
+        return 1
+    
+    # Find matching script
+    script_name = args.script_name
+    matching_scripts = [s for s in available_scripts if script_name in s.name]
+    
+    if len(matching_scripts) == 0:
+        print(f"❌ No script matching '{script_name}' in {skill.name}")
+        print(f"\nAvailable scripts:")
+        for s in sorted(available_scripts):
+            print(f"  - {s.name}")
+        return 1
+    elif len(matching_scripts) > 1 and not any(s.name == script_name for s in matching_scripts):
+        print(f"⚠️  Multiple scripts match '{script_name}':")
+        for s in sorted(matching_scripts):
+            print(f"  - {s.name}")
+        print(f"\nPlease be more specific.")
+        return 1
+    
+    # Use exact match if available, otherwise first match
+    script = next((s for s in matching_scripts if s.name == script_name), matching_scripts[0])
+    
+    # Run the script with remaining arguments
+    cmd = [str(script)] + args.script_args
+    
+    try:
+        result = subprocess.run(cmd)
+        return result.returncode
+    except FileNotFoundError:
+        print(f"❌ Script not found: {script}")
+        return 1
+    except KeyboardInterrupt:
+        print("\n⚡ Interrupted")
+        return 130
+
+
+def cmd_completion(args: argparse.Namespace) -> int:
+    """Generate shell completion script."""
+    shell = args.shell
+    
+    if shell == "bash":
+        completion = '''_nemo_completion() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    
+    # Commands
+    local commands="list info docs search exec completion"
+    
+    # Get skill names
+    local skills=$(nemo list -q 2>/dev/null | tr '\\n' ' ')
+    
+    if [ $COMP_CWORD -eq 1 ]; then
+        COMPREPLY=( $(compgen -W "${commands} ${skills}" -- ${cur}) )
+        return 0
+    fi
+    
+    case "${prev}" in
+        info|docs)
+            COMPREPLY=( $(compgen -W "${skills}" -- ${cur}) )
+            return 0
+            ;;
+    esac
+}
+
+complete -F _nemo_completion nemo'''
+    
+    elif shell == "zsh":
+        completion = '''#compdef nemo
+
+_nemo() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+    
+    _arguments -C \\
+        '1: :->command' \\
+        '*:: :->args'
+    
+    case "$state" in
+        command)
+            local commands=(
+                'list:List available skills'
+                'info:Show skill information'
+                'docs:Show skill documentation'
+                'search:Search for skills'
+                'exec:Execute a skill script'
+                'completion:Generate shell completion'
+            )
+            local skills=(${(f)"$(nemo list -q 2>/dev/null)"})
+            _describe -t commands 'nemo commands' commands
+            _describe -t skills 'available skills' skills
+            ;;
+        args)
+            case "$line[1]" in
+                info|docs)
+                    local skills=(${(f)"$(nemo list -q 2>/dev/null)"})
+                    _describe -t skills 'skills' skills
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_nemo "$@"'''
+    
+    elif shell == "fish":
+        completion = '''complete -c nemo -f
+
+# Commands
+complete -c nemo -n "__fish_use_subcommand" -a "list" -d "List available skills"
+complete -c nemo -n "__fish_use_subcommand" -a "info" -d "Show skill information"
+complete -c nemo -n "__fish_use_subcommand" -a "docs" -d "Show skill documentation"
+complete -c nemo -n "__fish_use_subcommand" -a "search" -d "Search for skills"
+complete -c nemo -n "__fish_use_subcommand" -a "exec" -d "Execute a skill script"
+complete -c nemo -n "__fish_use_subcommand" -a "completion" -d "Generate shell completion"
+
+# Skill names for relevant commands
+complete -c nemo -n "__fish_seen_subcommand_from info docs" -a "(nemo list -q)"
+
+# Options
+complete -c nemo -n "__fish_seen_subcommand_from list" -s v -l verbose -d "Show full descriptions"
+complete -c nemo -n "__fish_seen_subcommand_from completion" -s s -l shell -a "bash zsh fish" -d "Shell type"'''
+    
+    else:
+        print(f"❌ Unsupported shell: {shell}")
+        print(f"Supported: bash, zsh, fish")
+        return 1
+    
+    print(completion)
+    return 0
+
+
 def main() -> int:
     # Check if first arg is a skill name (not a known command)
-    known_commands = {"list", "info", "docs", "-h", "--help"}
+    known_commands = {"list", "info", "docs", "search", "exec", "completion", "-h", "--help"}
     
     if len(sys.argv) > 1 and sys.argv[1] not in known_commands:
         # First arg is a skill name - run it directly
@@ -298,10 +535,13 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  nemo list                 # List all skills
-  nemo info health-monitor  # Show skill details
-  nemo health --check       # Run health monitor
-  nemo docs art-scaffold    # Read documentation
+  nemo list                    # List all skills
+  nemo info health-monitor     # Show skill details
+  nemo health --check          # Run health monitor
+  nemo docs art-scaffold       # Read documentation
+  nemo search backup           # Find skills related to backup
+  nemo exec memory-log mem-today   # Run specific script
+  nemo completion -s bash      # Generate shell completion
         """
     )
     
@@ -310,6 +550,7 @@ Examples:
     # list command
     list_parser = subparsers.add_parser("list", help="List available skills")
     list_parser.add_argument("-v", "--verbose", action="store_true", help="Show full descriptions")
+    list_parser.add_argument("-q", "--quiet", action="store_true", help="Output skill names only (for scripting)")
     
     # info command
     info_parser = subparsers.add_parser("info", help="Show skill information")
@@ -318,6 +559,20 @@ Examples:
     # docs command
     docs_parser = subparsers.add_parser("docs", help="Show skill documentation")
     docs_parser.add_argument("skill_name", help="Name of the skill")
+    
+    # search command
+    search_parser = subparsers.add_parser("search", help="Search for skills by name or description")
+    search_parser.add_argument("query", help="Search query")
+    
+    # exec command
+    exec_parser = subparsers.add_parser("exec", help="Execute a specific script from a skill")
+    exec_parser.add_argument("skill_name", help="Name of the skill")
+    exec_parser.add_argument("script_name", help="Name of the script to execute")
+    exec_parser.add_argument("script_args", nargs=argparse.REMAINDER, help="Arguments to pass to the script")
+    
+    # completion command
+    completion_parser = subparsers.add_parser("completion", help="Generate shell completion script")
+    completion_parser.add_argument("-s", "--shell", default="bash", choices=["bash", "zsh", "fish"], help="Shell type")
     
     parsed = parser.parse_args()
     
@@ -328,6 +583,12 @@ Examples:
         return cmd_info(parsed)
     elif parsed.command == "docs":
         return cmd_docs(parsed)
+    elif parsed.command == "search":
+        return cmd_search(parsed)
+    elif parsed.command == "exec":
+        return cmd_exec(parsed)
+    elif parsed.command == "completion":
+        return cmd_completion(parsed)
     
     # No command given - show list
     return cmd_list(argparse.Namespace(verbose=False))
