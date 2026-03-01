@@ -1,0 +1,316 @@
+#!/usr/bin/env bash
+#
+# skill-map — Visualize the skill ecosystem
+# 
+# Shows relationships, dependencies, and health of all skills
+# in a visual tree or graph format.
+#
+# Usage:
+#   skill-map              # Visual tree of all skills
+#   skill-map --graph      # DOT format for graphviz
+#   skill-map --health     # Health check with status colors
+#   skill-map --deps       # Show skill dependencies
+#
+
+set -eo pipefail
+
+SKILLS_DIR="${SKILLS_DIR:-$HOME/.openclaw/workspace/skills}"
+BIN_DIR="${BIN_DIR:-$HOME/.openclaw/workspace/bin}"
+
+# Colors
+RESET='\033[0m'
+BOLD='\033[1m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+BLUE='\033[34m'
+CYAN='\033[36m'
+GRAY='\033[90m'
+
+# Skill categories based on purpose
+declare -A SKILL_CATEGORIES=(
+    # Art & Creative
+    ["art-audit"]="creative"
+    ["art-ideate"]="creative"
+    ["art-new"]="creative"
+    ["art-sync"]="creative"
+    ["art-test"]="creative"
+    ["art-thumbnails"]="creative"
+    
+    # Development & Code
+    ["git-workflow"]="dev"
+    ["skill-scaffold"]="dev"
+    ["skill-registry"]="dev"
+    ["skill-runner"]="dev"
+    ["shell-translate"]="dev"
+    
+    # System & Maintenance
+    ["backup-restore"]="system"
+    ["health-monitor"]="system"
+    ["env-diff"]="system"
+    
+    # Knowledge & Memory
+    ["memory-log"]="knowledge"
+    ["portfolio-insights"]="knowledge"
+)
+
+get_category_icon() {
+    case "$1" in
+        creative) echo "🎨" ;;
+        dev) echo "⚙️" ;;
+        system) echo "🔧" ;;
+        knowledge) echo "🧠" ;;
+        *) echo "📦" ;;
+    esac
+}
+
+get_category_name() {
+    case "$1" in
+        creative) echo "Creative" ;;
+        dev) echo "Development" ;;
+        system) echo "System" ;;
+        knowledge) echo "Knowledge" ;;
+        *) echo "Other" ;;
+    esac
+}
+
+get_category_color() {
+    case "$1" in
+        creative) echo "lightblue" ;;
+        dev) echo "lightgreen" ;;
+        system) echo "lightyellow" ;;
+        knowledge) echo "lightpink" ;;
+        *) echo "gray" ;;
+    esac
+}
+
+# Get skill info from SKILL.md
+get_skill_info() {
+    local skill="$1"
+    local field="$2"
+    local skill_file="$SKILLS_DIR/$skill/SKILL.md"
+    
+    if [[ ! -f "$skill_file" ]]; then
+        echo ""
+        return
+    fi
+    
+    case "$field" in
+        "description")
+            grep -A1 "^description:" "$skill_file" 2>/dev/null | tail -1 | sed 's/.*"\(.*\)".*/\1/' 2>/dev/null || \
+            grep -m1 "^# " "$skill_file" 2>/dev/null | sed 's/^# //' || echo ""
+            ;;
+        "has_executable")
+            if [[ -x "$SKILLS_DIR/$skill/$skill" ]] || [[ -L "$BIN_DIR/$skill" ]]; then
+                echo "yes"
+            else
+                echo "no"
+            fi
+            ;;
+        "scripts_count")
+            if [[ -d "$SKILLS_DIR/$skill/scripts" ]]; then
+                ls "$SKILLS_DIR/$skill/scripts"/*.sh 2>/dev/null | wc -l
+            else
+                echo "0"
+            fi
+            ;;
+    esac
+}
+
+# Count skills by category
+count_by_category() {
+    local target_category="$1"
+    local count=0
+    
+    for skill in "${!SKILL_CATEGORIES[@]}"; do
+        local cat="${SKILL_CATEGORIES[$skill]:-}"
+        if [[ "$cat" == "$target_category" ]]; then
+            ((count++)) || true
+        fi
+    done
+    
+    echo "$count"
+}
+
+# Visual tree output
+show_tree() {
+    echo -e "${BOLD}Skill Ecosystem${RESET}"
+    echo -e "${GRAY}$SKILLS_DIR${RESET}\n"
+    
+    local total=0
+    local executable=0
+    
+    for category in creative dev system knowledge; do
+        local icon=$(get_category_icon "$category")
+        local name=$(get_category_name "$category")
+        local count=$(count_by_category "$category")
+        
+        echo -e "${BOLD}$icon $name${RESET} ($count skills)"
+        
+        for skill in "${!SKILL_CATEGORIES[@]}"; do
+            local skill_cat="${SKILL_CATEGORIES[$skill]:-}"
+            if [[ "$skill_cat" == "$category" ]]; then
+                local raw_desc=$(get_skill_info "$skill" "description")
+                local desc=""
+                if [[ "$raw_desc" == *" — "* ]]; then
+                    desc=$(echo "$raw_desc" | sed 's/.* — //' | sed 's/\..*//' | xargs 2>/dev/null || echo "")
+                fi
+                local has_exe=$(get_skill_info "$skill" "has_executable")
+                local scripts=$(get_skill_info "$skill" "scripts_count")
+                
+                ((total++)) || true
+                [[ "$has_exe" == "yes" ]] && ((executable++)) || true
+                
+                # Status indicator
+                local status="${GREEN}✓${RESET}"
+                if [[ "$has_exe" != "yes" ]]; then
+                    status="${RED}✗${RESET}"
+                fi
+                
+                # Scripts indicator
+                local scripts_indicator=""
+                if [[ "$scripts" -gt 0 ]]; then
+                    scripts_indicator=" ${GRAY}(${scripts} scripts)${RESET}"
+                fi
+                
+                printf "  %b %-20s %s%b\n" "$status" "$skill" "$desc" "$scripts_indicator" 2>/dev/null || printf "  %s %-20s\n" "$status" "$skill"
+            fi
+        done
+        echo
+    done
+    
+    # Summary
+    echo -e "${GRAY}─────────────────────────${RESET}"
+    echo -e "Total: $total skills | Executable: $executable | Missing: $((total - executable))"
+}
+
+# Health check with colors
+show_health() {
+    echo -e "${BOLD}Skill Health Check${RESET}\n"
+    
+    local issues=0
+    
+    for skill in "${!SKILL_CATEGORIES[@]}"; do
+        local skill_dir="$SKILLS_DIR/$skill"
+        local issues_list=""
+        
+        # Check SKILL.md exists
+        if [[ ! -f "$skill_dir/SKILL.md" ]]; then
+            issues_list="$issues_list missing-docs"
+        fi
+        
+        # Check executable exists
+        local has_exe="no"
+        if [[ -x "$skill_dir/$skill" ]]; then
+            has_exe="yes"
+        elif [[ -L "$BIN_DIR/$skill" ]]; then
+            if [[ -e "$BIN_DIR/$skill" ]]; then
+                has_exe="yes"
+            else
+                issues_list="$issues_list broken-symlink"
+            fi
+        fi
+        
+        if [[ "$has_exe" == "no" && -z "$issues_list" ]]; then
+            issues_list="$issues_list no-executable"
+        fi
+        
+        # Output
+        if [[ -z "$issues_list" ]]; then
+            echo -e "${GREEN}✓${RESET} $skill"
+        else
+            echo -e "${RED}✗${RESET} $skill ${GRAY}—$issues_list${RESET}"
+            ((issues++)) || true
+        fi
+    done
+    
+    echo
+    if [[ $issues -eq 0 ]]; then
+        echo -e "${GREEN}All skills healthy!${RESET}"
+        return 0
+    else
+        echo -e "${YELLOW}$issues skill(s) with issues${RESET}"
+        return 1
+    fi
+}
+
+# Show dependencies between skills
+show_deps() {
+    echo -e "${BOLD}Skill Dependencies${RESET}\n"
+    
+    echo -e "${CYAN}skill-runner${RESET} → discovers all skills via SKILL.md"
+    echo -e "${CYAN}skill-registry${RESET} → used by skill-scaffold for conventions"
+    echo -e "${CYAN}skill-scaffold${RESET} → creates skills following registry conventions"
+    echo -e "${CYAN}art-new${RESET} → uses art-test for validation"
+    echo -e "${CYAN}art-thumbnails${RESET} → uses art-audit for inventory"
+    echo -e "${CYAN}backup-restore${RESET} → captures all skills in backups"
+    echo -e "${CYAN}health-monitor${RESET} → checks SKILL.md consistency"
+    echo -e "${CYAN}git-workflow${RESET} → manages skill commits"
+    echo -e "${CYAN}shell-translate${RESET} → can invoke any skill command"
+    echo
+    echo -e "${GRAY}Meta: Skills form a self-referential ecosystem${RESET}"
+}
+
+# Graphviz DOT format
+show_graph() {
+    echo "digraph skills {"
+    echo "  rankdir=TB;"
+    echo "  node [shape=box, style=rounded];"
+    echo
+    
+    # Category clusters
+    for category in creative dev system knowledge; do
+        local color=$(get_category_color "$category")
+        local name=$(get_category_name "$category")
+        
+        echo "  subgraph cluster_$category {"
+        echo "    label=\"$name\";"
+        echo "    style=filled;"
+        echo "    color=$color;"
+        
+        for skill in "${!SKILL_CATEGORIES[@]}"; do
+            local skill_cat="${SKILL_CATEGORIES[$skill]:-}"
+            if [[ "$skill_cat" == "$category" ]]; then
+                echo "    \"$skill\";"
+            fi
+        done
+        echo "  }"
+        echo
+    done
+    
+    # Edges (key relationships)
+    echo "  // Dependencies"
+    echo "  \"skill-runner\" -> \"skill-registry\";"
+    echo "  \"skill-scaffold\" -> \"skill-registry\";"
+    echo "  \"art-new\" -> \"art-test\";"
+    echo "  \"health-monitor\" -> \"backup-restore\";"
+    echo "}"
+}
+
+# Main
+case "${1:-}" in
+    --health|-h)
+        show_health
+        ;;
+    --deps|-d)
+        show_deps
+        ;;
+    --graph|-g)
+        show_graph
+        ;;
+    --help)
+        echo "skill-map — Visualize the skill ecosystem"
+        echo
+        echo "Usage:"
+        echo "  skill-map           # Visual tree of all skills"
+        echo "  skill-map --health  # Health check with status colors"
+        echo "  skill-map --deps    # Show skill dependencies"
+        echo "  skill-map --graph   # DOT format for graphviz"
+        echo
+        echo "Environment:"
+        echo "  SKILLS_DIR  # Default: ~/.openclaw/workspace/skills"
+        ;;
+    *)
+        show_tree
+        ;;
+esac
