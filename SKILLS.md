@@ -1,6 +1,6 @@
 # Nemo Skills — Complete Reference
 
-Unified documentation for all workspace skills. 12 skills, one ecosystem.
+Unified documentation for all workspace skills. 14 skills, one ecosystem.
 
 ## Quick Navigation
 
@@ -10,13 +10,13 @@ Unified documentation for all workspace skills. 12 skills, one ecosystem.
 | [art-ideate](#art-ideate) | Algorithm ideation engine | ⚡ |
 | [art-new](#art-new) | Scaffold new art algorithms | ⚡ |
 | [art-thumbnails](#art-thumbnails) | Generate gallery thumbnails | ⚡ |
-| [backup-restore](#backup-restore) | Data protection & migration | 📜 |
-| [git-workflow](#git-workflow) | Automated git operations | 📜 |
+| [backup-restore](#backup-restore) | Data protection & migration | ⚡ 📜 |
+| [git-workflow](#git-workflow) | Automated git operations | ⚡ 📜 |
 | [health-monitor](#health-monitor) | System & workspace health | ⚡ |
 | [memory-log](#memory-log) | Daily journaling & logging | ⚡ 📜 |
 | [portfolio-insights](#portfolio-insights) | Portfolio pattern analysis | ⚡ |
 | [shell-translate](#shell-translate) | Natural language → shell commands | ⚡ |
-| [skill-registry](#skill-registry) | Skill discovery & conventions | 📜 |
+| [skill-registry](#skill-registry) | Skill discovery & conventions | ⚡ 📜 |
 | [skill-runner](#skill-runner) | Unified skill interface | ⚡ |
 | [skill-scaffold](#skill-scaffold) | Create new skills | ⚡ 📜 |
 
@@ -133,10 +133,10 @@ art-thumbnails-enhanced --regenerate
 **Data protection & migration** — Automated backups with rotation and restoration.
 
 ```bash
-./scripts/backup-now.sh              # Create backup now
+backup-now              # Create backup now
+backup-status           # Check backup health
 ./scripts/backup-list.sh             # List available backups
 ./scripts/backup-restore.sh <name>   # Restore from backup
-./scripts/backup-status.sh           # Check backup health
 ```
 
 **When to use:** Before major changes, migration, disaster recovery, automation setup.
@@ -167,18 +167,19 @@ backups/
 
 ```bash
 # Individual operations
+git-commit              # Interactive commit helper
 git status
 git add -A
 git commit -m "<type>: <description>"
 git push origin main
 
 # Multi-repo operations
-./scripts/multi-repo.sh status    # Overview of all repos
-./scripts/multi-repo.sh dirty     # Only repos with changes
-./scripts/multi-repo.sh commit "msg"  # Commit everywhere
-./scripts/multi-repo.sh push      # Push all repos
-./scripts/multi-repo.sh pull      # Pull latest everywhere
-./scripts/multi-repo.sh list      # List all discovered repos
+git-repos status    # Overview of all repos
+git-repos dirty     # Only repos with changes
+git-repos commit "msg"  # Commit everywhere
+git-repos push      # Push all repos
+git-repos pull      # Pull latest everywhere
+git-repos list      # List all discovered repos
 ```
 
 **When to use:** Committing changes, syncing, maintaining clean repos.
@@ -512,4 +513,4 @@ This file is the skill ecosystem's "bird's eye view." It:
 
 ---
 
-*13 skills. One command. Infinite possibilities.*
+*14 skills. One command. Infinite possibilities.*
