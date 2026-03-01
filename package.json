@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:art": "npx tsx scripts/generate-art-index.ts",
+    "generate:art:check": "npx tsx scripts/generate-art-index.ts --check"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

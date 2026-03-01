@@ -1,5 +1,5 @@
-// Unified art index - Clean, minimal exports using the registry system
-// All generator metadata and loading is centralized in unified-registry.ts
+// Auto-generated from unified-registry.ts
+// Do not edit manually - run: node scripts/generate-art-index.ts
 
 import { ArtGenerator } from "./core";
 import { ARTWORK_METADATA } from "./metadata";
@@ -38,16 +38,15 @@ export {
 } from "./unified-registry";
 
 // ============================================================================
-// STATIC IMPORTS - Eagerly loaded generators (all 70+)
-// These are imported statically to maintain backward compatibility
-// and enable tree-shaking for unused generators
+// STATIC IMPORTS - Eagerly loaded generators
+// Auto-generated from unified-registry.ts
 // ============================================================================
 
-// === MATHEMATICAL (10) ===
+// === MATHEMATICAL (13) ===
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { juliaSet } from "./julia-set";
 import { strangeAttractor } from "./strange-attractor";
-import { lissajousCurves } from "./lissajous-curves-generator";
+import { lissajousCurves } from "./lissajous-curves";
 import { spirograph } from "./spirograph";
 import { harmonograph } from "./harmonograph";
 import { spaceFillingCurves } from "./space-filling-curves";
@@ -62,16 +61,16 @@ import { cantorSet } from "./cantor-set";
 import { auroraBorealis } from "./aurora-borealis";
 import { recursiveTrees } from "./recursive-trees";
 import { lsystemBotany } from "./lsystem-botany";
-import { lsystemFractals } from "./lsystem-fractals-generator";
-import { perlinTerrainGenerator as perlinTerrain } from "./perlin-terrain";
+import { lsystemFractals } from "./lsystem-fractals";
+import { perlinTerrain } from "./perlin-terrain";
 import { dla } from "./dla";
 import { slimeMold } from "./slime-mold";
 import { bioluminescentPlankton } from "./bioluminescent-plankton";
 
 // === PHYSICS (14) ===
 import { waveInterference } from "./wave-interference";
-import { orbitalMechanics } from "./orbital-mechanics-generator";
-import { fluidSmoke } from "./fluid-smoke-generator";
+import { orbitalMechanics } from "./orbital-mechanics";
+import { fluidSmoke } from "./fluid-smoke";
 import { particleSwarm } from "./particle-swarm";
 import { boidFlocking } from "./boid-flocking";
 import { chladniFigures } from "./chladni-figures";
@@ -82,11 +81,11 @@ import { plasmaArc } from "./plasma-arc";
 import { waveTank } from "./wave-tank";
 import { solarFlare } from "./solar-flare";
 import { doublePendulum } from "./double-pendulum";
-import { nBodyGravity } from "./n-body-gravity-generator";
+import { nBodyGravity } from "./n-body-gravity";
 
 // === GEOMETRIC (11) ===
 import { geometricMandala } from "./geometric-mandala";
-import { kaleidoscopeSymmetry as kaleidoscope } from "./kaleidoscope-symmetry";
+import { kaleidoscope } from "./kaleidoscope";
 import { islamicPatterns } from "./islamic-patterns";
 import { voronoiOrganic } from "./voronoi-organic";
 import { stringArt } from "./string-art";
@@ -97,7 +96,7 @@ import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 import { penroseTiling } from "./penrose-tiling";
 import { sacredGeometry } from "./sacred-geometry";
 
-// === ABSTRACT (11) ===
+// === ABSTRACT (12) ===
 import { impossibleGeometry } from "./impossible-geometry";
 import { metaballs } from "./metaballs";
 import { flowField } from "./flow-field";
@@ -111,35 +110,40 @@ import { lenia } from "./lenia";
 import { selfOrganizingMap } from "./self-organizing-map";
 import { langtonsAnt } from "./langtons-ant";
 
-// === TRADITIONAL (6) ===
+// === TRADITIONAL (8) ===
 import { digitalWeave } from "./digital-weave";
 import { stainedGlass } from "./stained-glass";
 import { watercolorDreams } from "./watercolor-dreams";
-import { asciiArtGenerator as asciiArt } from "./ascii-art";
-import { crossHatchingSketch as crossHatching } from "./cross-hatching";
+import { asciiArt } from "./ascii-art";
+import { crossHatching } from "./cross-hatching";
 import { weavingLoom } from "./weaving-loom";
 import { inkDiffusion } from "./ink-diffusion";
+import { paperMarbling } from "./paper-marbling";
 
-// === TEXT (2) ===
+// === TEXT (3) ===
 import { kineticTypography } from "./kinetic-typography";
 import { poetryRain } from "./poetry-rain";
+import { poetryVisualizer } from "./poetry-visualizer";
 
-// === 3D (3) ===
-import { lightCaverns } from "./light-caverns-generator";
+// === 3D (4) ===
+import { lightCaverns } from "./light-caverns";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
+import { sdfSculptor } from "./sdf-sculptor";
 
-// === INTERACTIVE (4) ===
+// === INTERACTIVE (5) ===
 import { particleNetwork } from "./particle-network";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
+import { magneticPoetry } from "./magnetic-poetry";
 
 // ============================================================================
 // GENERATORS MAP - Connects IDs to implementations
 // ============================================================================
 
 const rawGenerators: Record<string, ArtGenerator> = {
+
   // === MATHEMATICAL ===
   "mandelbrot-explorer": mandelbrotExplorer,
   "julia-set": juliaSet,
@@ -216,21 +220,26 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "cross-hatching": crossHatching,
   "weaving-loom": weavingLoom,
   "ink-diffusion": inkDiffusion,
+  "paper-marbling": paperMarbling,
 
   // === TEXT ===
   "kinetic-typography": kineticTypography,
   "poetry-rain": poetryRain,
+  "poetry-visualizer": poetryVisualizer,
 
   // === 3D ===
   "light-caverns": lightCaverns,
   "polyhedral-sculptures": polyhedralSculptures,
   "crystal-lattice": crystalLattice,
+  "sdf-sculptor": sdfSculptor,
 
   // === INTERACTIVE ===
   "particle-network": particleNetwork,
   "frequency-visualizer": frequencyVisualizer,
   "topographic-flow": topographicFlow,
   "abelian-sandpile": abelianSandpile,
+  "magnetic-poetry": magneticPoetry,
+
 };
 
 // Apply metadata to generators
@@ -277,7 +286,3 @@ if (typeof process !== "undefined" && process.env.NODE_ENV === "development") {
     console.warn("[art/index] Registry validation issues:", validation);
   }
 }
-
-// Flowing Magnetism
-export { renderFlowingMagnetism, flowingMagnetismDefaultParams } from './flowing-magnetism';
-export type { FlowingMagnetismParams } from './flowing-magnetism';
