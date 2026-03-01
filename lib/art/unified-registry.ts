@@ -30,7 +30,7 @@ export interface GeneratorEntry {
 // ============================================================================
 
 export const GENERATOR_REGISTRY: GeneratorEntry[] = [
-  // === MATHEMATICAL (9) ===
+  // === MATHEMATICAL (10) ===
   {
     id: "mandelbrot-explorer",
     name: "Mandelbrot Explorer",
@@ -138,6 +138,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./dragon-curve"),
     renderFnName: "renderDragonCurve",
     importName: "dragonCurve",
+  },
+  {
+    id: "cantor-set",
+    name: "Cantor Set",
+    description: "The dust of paradox — infinite points with zero measure, created by endlessly removing middle thirds",
+    category: "mathematical",
+    loader: () => import("./cantor-set"),
+    renderFnName: "renderCantorSet",
+    importName: "cantorSet",
   },
 
   // === NATURAL (9) ===

@@ -55,6 +55,8 @@ import { fourierSynthesis } from "./fourier-synthesis";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
 import { sierpinskiTriangle } from "./sierpinski-triangle";
+import { dragonCurve } from "./dragon-curve";
+import { cantorSet } from "./cantor-set";
 
 // === NATURAL (8) ===
 import { auroraBorealis } from "./aurora-borealis";
@@ -150,6 +152,8 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
   "sierpinski-triangle": sierpinskiTriangle,
+  "dragon-curve": dragonCurve,
+  "cantor-set": cantorSet,
 
   // === NATURAL ===
   "aurora-borealis": auroraBorealis,
