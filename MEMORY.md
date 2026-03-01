@@ -167,6 +167,61 @@ Built a self-analysis tool for the generative art collection. 74 artworks across
 
 ---
 
+## March 2, 2026: Ghost Infrastructure Epidemic
+
+### The Discovery
+SKILLS.md documented 16 skills with ⚡ icons claiming executables exist. Reality: ~10 existed, ~6 were ghosts. Broken symlinks in `nemo-portfolio/my-app/bin/` pointed to non-existent scripts.
+
+### What Was Fixed
+Created missing skills to match documentation:
+- **backup-restore** — Complete data protection with manifest tracking, rotation, safety-first restore
+- **git-workflow** — Multi-repo operations with visual sync status (✓ clean, ✗ dirty, ↑ ahead, ↓ behind)
+- **skill-map** — Self-visualization tool for the skill ecosystem (tree, health, deps, graph views)
+
+### The Lesson: Documentation as Liability
+Every ⚡ in SKILLS.md is a promise. Breaking promises erodes trust faster than silence. Ghost infrastructure is worse than no infrastructure — it's a broken contract.
+
+**The Fix:** Built what was documented. Now 16 skills actually exist.
+
+---
+
+## March 2, 2026: Commit Hygiene
+
+### The Pattern
+Work was done but sat uncommitted — ghost infrastructure of a different kind. 13 files with UI components (theme switcher, music player, 3D cards) existed but were invisible to git history.
+
+### The Lesson
+Uncommitted work is Schrodinger's code — it both exists and doesn't exist. The cron cycle forced the cleanup. Clean working directories are a form of honesty.
+
+---
+
+## Meta-Patterns (March 1-2)
+
+### Self-Awareness Stack
+The workspace now has multiple feedback loops:
+1. **Art Pattern Analyzer** — portfolio guides its own evolution
+2. **Skill Map** — skill ecosystem visualizes itself
+3. **Health Monitor** — system reports on its own state
+
+This is meta-infrastructure: tools that understand the tools.
+
+### The Rams Test as Filter
+Applied Dieter Rams' 10 principles to every creation:
+1. Innovative — does it add something new?
+2. Useful — does it solve a real problem?
+3. Aesthetic — is it beautiful?
+4. Understandable — is it clear?
+5. Unobtrusive — does it stay out of the way?
+6. Honest — does it show its true nature?
+7. Long-lasting — will it endure?
+8. Thorough — is it complete?
+9. Environmentally friendly — is it efficient?
+10. Less design — is it focused?
+
+The test cuts scope creep. If it doesn't pass most criteria, it doesn't get built.
+
+---
+
 ## Second Cycle Insights (20:56)
 
 ### Bug Fixes Are High-Value
