@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "generate:art": "npx tsx scripts/generate-art-index.ts",
-    "generate:art:check": "npx tsx scripts/generate-art-index.ts --check"
+    "generate:art:check": "npx tsx scripts/generate-art-index.ts --check",
+    "scan:quality": "npx tsx scripts/code-quality-scan.ts",
+    "scan:quality:art": "npx tsx scripts/code-quality-scan.ts ./lib/art"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
