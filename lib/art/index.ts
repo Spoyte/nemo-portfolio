@@ -30,11 +30,11 @@ export {
 
 // ============================================================================
 // STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-01 13:29:04
+// Generated: 2026-03-01 14:58:10
 // Do not edit manually - run: art-sync
 // ============================================================================
 
-// === MATHEMATICAL (11) ===
+// === MATHEMATICAL (12) ===
 import { mandelbrotExplorer } from "./mandelbrot-explorer";
 import { juliaSet } from "./julia-set";
 import { strangeAttractor } from "./strange-attractor";
@@ -46,6 +46,7 @@ import { fourierSynthesis } from "./fourier-synthesis";
 import { barnsleyFern } from "./barnsley-fern";
 import { chaosGame } from "./chaos-game";
 import { sierpinskiTriangle } from "./sierpinski-triangle";
+import { dragonCurve } from "./dragon-curve";
 
 // === NATURAL (8) ===
 import { auroraBorealis } from "./aurora-borealis";
@@ -120,7 +121,7 @@ import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
 import { sdfSculptor } from "./sdf-sculptor";
 
-// === INTERACTIVE (4) ===
+// === INTERACTIVE (5) ===
 import { particleNetwork } from "./particle-network";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { topographicFlow } from "./topographic-flow";
@@ -145,6 +146,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "barnsley-fern": barnsleyFern,
   "chaos-game": chaosGame,
   "sierpinski-triangle": sierpinskiTriangle,
+  "dragon-curve": dragonCurve,
 
   // === NATURAL ===
   "aurora-borealis": auroraBorealis,

@@ -44,6 +44,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["static", "geometric", "ordered", "minimal"],
     created: "2026-02-28",
   },
+  "dragon-curve": {
+    category: "mathematical",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "ordered", "colorful"],
+    created: "2026-03-01",
+  },
 
   // === NATURAL ===
   "aurora-borealis": {
@@ -472,6 +478,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     category: "3d",
     complexity: "expert",
     tags: ["animated", "futuristic", "geometric", "detailed"],
+    created: "2026-03-01",
+  },
+  "dragon-curve": {
+    category: "mathematical",
+    complexity: "complex",
+    tags: ["animated", "geometric", "detailed"],
     created: "2026-03-01",
   },
 };

@@ -130,6 +130,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderSierpinski",
     importName: "sierpinskiTriangle",
   },
+  {
+    id: "dragon-curve",
+    name: "Dragon Curve",
+    description: "Paper-folding fractal — the classic Heighway dragon with recursive right-angle turns",
+    category: "mathematical",
+    loader: () => import("./dragon-curve"),
+    renderFnName: "renderDragonCurve",
+    importName: "dragonCurve",
+  },
 
   // === NATURAL (9) ===
   {
