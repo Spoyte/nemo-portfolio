@@ -703,7 +703,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sdfSculptor",
   },
 
-  // === INTERACTIVE (7) ===
+  // === INTERACTIVE (8) ===
+  {
+    id: "floating-letters",
+    name: "Floating Letters",
+    description: "Interactive physics-based text — letters float and respond to mouse with magnetic forces, particle trails, and satisfying momentum",
+    category: "interactive",
+    loader: () => import("./floating-letters"),
+    renderFnName: "generateKineticTypography",
+    importName: "floatingLetters",
+  },
   {
     id: "audio-reactive-waves",
     name: "Audio Reactive Waves",
