@@ -490,6 +490,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "reactionDiffusion",
   },
   {
+    id: "gray-scott-diffusion",
+    name: "Gray-Scott Diffusion",
+    description: "True Gray-Scott reaction-diffusion simulation - coral growth, spots, stripes, and labyrinth patterns from chemical morphogenesis",
+    category: "abstract",
+    loader: () => import("./gray-scott-diffusion"),
+    renderFnName: "renderGrayScottDiffusion",
+    importName: "grayScottDiffusion",
+  },
+  {
     id: "cellular-automata",
     name: "Cellular Automata",
     description: "Discrete computational systems - Conway's Game of Life and beyond",
@@ -694,7 +703,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sdfSculptor",
   },
 
-  // === INTERACTIVE (6) ===
+  // === INTERACTIVE (7) ===
+  {
+    id: "audio-reactive-waves",
+    name: "Audio Reactive Waves",
+    description: "Sound-reactive waveform visualization with frequency spectrum analysis and multiple visualization modes",
+    category: "interactive",
+    loader: () => import("./audio-reactive-waves"),
+    renderFnName: "create",
+    importName: "audioReactiveWaves",
+  },
   {
     id: "particle-network",
     name: "Particle Network",
