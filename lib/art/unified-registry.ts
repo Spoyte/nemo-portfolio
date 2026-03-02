@@ -665,7 +665,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "poetryRain",
   },
 
-  // === 3D (7) ===
+  // === 3D (8) ===
   {
     id: "light-caverns",
     name: "Light Caverns",
@@ -703,7 +703,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sdfSculptor",
   },
 
-  // === INTERACTIVE (9) ===
+  // === INTERACTIVE (10) ===
   {
     id: "floating-letters",
     name: "Floating Letters",
@@ -1103,7 +1103,25 @@ export function generateIndexContent(): string {
     loader: () => import("./reaction-diffusion"),
     renderFnName: "renderReactionDiffusion",
     importName: "reactionDiffusion",
-  },');
+  },
+  {
+    id: "moebius-strip",
+    name: "Moebius Strip",
+    description: "TODO: Add description for Moebius Strip",
+    category: "3d",
+    loader: () => import("./moebius-strip"),
+    renderFnName: "renderMoebiusStrip",
+    importName: "moebiusStrip",
+  },
+  {
+    id: "sonic-bloom",
+    name: "Sonic Bloom",
+    description: "Audio-reactive organic flowers that bloom and pulse with simulated sound waves",
+    category: "interactive",
+    loader: () => import("./sonic-bloom"),
+    renderFnName: "renderSonicBloom",
+    importName: "sonicBloom",
+  },
   lines.push('  };');
   lines.push('});');
   lines.push('');

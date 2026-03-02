@@ -590,6 +590,18 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "nature"],
     created: "2026-03-02",
   },
+  "moebius-strip": {
+    category: "3d",
+    complexity: "expert",
+    tags: ["animated", "3d", "detailed", "futuristic"],
+    created: "2026-03-02",
+  },
+  "sonic-bloom": {
+    category: "interactive",
+    complexity: "complex",
+    tags: ["animated", "interactive", "colorful", "audio", "organic"],
+    created: "2026-03-02",
+  },
 };
 
 // Helper function to get metadata for a generator
