@@ -554,6 +554,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "3d", "detailed", "futuristic"],
     created: "2026-03-02",
   },
+  "apollonian-gasket": {
+    category: "mathematical",
+    complexity: "complex",
+    tags: ["animated", "geometric", "detailed"],
+    created: "2026-03-02",
+  },
 };
 
 // Helper function to get metadata for a generator

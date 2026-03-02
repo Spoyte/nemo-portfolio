@@ -30,7 +30,7 @@ export {
 
 // ============================================================================
 // STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-02 06:28:02
+// Generated: 2026-03-02 09:29:35
 // Do not edit manually - run: art-sync
 // ============================================================================
 

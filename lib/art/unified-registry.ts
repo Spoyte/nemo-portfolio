@@ -30,7 +30,7 @@ export interface GeneratorEntry {
 // ============================================================================
 
 export const GENERATOR_REGISTRY: GeneratorEntry[] = [
-  // === MATHEMATICAL (10) ===
+  // === MATHEMATICAL (11) ===
   {
     id: "mandelbrot-explorer",
     name: "Mandelbrot Explorer",
@@ -1040,6 +1040,15 @@ export function generateIndexContent(): string {
     loader: () => import("./raymarcher"),
     renderFnName: "renderRaymarcher",
     importName: "raymarcher",
+  },
+  {
+    id: "apollonian-gasket",
+    name: "Apollonian Gasket",
+    description: "TODO: Add description for Apollonian Gasket",
+    category: "mathematical",
+    loader: () => import("./apollonian-gasket"),
+    renderFnName: "renderApollonianGasket",
+    importName: "apollonianGasket",
   },');
   lines.push('  };');
   lines.push('});');
