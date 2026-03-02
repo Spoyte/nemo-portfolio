@@ -1,6 +1,6 @@
 # Nemo Skills — Complete Reference
 
-Unified documentation for all workspace skills. 16 skills, one ecosystem.
+Unified documentation for all workspace skills. 18 skills, one ecosystem.
 
 ## Quick Navigation
 
@@ -8,7 +8,9 @@ Unified documentation for all workspace skills. 16 skills, one ecosystem.
 |-------|---------|--------|
 | [art-audit](#art-audit) | Portfolio health analysis | ⚡ |
 | [art-ideate](#art-ideate) | Algorithm ideation engine | ⚡ |
+| [art-insights](#art-insights) | Portfolio analytics & recommendations | ⚡ |
 | [art-new](#art-new) | Scaffold new art algorithms | ⚡ |
+| [art-sync](#art-sync) | Sync index.ts with registry | ⚡ |
 | [art-test](#art-test) | Validate generators | ⚡ |
 | [art-thumbnails](#art-thumbnails) | Generate gallery thumbnails | ⚡ |
 | [backup-restore](#backup-restore) | Data protection & migration | ⚡ 📜 |
@@ -18,6 +20,7 @@ Unified documentation for all workspace skills. 16 skills, one ecosystem.
 | [memory-log](#memory-log) | Daily journaling & logging | ⚡ 📜 |
 | [portfolio-insights](#portfolio-insights) | Portfolio pattern analysis | ⚡ |
 | [shell-translate](#shell-translate) | Natural language → shell commands | ⚡ |
+| [skill-map](#skill-map) | Visualize skill ecosystem | ⚡ |
 | [skill-registry](#skill-registry) | Skill discovery & conventions | ⚡ 📜 |
 | [skill-runner](#skill-runner) | Unified skill interface | ⚡ |
 | [skill-scaffold](#skill-scaffold) | Create new skills | ⚡ 📜 |
@@ -74,7 +77,29 @@ art-ideate --json      # JSON output
 
 ---
 
-## art-scaffold
+## art-insights
+
+**Portfolio analytics** — Deep analysis with recommendations and opportunity scoring.
+
+```bash
+art-insights              # Full analysis with recommendations
+art-insights --stats      # Quick stats only
+art-insights --gaps       # Gap analysis
+art-insights --category <name>  # Focus on specific category
+art-insights --json       # JSON output
+```
+
+**When to use:** Strategic portfolio decisions, understanding patterns, finding high-value opportunities.
+
+**Analyzes:**
+- Category distribution and balance
+- Theme patterns (animation, color, complexity)
+- Gap detection with opportunity scoring
+- Visual potential × technical interest × feasibility
+
+---
+
+## art-new
 
 **Scaffold new art pieces** — Creates consistent structure: algorithm, React component, standalone HTML.
 
@@ -97,6 +122,23 @@ art-new flowing-lines "Flowing Lines"
 3. Time as input — All pieces animate
 4. Parameters as UI — 2-4 sliders
 5. Color schemes — 3-5 palettes
+
+---
+
+## art-sync
+
+**Synchronize art index** — Auto-generate `index.ts` from `unified-registry.ts`.
+
+```bash
+art-sync              # Regenerate index.ts
+art-sync --check      # Verify sync (CI/CD friendly)
+```
+
+**When to use:** After adding generators, CI/CD validation, ensuring consistency.
+
+**Problem solved:** Eliminates manual coordination between registry entries and static imports. Single source of truth.
+
+**Integration:** Run after `art-new` to complete the workflow.
 
 ---
 
@@ -136,10 +178,6 @@ art-thumbnails flow-field   # Generate specific
 art-thumbnails --regenerate # Force all
 art-thumbnails --list       # Show status
 art-thumbnails --clean      # Remove all
-
-# Enhanced version
-art-thumbnails-enhanced --list
-art-thumbnails-enhanced --regenerate
 ```
 
 **When to use:** Setting up gallery, adding new pieces, refreshing previews.
@@ -397,6 +435,31 @@ shell-translate "search for TODO in code" -a           # Show alternatives
 
 ---
 
+## skill-map
+
+**Visualize skill ecosystem** — Tree view, health check, dependency graph.
+
+```bash
+skill-map              # Visual tree of all skills
+skill-map --health     # Health check with status colors
+skill-map --deps       # Show skill dependencies
+skill-map --graph      # DOT format for graphviz
+```
+
+**When to use:** Understanding skill relationships, auditing skill health, generating documentation diagrams.
+
+**Categories:**
+| Icon | Category | Skills |
+|------|----------|--------|
+| 🎨 | Creative | art-audit, art-ideate, art-new, art-sync, art-test, art-thumbnails |
+| ⚙️ | Development | git-workflow, skill-scaffold, skill-registry, skill-runner, shell-translate |
+| 🔧 | System | backup-restore, health-monitor, env-diff |
+| 🧠 | Knowledge | memory-log, portfolio-insights, art-insights |
+
+**Health check:** Shows ✓ healthy or ✗ issues for each skill.
+
+---
+
 ## skill-registry
 
 **Skill discovery & conventions** — Central index for all workspace skills.
@@ -456,7 +519,7 @@ Brief description.
 ```bash
 nemo list                    # List all skills
 nemo list -q                 # Names only (for scripting)
-nemo list -v                 # Verbose descriptions
+nemo list -v                # Verbose descriptions
 nemo <skill> [args...]       # Run a skill
 nemo info <skill>            # Show skill details
 nemo docs <skill>            # Read documentation
@@ -567,7 +630,7 @@ Every skill should be:
 
 This file is the skill ecosystem's "bird's eye view." It:
 
-- Lists all 16 skills with one-line summaries
+- Lists all 18 skills with one-line summaries
 - Provides quick command reference for each
 - Explains when to use what
 - Documents the philosophy behind skills
@@ -577,4 +640,4 @@ This file is the skill ecosystem's "bird's eye view." It:
 
 ---
 
-*16 skills. One command. Infinite possibilities.*
+*18 skills. One command. Infinite possibilities.*
