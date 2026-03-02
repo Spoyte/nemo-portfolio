@@ -30,7 +30,7 @@ export {
 
 // ============================================================================
 // STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-02 09:29:35
+// Generated: 2026-03-02 12:58:10
 // Do not edit manually - run: art-sync
 // ============================================================================
 
@@ -88,11 +88,12 @@ import { kaleidoscopeChamber } from "./kaleidoscope-chamber";
 import { penroseTiling } from "./penrose-tiling";
 import { sacredGeometry } from "./sacred-geometry";
 
-// === ABSTRACT (12) ===
+// === ABSTRACT (13) ===
 import { impossibleGeometry } from "./impossible-geometry";
 import { metaballs } from "./metaballs";
 import { flowField } from "./flow-field";
 import { reactionDiffusion } from "./reaction-diffusion";
+import { grayScottDiffusion } from "./gray-scott-diffusion";
 import { cellularAutomata } from "./cellular-automata";
 import { quantumField } from "./quantum-field";
 import { fractalFlame } from "./fractal-flame";
@@ -125,7 +126,9 @@ import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
 import { sdfSculptor } from "./sdf-sculptor";
 
-// === INTERACTIVE (6) ===
+// === INTERACTIVE (8) ===
+import { floatingLetters } from "./floating-letters";
+import { audioReactiveWaves } from "./audio-reactive-waves";
 import { particleNetwork } from "./particle-network";
 import { frequencyVisualizer } from "./frequency-visualizer";
 import { topographicFlow } from "./topographic-flow";
@@ -198,6 +201,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "metaballs": metaballs,
   "flow-field": flowField,
   "reaction-diffusion": reactionDiffusion,
+  "gray-scott-diffusion": grayScottDiffusion,
   "cellular-automata": cellularAutomata,
   "quantum-field": quantumField,
   "fractal-flame": fractalFlame,
@@ -231,6 +235,8 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "sdf-sculptor": sdfSculptor,
 
   // === INTERACTIVE ===
+  "floating-letters": floatingLetters,
+  "audio-reactive-waves": audioReactiveWaves,
   "particle-network": particleNetwork,
   "frequency-visualizer": frequencyVisualizer,
   "topographic-flow": topographicFlow,

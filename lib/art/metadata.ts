@@ -566,6 +566,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "detailed"],
     created: "2026-03-02",
   },
+  "gravity-sandbox": {
+    category: "interactive",
+    complexity: "complex",
+    tags: ["animated", "interactive", "colorful"],
+    created: "2026-03-02",
+  },
 };
 
 // Helper function to get metadata for a generator

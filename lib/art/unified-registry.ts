@@ -703,7 +703,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sdfSculptor",
   },
 
-  // === INTERACTIVE (8) ===
+  // === INTERACTIVE (9) ===
   {
     id: "floating-letters",
     name: "Floating Letters",
@@ -1076,6 +1076,15 @@ export function generateIndexContent(): string {
     loader: () => import("./apollonian-gasket"),
     renderFnName: "renderApollonianGasket",
     importName: "apollonianGasket",
+  },
+  {
+    id: "gravity-sandbox",
+    name: "Gravity Sandbox",
+    description: "TODO: Add description for Gravity Sandbox",
+    category: "interactive",
+    loader: () => import("./gravity-sandbox"),
+    renderFnName: "renderGravitySandbox",
+    importName: "gravitySandbox",
   },');
   lines.push('  };');
   lines.push('});');
