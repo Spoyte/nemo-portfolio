@@ -324,6 +324,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "monochrome", "futuristic", "abstract", "cyberpunk"],
     created: "2026-03-01",
   },
+  "textile-weave": {
+    category: "text",
+    complexity: "moderate",
+    tags: ["animated", "text", "geometric", "ordered", "detailed"],
+    created: "2026-03-02",
+  },
   "magnetic-field": {
     category: "physics",
     complexity: "complex",

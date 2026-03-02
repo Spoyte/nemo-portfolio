@@ -113,12 +113,13 @@ import { weavingLoom } from "./weaving-loom";
 import { inkDiffusion } from "./ink-diffusion";
 import { paperMarbling } from "./paper-marbling";
 
-// === TEXT (5) ===
+// === TEXT (6) ===
 import { kineticTypography } from "./kinetic-typography";
 import { poetryRain } from "./poetry-rain";
 import { poetryVisualizer } from "./poetry-visualizer";
 import { codeGarden } from "./code-garden";
 import { calligraphyBrush } from "./calligraphy-brush";
+import { textileWeave } from "./textile-weave";
 
 // === 3D (4) ===
 import { lightCaverns } from "./light-caverns";
@@ -227,6 +228,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "poetry-visualizer": poetryVisualizer,
   "code-garden": codeGarden,
   "calligraphy-brush": calligraphyBrush,
+  "textile-weave": textileWeave,
 
   // === 3D ===
   "light-caverns": lightCaverns,
