@@ -578,6 +578,18 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "interactive", "colorful"],
     created: "2026-03-02",
   },
+  "sonic-typography": {
+    category: "text",
+    complexity: "moderate",
+    tags: ["animated", "colorful", "futuristic"],
+    created: "2026-03-02",
+  },
+  "reaction-diffusion": {
+    category: "natural",
+    complexity: "moderate",
+    tags: ["animated", "organic", "nature"],
+    created: "2026-03-02",
+  },
 };
 
 // Helper function to get metadata for a generator

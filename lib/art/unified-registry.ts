@@ -149,7 +149,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "cantorSet",
   },
 
-  // === NATURAL (9) ===
+  // === NATURAL (10) ===
   {
     id: "aurora-borealis",
     name: "Aurora Borealis",
@@ -645,7 +645,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "paperMarbling",
   },
 
-  // === TEXT (4) ===
+  // === TEXT (5) ===
   {
     id: "kinetic-typography",
     name: "Kinetic Typography",
@@ -1085,6 +1085,24 @@ export function generateIndexContent(): string {
     loader: () => import("./gravity-sandbox"),
     renderFnName: "renderGravitySandbox",
     importName: "gravitySandbox",
+  },
+  {
+    id: "sonic-typography",
+    name: "Sonic Typography",
+    description: "Text characters ripple and pulse with simulated sound waves. Wave interference from dual sources creates organic motion as typography becomes a visualization of audio physics.",
+    category: "text",
+    loader: () => import("./sonic-typography"),
+    renderFnName: "renderSonicTypography",
+    importName: "sonicTypography",
+  },
+  {
+    id: "reaction-diffusion",
+    name: "Reaction-Diffusion Patterns",
+    description: "TODO: Add description for Reaction-Diffusion Patterns",
+    category: "natural",
+    loader: () => import("./reaction-diffusion"),
+    renderFnName: "renderReactionDiffusion",
+    importName: "reactionDiffusion",
   },');
   lines.push('  };');
   lines.push('});');
