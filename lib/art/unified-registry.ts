@@ -1080,7 +1080,7 @@ export function generateIndexContent(): string {
   {
     id: "apollonian-gasket",
     name: "Apollonian Gasket",
-    description: "TODO: Add description for Apollonian Gasket",
+    description: "Fractal circle packing — infinitely recursive tangent circles creating lace-like patterns from ancient Greek geometry",
     category: "mathematical",
     loader: () => import("./apollonian-gasket"),
     renderFnName: "renderApollonianGasket",
@@ -1089,7 +1089,7 @@ export function generateIndexContent(): string {
   {
     id: "gravity-sandbox",
     name: "Gravity Sandbox",
-    description: "TODO: Add description for Gravity Sandbox",
+    description: "Interactive n-body playground — fling particles and watch gravitational dynamics create orbital art",
     category: "interactive",
     loader: () => import("./gravity-sandbox"),
     renderFnName: "renderGravitySandbox",
@@ -1107,7 +1107,7 @@ export function generateIndexContent(): string {
   {
     id: "reaction-diffusion",
     name: "Reaction-Diffusion Patterns",
-    description: "TODO: Add description for Reaction-Diffusion Patterns",
+    description: "Chemical morphogenesis simulation — Turing patterns emerging from reaction and diffusion creating organic spots, stripes, and labyrinths",
     category: "natural",
     loader: () => import("./reaction-diffusion"),
     renderFnName: "renderReactionDiffusion",
@@ -1116,7 +1116,7 @@ export function generateIndexContent(): string {
   {
     id: "moebius-strip",
     name: "Moebius Strip",
-    description: "TODO: Add description for Moebius Strip",
+    description: "One-sided wonder — the iconic topological surface with a single boundary, rendered in luminous 3D with continuous flowing motion",
     category: "3d",
     loader: () => import("./moebius-strip"),
     renderFnName: "renderMoebiusStrip",
