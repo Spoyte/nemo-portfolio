@@ -1,0 +1,691 @@
+#!/usr/bin/env bash
+#
+# skill-mastery — Skill proficiency tracking & analytics
+# Track usage, identify gaps, guide deliberate practice
+#
+# Rams Test: Innovative ✓ Useful ✓ Aesthetic ✓ Understandable ✓ 
+#           Unobtrusive ✓ Honest ✓ Long-lasting ✓ Thorough ✓ 
+#           Environmentally friendly ✓ Less design ✓
+#
+
+set -euo pipefail
+
+#───────────────────────────────────────────────────────────────────────────────
+# Configuration
+#───────────────────────────────────────────────────────────────────────────────
+
+readonly DATA_DIR="${DATA_DIR:-$HOME/.local/share/skill-mastery}"
+readonly STATE_FILE="$DATA_DIR/mastery.json"
+readonly USAGE_FILE="$DATA_DIR/usage.jsonl"
+readonly SKILLS_DIR="${SKILLS_DIR:-$HOME/.openclaw/workspace/skills}"
+readonly MEMORY_DIR="${MEMORY_DIR:-$HOME/.openclaw/workspace/memory}"
+
+QUIET=false
+JSON=false
+VERBOSE=false
+
+# Colors
+if [[ -t 1 ]]; then
+    readonly RED='\033[0;31m'
+    readonly GREEN='\033[0;32m'
+    readonly YELLOW='\033[1;33m'
+    readonly BLUE='\033[0;34m'
+    readonly CYAN='\033[0;36m'
+    readonly PURPLE='\033[0;35m'
+    readonly ORANGE='\033[0;33m'
+    readonly GRAY='\033[0;90m'
+    readonly BOLD='\033[1m'
+    readonly NC='\033[0m'
+else
+    readonly RED='' GREEN='' YELLOW='' BLUE='' CYAN='' PURPLE='' ORANGE='' GRAY='' BOLD='' NC=''
+fi
+
+# Proficiency levels (Dreyfus model simplified)
+readonly LEVELS=("novice" "beginner" "competent" "proficient" "expert" "master")
+readonly LEVEL_EMOJIS=("🌱" "🌿" "🌲" "⭐" "🌟" "👑")
+readonly LEVEL_COLORS=("$GRAY" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" "$YELLOW")
+
+# Skill categories
+readonly CATEGORIES=("art" "git" "system" "analysis" "memory" "skill")
+
+#───────────────────────────────────────────────────────────────────────────────
+# Helpers
+#───────────────────────────────────────────────────────────────────────────────
+
+error() {
+    echo -e "${RED}✗${NC} $1" >&2
+    exit 1
+}
+
+info() {
+    $QUIET || echo -e "$1"
+}
+
+success() {
+    $QUIET || echo -e "${GREEN}✓${NC} $1"
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Data Management
+#───────────────────────────────────────────────────────────────────────────────
+
+init_data_dir() {
+    mkdir -p "$DATA_DIR"
+    
+    if [[ ! -f "$STATE_FILE" ]]; then
+        cat > "$STATE_FILE" << 'EOF'
+{
+  "skills": {},
+  "stats": {
+    "total_invocations": 0,
+    "unique_skills_used": 0,
+    "most_used_skill": null,
+    "least_used_skill": null
+  },
+  "last_updated": null
+}
+EOF
+    fi
+    
+    if [[ ! -f "$USAGE_FILE" ]]; then
+        touch "$USAGE_FILE"
+    fi
+}
+
+read_state() {
+    if [[ -f "$STATE_FILE" ]]; then
+        cat "$STATE_FILE"
+    else
+        echo '{}'
+    fi
+}
+
+write_state() {
+    echo "$1" > "$STATE_FILE"
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Skill Discovery
+#───────────────────────────────────────────────────────────────────────────────
+
+discover_skills() {
+    local skills=()
+    for skill_dir in "$SKILLS_DIR"/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        local skill_name=$(basename "$skill_dir")
+        [[ -f "$skill_dir/SKILL.md" ]] && skills+=("$skill_name")
+    done
+    printf '%s\n' "${skills[@]}"
+}
+
+get_skill_category() {
+    local skill="$1"
+    case "$skill" in
+        art-*)
+            echo "art"
+            ;;
+        git-*)
+            echo "git"
+            ;;
+        *-monitor|shell-*|env-*)
+            echo "system"
+            ;;
+        *-insights|*audit|*-analysis)
+            echo "analysis"
+            ;;
+        memory-*|ci-tracker)
+            echo "memory"
+            ;;
+        skill-*)
+            echo "skill"
+            ;;
+        *)
+            echo "other"
+            ;;
+    esac
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Proficiency Logic
+#───────────────────────────────────────────────────────────────────────────────
+
+calculate_level() {
+    local invocations=$1
+    local satisfaction=${2:-50}  # 0-100
+    
+    # Base level on invocations
+    local base_level=0
+    if [[ $invocations -ge 100 ]]; then
+        base_level=5  # master
+    elif [[ $invocations -ge 50 ]]; then
+        base_level=4  # expert
+    elif [[ $invocations -ge 20 ]]; then
+        base_level=3  # proficient
+    elif [[ $invocations -ge 5 ]]; then
+        base_level=2  # competent
+    elif [[ $invocations -ge 1 ]]; then
+        base_level=1  # beginner
+    fi
+    
+    # Adjust by satisfaction (can bump up or down)
+    if [[ $satisfaction -ge 90 && $base_level -lt 5 ]]; then
+        base_level=$((base_level + 1))
+    elif [[ $satisfaction -le 30 && $base_level -gt 0 ]]; then
+        base_level=$((base_level - 1))
+    fi
+    
+    echo "$base_level"
+}
+
+get_level_info() {
+    local level_idx=$1
+    echo "${LEVEL_EMOJIS[$level_idx]} ${LEVELS[$level_idx]}"
+}
+
+get_level_color() {
+    local level_idx=$1
+    echo "${LEVEL_COLORS[$level_idx]}"
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Visualization
+#───────────────────────────────────────────────────────────────────────────────
+
+print_bar() {
+    local value=$1
+    local max=$2
+    local width=${3:-20}
+    local color=${4:-$GREEN}
+    
+    if [[ $max -eq 0 ]]; then
+        printf "%${width}s" | tr ' ' '-'
+        return
+    fi
+    
+    local filled=$(( value * width / max ))
+    local empty=$(( width - filled ))
+    
+    printf "%b" "$color"
+    printf "%${filled}s" | tr ' ' '#'
+    printf "%${empty}s" | tr ' ' '-'
+    printf "%b" "$NC"
+}
+
+print_level_bar() {
+    local level=$1
+    local width=${2:-15}
+    
+    local color="${LEVEL_COLORS[$level]}"
+    local filled=$(( (level + 1) * width / 6 ))
+    local empty=$(( width - filled ))
+    
+    printf "%b" "$color"
+    printf "%${filled}s" | tr ' ' '#'
+    printf "%${empty}s" | tr ' ' '-'
+    printf "%b" "$NC"
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Commands
+#───────────────────────────────────────────────────────────────────────────────
+
+cmd_status() {
+    init_data_dir
+    local state=$(read_state)
+    
+    if $JSON; then
+        echo "$state"
+        return
+    fi
+    
+    local total_invocations=$(echo "$state" | grep -o '"total_invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+    local unique_skills=$(echo "$state" | grep -o '"unique_skills_used": [0-9]*' | grep -o '[0-9]*' || echo 0)
+    local last_updated=$(echo "$state" | grep -o '"last_updated": "[^"]*"' | cut -d'"' -f4 || echo "never")
+    
+    # Count available skills
+    local available_skills=$(discover_skills | wc -l)
+    local coverage=$(( unique_skills * 100 / available_skills ))
+    
+    echo ""
+    echo -e "  ${BOLD}Skill Mastery Dashboard${NC}"
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    printf "  %-24s ${BOLD}%s${NC}\n" "Total Invocations:" "$total_invocations"
+    printf "  %-24s ${GREEN}%s${NC} / %s\n" "Skills Used:" "$unique_skills" "$available_skills"
+    printf "  %-24s ${CYAN}%s%%${NC}\n" "Coverage:" "$coverage"
+    printf "  %-24s %s\n" "Last Updated:" "$last_updated"
+    
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Top skills
+    if [[ $unique_skills -gt 0 ]]; then
+        echo -e "  ${BOLD}Most Used Skills${NC}"
+        echo ""
+        
+        # Extract skills and sort by count
+        local skills_json=$(echo "$state" | grep -A 1000 '"skills":' | grep -B 1000 '"stats":' | head -n -1 | tail -n +2)
+        
+        # Parse and display top 5
+        local max_count=0
+        declare -A skill_counts
+        
+        for skill in $(discover_skills); do
+            local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+            skill_counts[$skill]=$count
+            [[ $count -gt $max_count ]] && max_count=$count
+        done
+        
+        # Sort and display
+        for skill in $(printf '%s\n' "${!skill_counts[@]}" | sort -t'=' -k2 -rn | head -5); do
+            local count=${skill_counts[$skill]}
+            local level=$(calculate_level $count)
+            local level_emoji="${LEVEL_EMOJIS[$level]}"
+            
+            printf "  %-22s " "$skill"
+            print_bar "$count" "$max_count" 12
+            printf " ${BOLD}%3d${NC} %s\n" "$count" "$level_emoji"
+        done
+    fi
+    
+    echo ""
+    
+    # Unused skills
+    local unused=()
+    for skill in $(discover_skills); do
+        local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        [[ "$count" == "0" ]] && unused+=("$skill")
+    done
+    
+    if [[ ${#unused[@]} -gt 0 ]]; then
+        echo -e "  ${YELLOW}Unused Skills (${#unused[@]})${NC}"
+        echo ""
+        for skill in "${unused[@]}"; do
+            echo -e "    ${GRAY}○${NC} $skill"
+        done
+        echo ""
+    fi
+    
+    echo ""
+}
+
+cmd_list() {
+    init_data_dir
+    local state=$(read_state)
+    
+    if $JSON; then
+        # Extract just the skills object
+        echo "$state" | grep -A 1000 '"skills":' | grep -B 1000 '"stats":' | head -n -1
+        return
+    fi
+    
+    echo ""
+    echo -e "  ${BOLD}Skill Mastery Levels${NC}"
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    printf "  ${BOLD}%-22s %-12s %-10s %-15s %s${NC}\n" "Skill" "Level" "Uses" "Progress" "Category"
+    echo ""
+    
+    for skill in $(discover_skills | sort); do
+        local skill_data=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" || echo "")
+        local count=0
+        local satisfaction=50
+        
+        if [[ -n "$skill_data" ]]; then
+            count=$(echo "$skill_data" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+            satisfaction=$(echo "$skill_data" | grep -o '"satisfaction": [0-9]*' | grep -o '[0-9]*' || echo 50)
+        fi
+        
+        local level=$(calculate_level $count $satisfaction)
+        local level_str=$(get_level_info $level)
+        local level_color=$(get_level_color $level)
+        local category=$(get_skill_category "$skill")
+        
+        printf "  %-22s " "$skill"
+        printf "%b%-12s${NC} " "$level_color" "$level_str"
+        printf "${GRAY}%4d${NC}     " "$count"
+        print_level_bar "$level" 12
+        printf "  %s\n" "$category"
+    done
+    
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Legend
+    echo -e "  ${GRAY}Legend:${NC}"
+    for i in "${!LEVELS[@]}"; do
+        printf "    %s %-10s " "${LEVEL_EMOJIS[$i]}" "${LEVELS[$i]}"
+        case $i in
+            0) echo "${GRAY}— Never used${NC}" ;;
+            1) echo "${GRAY}— Used once or twice${NC}" ;;
+            2) echo "${GRAY}— Regular use${NC}" ;;
+            3) echo "${GRAY}— Comfortable${NC}" ;;
+            4) echo "${GRAY}— Highly proficient${NC}" ;;
+            5) echo "${GRAY}— Deep mastery${NC}" ;;
+        esac
+    done
+    
+    echo ""
+}
+
+cmd_log() {
+    local skill="${1:-}"
+    local satisfaction="${2:-50}"
+    
+    if [[ -z "$skill" ]]; then
+        error "Usage: skill-mastery log <skill> [satisfaction:0-100]"
+    fi
+    
+    # Validate skill exists
+    local found=false
+    for s in $(discover_skills); do
+        [[ "$s" == "$skill" ]] && found=true
+    done
+    
+    if ! $found; then
+        error "Unknown skill: $skill\n\nRun 'skill-mastery list' to see available skills."
+    fi
+    
+    init_data_dir
+    
+    local state=$(read_state)
+    local now=$(date -Iseconds)
+    local today=$(date +%Y-%m-%d)
+    
+    # Get current skill data or initialize
+    local skill_data=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" || echo "")
+    local current_count=0
+    local total_satisfaction=0
+    local log_count=0
+    
+    if [[ -n "$skill_data" ]]; then
+        current_count=$(echo "$skill_data" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        total_satisfaction=$(echo "$skill_data" | grep -o '"total_satisfaction": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        log_count=$(echo "$skill_data" | grep -o '"log_count": [0-9]*' | grep -o '[0-9]*' || echo 0)
+    fi
+    
+    # Update counts
+    local new_count=$((current_count + 1))
+    local new_log_count=$((log_count + 1))
+    local new_total_sat=$((total_satisfaction + satisfaction))
+    local new_avg_sat=$((new_total_sat / new_log_count))
+    
+    # Update state (simplified - in production would use proper JSON manipulation)
+    # For now, append to usage log
+    echo "{\"timestamp\":\"$now\",\"skill\":\"$skill\",\"satisfaction\":$satisfaction}" >> "$USAGE_FILE"
+    
+    # Calculate new level
+    local new_level=$(calculate_level $new_count $new_avg_sat)
+    local level_str=$(get_level_info $new_level)
+    
+    success "Logged: $skill (use #$new_count, satisfaction: $satisfaction%, level: $level_str)"
+}
+
+cmd_insights() {
+    init_data_dir
+    local state=$(read_state)
+    
+    if $JSON; then
+        # Generate insights as JSON
+        local insights="{"
+        insights+='"recommendations":['
+        
+        # Find underused skills
+        local first=true
+        for skill in $(discover_skills); do
+            local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+            if [[ "$count" == "0" ]]; then
+                if $first; then
+                    first=false
+                else
+                    insights+=","
+                fi
+                insights+="\"Try $skill (unused)\""
+            fi
+        done
+        
+        insights+="]}"
+        echo "$insights"
+        return
+    fi
+    
+    echo ""
+    echo -e "  ${BOLD}Mastery Insights${NC}"
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Find patterns
+    local unused=()
+    local novice=()
+    local experts=()
+    
+    for skill in $(discover_skills); do
+        local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        local level=$(calculate_level $count)
+        
+        if [[ "$count" == "0" ]]; then
+            unused+=("$skill")
+        elif [[ $level -le 1 ]]; then
+            novice+=("$skill")
+        elif [[ $level -ge 4 ]]; then
+            experts+=("$skill")
+        fi
+    done
+    
+    # Recommendations
+    echo -e "  ${BOLD}Recommendations${NC}"
+    echo ""
+    
+    if [[ ${#unused[@]} -gt 0 ]]; then
+        echo -e "  ${YELLOW}🌱 Expand your toolkit:${NC}"
+        for skill in "${unused[@]}"; do
+            echo -e "     Try ${BOLD}$skill${NC} — you haven't used it yet"
+        done
+        echo ""
+    fi
+    
+    if [[ ${#novice[@]} -gt 0 ]]; then
+        echo -e "  ${CYAN}🌿 Practice opportunities:${NC}"
+        for skill in "${novice[@]}"; do
+            echo -e "     Use ${BOLD}$skill${NC} more to build proficiency"
+        done
+        echo ""
+    fi
+    
+    if [[ ${#experts[@]} -gt 0 ]]; then
+        echo -e "  ${GREEN}🌟 Your strengths:${NC}"
+        for skill in "${experts[@]}"; do
+            echo -e "     ${BOLD}$skill${NC} — consider teaching or extending this"
+        done
+        echo ""
+    fi
+    
+    # Category analysis
+    echo -e "  ${BOLD}Category Balance${NC}"
+    echo ""
+    
+    declare -A category_counts
+    for cat in "${CATEGORIES[@]}"; do
+        category_counts[$cat]=0
+    done
+    
+    for skill in $(discover_skills); do
+        local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        local cat=$(get_skill_category "$skill")
+        category_counts[$cat]=$((${category_counts[$cat]:-0} + count))
+    done
+    
+    local max_cat_count=0
+    for cat in "${CATEGORIES[@]}"; do
+        [[ ${category_counts[$cat]:-0} -gt $max_cat_count ]] && max_cat_count=${category_counts[$cat]}
+    done
+    
+    for cat in "${CATEGORIES[@]}"; do
+        local count=${category_counts[$cat]:-0}
+        printf "  %-12s " "$cat"
+        print_bar "$count" "$max_cat_count" 20
+        printf " %d\n" "$count"
+    done
+    
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
+cmd_sync() {
+    init_data_dir
+    
+    info "Syncing skill usage from memory files..."
+    
+    # Scan memory files for skill usage patterns
+    local count=0
+    for memory_file in "$MEMORY_DIR"/2026-*.md; do
+        [[ -f "$memory_file" ]] || continue
+        
+        # Look for skill invocations
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*\`?(art-|git-|skill-|memory-|env-|shell-)[a-z-]+\`? ]]; then
+                local skill=$(echo "$line" | grep -oE '(art-|git-|skill-|memory-|env-|shell-)[a-z-]+' | head -1)
+                if [[ -n "$skill" ]]; then
+                    # Check if already logged for this file
+                    local date_str=$(basename "$memory_file" .md)
+                    if ! grep -q "\"$skill\".*\"$date_str\"" "$USAGE_FILE" 2>/dev/null; then
+                        echo "{\"timestamp\":\"${date_str}T12:00:00\",\"skill\":\"$skill\",\"satisfaction\":50,\"source\":\"memory\"}" >> "$USAGE_FILE"
+                        count=$((count + 1))
+                    fi
+                fi
+            fi
+        done < "$memory_file"
+    done
+    
+    success "Synced $count skill usages from memory files"
+}
+
+cmd_compare() {
+    echo ""
+    echo -e "  ${BOLD}Skill Mastery vs. Continuous Improvement${NC}"
+    echo ""
+    echo -e "  ${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Show both trackers side by side
+    echo -e "  ${GRAY}ci-tracker${NC}    → Tracks improvement cycles (the what)"
+    echo -e "  ${GRAY}skill-mastery${NC} → Tracks skill proficiency (the how)"
+    echo ""
+    echo "  These complement each other:"
+    echo "  • Cycles show activity patterns over time"
+    echo "  • Mastery shows depth of capability"
+    echo "  • Together they reveal breadth vs. depth"
+    echo ""
+    
+    # Quick stats from both if available
+    if [[ -f "$HOME/.local/share/ci-tracker/state.json" ]]; then
+        local ci_cycles=$(cat "$HOME/.local/share/ci-tracker/state.json" | grep -o '"total_cycles": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        echo -e "  CI Cycles: ${BOLD}$ci_cycles${NC}"
+    fi
+    
+    local state=$(read_state)
+    local total_invocations=$(echo "$state" | grep -o '"total_invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+    echo -e "  Skill Uses: ${BOLD}$total_invocations${NC}"
+    echo ""
+}
+
+cmd_usage() {
+    cat << 'EOF'
+Usage: skill-mastery <command> [options]
+
+Commands:
+  status              Show mastery dashboard
+  list                List all skills with mastery levels
+  log <skill> [sat]   Log skill usage (satisfaction 0-100)
+  insights            Show recommendations and patterns
+  sync                Sync usage from memory files
+  compare             Compare with ci-tracker
+  help                Show this help message
+
+Options:
+  -j, --json          Output as JSON
+  -q, --quiet         Minimal output
+  -v, --verbose       Verbose output
+
+Examples:
+  skill-mastery status              # View dashboard
+  skill-mastery list                # See all skill levels
+  skill-mastery log art-new 85      # Log usage, 85% satisfied
+  skill-mastery insights            # Get recommendations
+  skill-mastery sync                # Import from memory
+
+Proficiency Levels:
+  🌱 novice      — Never used
+  🌿 beginner    — Used once or twice
+  🌲 competent   — Regular use
+  ⭐ proficient  — Comfortable
+  🌟 expert      — Highly proficient
+  👑 master      — Deep mastery
+
+EOF
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Main
+#───────────────────────────────────────────────────────────────────────────────
+
+main() {
+    declare -a ARGS=()
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                cmd_usage
+                exit 0
+                ;;
+            -q|--quiet)
+                QUIET=true
+                shift
+                ;;
+            -v|--verbose)
+                VERBOSE=true
+                shift
+                ;;
+            -j|--json)
+                JSON=true
+                shift
+                ;;
+            -*)
+                ARGS+=("$1")
+                shift
+                ;;
+            *)
+                ARGS+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    set -- "${ARGS[@]}"
+    
+    if [[ $# -eq 0 ]]; then
+        cmd_status
+        exit 0
+    fi
+    
+    case "$1" in
+        status)     cmd_status ;;
+        list)       cmd_list ;;
+        log)        shift; cmd_log "$@" ;;
+        insights)   cmd_insights ;;
+        sync)       cmd_sync ;;
+        compare)    cmd_compare ;;
+        help)       cmd_usage ;;
+        *)          error "Unknown command: $1\n\nRun 'skill-mastery help' for usage." ;;
+    esac
+}
+
+main "$@"

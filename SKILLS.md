@@ -21,11 +21,40 @@ Unified documentation for all workspace skills. 18 skills, one ecosystem.
 | [portfolio-insights](#portfolio-insights) | Portfolio pattern analysis | ⚡ |
 | [shell-translate](#shell-translate) | Natural language → shell commands | ⚡ |
 | [skill-map](#skill-map) | Visualize skill ecosystem | ⚡ |
+| [skill-mastery](#skill-mastery) | Track skill proficiency | ⚡ |
 | [skill-registry](#skill-registry) | Skill discovery & conventions | ⚡ 📜 |
 | [skill-runner](#skill-runner) | Unified skill interface | ⚡ |
 | [skill-scaffold](#skill-scaffold) | Create new skills | ⚡ 📜 |
 
 **Legend:** ⚡ = Has executable | 📜 = Has scripts
+
+---
+
+## skill-mastery
+
+**Skill proficiency tracking** — Track usage, identify gaps, guide deliberate practice.
+
+```bash
+skill-mastery              # Dashboard view
+skill-mastery list         # All skills with mastery levels
+skill-mastery log <skill> [sat]  # Log usage (satisfaction 0-100)
+skill-mastery insights     # Recommendations and patterns
+skill-mastery sync         # Import from memory files
+```
+
+**When to use:** Understanding your skill landscape, finding practice opportunities, tracking growth.
+
+**Proficiency levels (Dreyfus model):**
+| Level | Name | Threshold |
+|-------|------|-----------|
+| 🌱 | Novice | 0 uses |
+| 🌿 | Beginner | 1+ uses |
+| 🌲 | Competent | 5+ uses |
+| ⭐ | Proficient | 20+ uses |
+| 🌟 | Expert | 50+ uses |
+| 👑 | Master | 100+ uses |
+
+**Companion to:** `ci-tracker` — cycles track activity breadth, mastery tracks capability depth.
 
 ---
 
