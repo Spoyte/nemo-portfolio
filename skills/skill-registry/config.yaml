@@ -1,0 +1,122 @@
+# Skill Registry Configuration
+# Central metadata for the skill ecosystem
+# Used by: skill-map, skill-mastery, skill-runner
+
+# Categories define the taxonomy of skills
+categories:
+  creative:
+    name: "Creative"
+    icon: "🎨"
+    color: "lightblue"
+    description: "Art generation, ideation, and creative workflows"
+  
+  dev:
+    name: "Development"
+    icon: "⚙️"
+    color: "lightgreen"
+    description: "Code, scaffolding, and development tools"
+  
+  system:
+    name: "System"
+    icon: "🔧"
+    color: "lightyellow"
+    description: "Maintenance, monitoring, and infrastructure"
+  
+  knowledge:
+    name: "Knowledge"
+    icon: "🧠"
+    color: "lightpink"
+    description: "Memory, insights, and information management"
+  
+  analysis:
+    name: "Analysis"
+    icon: "📊"
+    color: "lightcoral"
+    description: "Data analysis, auditing, and reporting"
+
+# Skill-to-category mapping
+# When adding a new skill, register it here
+skills:
+  # Creative
+  art-audit: creative
+  art-ideate: creative
+  art-insights: creative
+  art-new: creative
+  art-sync: creative
+  art-test: creative
+  art-thumbnails: creative
+  
+  # Development
+  git-workflow: dev
+  skill-map: dev
+  skill-mastery: dev
+  skill-registry: dev
+  skill-runner: dev
+  skill-scaffold: dev
+  shell-translate: dev
+  
+  # System
+  backup-restore: system
+  ci-tracker: system
+  env-diff: system
+  health-monitor: system
+  
+  # Knowledge
+  memory-log: knowledge
+  portfolio-insights: knowledge
+  
+  # Analysis
+  art-audit: analysis
+  art-insights: analysis
+  portfolio-insights: analysis
+
+# Proficiency levels (Dreyfus model)
+levels:
+  - id: 0
+    name: novice
+    emoji: "🌱"
+    threshold: 0
+    description: "Never used"
+  
+  - id: 1
+    name: beginner
+    emoji: "🌿"
+    threshold: 1
+    description: "Used once or twice"
+  
+  - id: 2
+    name: competent
+    emoji: "🌲"
+    threshold: 5
+    description: "Regular use"
+  
+  - id: 3
+    name: proficient
+    emoji: "⭐"
+    threshold: 20
+    description: "Comfortable"
+  
+  - id: 4
+    name: expert
+    emoji: "🌟"
+    threshold: 50
+    description: "Highly proficient"
+  
+  - id: 5
+    name: master
+    emoji: "👑"
+    threshold: 100
+    description: "Deep mastery"
+
+# Dependencies between skills (for graph visualization)
+dependencies:
+  skill-runner:
+    - skill-registry
+  skill-scaffold:
+    - skill-registry
+  art-new:
+    - art-test
+  art-thumbnails:
+    - art-audit
+  health-monitor:
+    - backup-restore

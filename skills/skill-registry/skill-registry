@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+#
+# skill-registry — Centralized skill metadata library
+# Source this file to access skill ecosystem metadata
+#
+# Usage:
+#   source "$(dirname "$0")/../skill-registry/skill-registry"
+#   registry::get_category "art-new"  # Returns: creative
+#   registry::get_category_icon "dev" # Returns: ⚙️
+#
+
+set -euo pipefail
+
+#───────────────────────────────────────────────────────────────────────────────
+# Configuration
+#───────────────────────────────────────────────────────────────────────────────
+
+readonly REGISTRY_DIR="${REGISTRY_DIR:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")}"
+readonly REGISTRY_CONFIG="${REGISTRY_CONFIG:-$REGISTRY_DIR/config.yaml}"
+
+# Cache for parsed values
+declare -A _CATEGORY_ICONS=()
+declare -A _CATEGORY_COLORS=()
+declare -A _CATEGORY_NAMES=()
+declare -A _SKILL_CATEGORIES=()
+declare -A _LEVEL_EMOJIS=()
+declare -A _LEVEL_THRESHOLDS=()
+declare -A _LEVEL_NAMES=()
+
+#───────────────────────────────────────────────────────────────────────────────
+# Internal: Parse YAML (lightweight, no external deps)
+#───────────────────────────────────────────────────────────────────────────────
+
+_registry_parse() {
+    [[ -f "$REGISTRY_CONFIG" ]] || return 1
+    
+    local current_section=""
+    local indent_level=0
+    local category_key=""
+    
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// /}" ]] && continue
+        
+        # Detect section (unindented key followed by colon)
+        if [[ "$line" =~ ^([a-z_]+):[[:space:]]*$ ]]; then
+            current_section="${BASH_REMATCH[1]}"
+            continue
+        fi
+        
+        # Parse categories section
+        if [[ "$current_section" == "categories" ]]; then
+            # Category key (2-space indent)
+            if [[ "$line" =~ ^[[:space:]]{2}([a-z]+):[[:space:]]*$ ]]; then
+                category_key="${BASH_REMATCH[1]}"
+                continue
+            fi
+            # Category properties (4-space indent)
+            if [[ -n "$category_key" ]] && [[ "$line" =~ ^[[:space:]]{4}([a-z_]+):[[:space:]]*(.+)$ ]]; then
+                local prop="${BASH_REMATCH[1]}"
+                local value="${BASH_REMATCH[2]}"
+                # Strip quotes if present
+                value="${value#\"}"
+                value="${value%\"}"
+                value="${value#\'}"
+                value="${value%\'}"
+                case "$prop" in
+                    name) _CATEGORY_NAMES[$category_key]="$value" ;;
+                    icon) _CATEGORY_ICONS[$category_key]="$value" ;;
+                    color) _CATEGORY_COLORS[$category_key]="$value" ;;
+                esac
+            fi
+        fi
+        
+        # Parse skills section
+        if [[ "$current_section" == "skills" ]]; then
+            if [[ "$line" =~ ^[[:space:]]{2}([a-z0-9_-]+):[[:space:]]*([a-z]+)[[:space:]]*$ ]]; then
+                local skill="${BASH_REMATCH[1]}"
+                local cat="${BASH_REMATCH[2]}"
+                _SKILL_CATEGORIES[$skill]="$cat"
+            fi
+        fi
+        
+        # Parse levels section
+        if [[ "$current_section" == "levels" ]]; then
+            # Level array item start
+            if [[ "$line" =~ ^[[:space:]]{2}-[[:space:]]+id:[[:space:]]*([0-9]+) ]]; then
+                category_key="${BASH_REMATCH[1]}"  # Reuse var for level id
+                continue
+            fi
+            # Level properties
+            if [[ -n "$category_key" ]] && [[ "$line" =~ ^[[:space:]]{4}([a-z_]+):[[:space:]]*(.+)$ ]]; then
+                local prop="${BASH_REMATCH[1]}"
+                local value="${BASH_REMATCH[2]}"
+                # Strip quotes if present
+                value="${value#\"}"
+                value="${value%\"}"
+                value="${value#\'}"
+                value="${value%\'}"
+                case "$prop" in
+                    name) _LEVEL_NAMES[$category_key]="$value" ;;
+                    emoji) _LEVEL_EMOJIS[$category_key]="$value" ;;
+                    threshold) _LEVEL_THRESHOLDS[$category_key]="$value" ;;
+                esac
+            fi
+        fi
+    done < "$REGISTRY_CONFIG"
+}
+
+# Initialize on source
+_registry_parse 2>/dev/null || true
+
+#───────────────────────────────────────────────────────────────────────────────
+# Public API: Categories
+#───────────────────────────────────────────────────────────────────────────────
+
+registry::list_categories() {
+    printf '%s\n' "${_CATEGORY_NAMES[@]}" | sort -u
+}
+
+registry::get_category_name() {
+    echo "${_CATEGORY_NAMES[$1]:-$1}"
+}
+
+registry::get_category_icon() {
+    echo "${_CATEGORY_ICONS[$1]:-📦}"
+}
+
+registry::get_category_color() {
+    echo "${_CATEGORY_COLORS[$1]:-gray}"
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Public API: Skills
+#───────────────────────────────────────────────────────────────────────────────
+
+registry::get_category() {
+    local skill="$1"
+    
+    # Check explicit mapping first
+    if [[ -n "${_SKILL_CATEGORIES[$skill]:-}" ]]; then
+        echo "${_SKILL_CATEGORIES[$skill]}"
+        return 0
+    fi
+    
+    # Fall back to naming conventions
+    case "$skill" in
+        art-*) echo "creative" ;;
+        git-*) echo "dev" ;;
+        skill-*) echo "dev" ;;
+        *-monitor|shell-*|env-*|ci-*) echo "system" ;;
+        memory-*) echo "knowledge" ;;
+        *-insights|*audit) echo "analysis" ;;
+        *) echo "other" ;;
+    esac
+}
+
+registry::list_skills_in_category() {
+    local target_cat="$1"
+    for skill in "${_!SKILL_CATEGORIES[@]}"; do
+        [[ "${_SKILL_CATEGORIES[$skill]}" == "$target_cat" ]] && echo "$skill"
+    done
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Public API: Proficiency Levels
+#───────────────────────────────────────────────────────────────────────────────
+
+registry::get_level_info() {
+    local level_id="$1"
+    local emoji="${_LEVEL_EMOJIS[$level_id]:-🌱}"
+    local name="${_LEVEL_NAMES[$level_id]:-novice}"
+    echo "$emoji $name"
+}
+
+registry::get_level_emoji() {
+    echo "${_LEVEL_EMOJIS[$1]:-🌱}"
+}
+
+registry::get_level_threshold() {
+    echo "${_LEVEL_THRESHOLDS[$1]:-0}"
+}
+
+registry::calculate_level() {
+    local invocations="${1:-0}"
+    local satisfaction="${2:-50}"
+    
+    # Find base level from thresholds
+    local base_level=0
+    for i in 5 4 3 2 1; do
+        local threshold="${_LEVEL_THRESHOLDS[$i]:-0}"
+        [[ $invocations -ge $threshold ]] && base_level=$i && break
+    done
+    
+    # Adjust by satisfaction
+    if [[ $satisfaction -ge 90 && $base_level -lt 5 ]]; then
+        base_level=$((base_level + 1))
+    elif [[ $satisfaction -le 30 && $base_level -gt 0 ]]; then
+        base_level=$((base_level - 1))
+    fi
+    
+    echo "$base_level"
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# Public API: Validation
+#───────────────────────────────────────────────────────────────────────────────
+
+registry::is_valid_category() {
+    [[ -n "${_CATEGORY_NAMES[$1]:-}" ]]
+}
+
+registry::config_exists() {
+    [[ -f "$REGISTRY_CONFIG" ]]
+}
+
+#───────────────────────────────────────────────────────────────────────────────
+# CLI Interface (for testing/inspection)
+#───────────────────────────────────────────────────────────────────────────────
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Script is being executed, not sourced
+    case "${1:-}" in
+        category)
+            registry::get_category "$2"
+            ;;
+        icon)
+            registry::get_category_icon "$2"
+            ;;
+        level)
+            registry::get_level_info "$2"
+            ;;
+        calc)
+            registry::calculate_level "$2" "$3"
+            ;;
+        *)
+            echo "Usage: skill-registry <command> [args]"
+            echo ""
+            echo "Commands:"
+            echo "  category <skill>       Get category for skill"
+            echo "  icon <category>        Get icon for category"
+            echo "  level <0-5>            Get level info"
+            echo "  calc <uses> [sat]      Calculate level"
+            ;;
+    esac
+fi

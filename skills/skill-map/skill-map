@@ -11,11 +11,19 @@
 #   skill-map --health     # Health check with status colors
 #   skill-map --deps       # Show skill dependencies
 #
+# Refactored: Uses skill-registry for centralized metadata
+#
 
 set -eo pipefail
 
 SKILLS_DIR="${SKILLS_DIR:-$HOME/.openclaw/workspace/skills}"
 BIN_DIR="${BIN_DIR:-$HOME/.openclaw/workspace/bin}"
+
+# Source the registry library
+REGISTRY_DIR="${REGISTRY_DIR:-$SKILLS_DIR/skill-registry}"
+if [[ -f "$REGISTRY_DIR/skill-registry" ]]; then
+    source "$REGISTRY_DIR/skill-registry"
+fi
 
 # Colors
 RESET='\033[0m'
@@ -27,61 +35,66 @@ BLUE='\033[34m'
 CYAN='\033[36m'
 GRAY='\033[90m'
 
-# Skill categories based on purpose
-declare -A SKILL_CATEGORIES=(
-    # Art & Creative
-    ["art-audit"]="creative"
-    ["art-ideate"]="creative"
-    ["art-new"]="creative"
-    ["art-sync"]="creative"
-    ["art-test"]="creative"
-    ["art-thumbnails"]="creative"
-    
-    # Development & Code
-    ["git-workflow"]="dev"
-    ["skill-scaffold"]="dev"
-    ["skill-registry"]="dev"
-    ["skill-runner"]="dev"
-    ["shell-translate"]="dev"
-    
-    # System & Maintenance
-    ["backup-restore"]="system"
-    ["health-monitor"]="system"
-    ["env-diff"]="system"
-    
-    # Knowledge & Memory
-    ["memory-log"]="knowledge"
-    ["portfolio-insights"]="knowledge"
-)
-
-get_category_icon() {
-    case "$1" in
-        creative) echo "🎨" ;;
-        dev) echo "⚙️" ;;
-        system) echo "🔧" ;;
-        knowledge) echo "🧠" ;;
-        *) echo "📦" ;;
-    esac
+# Fallback if registry not available
+_get_category_icon() {
+    if type registry::get_category_icon &>/dev/null; then
+        registry::get_category_icon "$1"
+    else
+        case "$1" in
+            creative) echo "🎨" ;;
+            dev) echo "⚙️" ;;
+            system) echo "🔧" ;;
+            knowledge) echo "🧠" ;;
+            analysis) echo "📊" ;;
+            *) echo "📦" ;;
+        esac
+    fi
 }
 
-get_category_name() {
-    case "$1" in
-        creative) echo "Creative" ;;
-        dev) echo "Development" ;;
-        system) echo "System" ;;
-        knowledge) echo "Knowledge" ;;
-        *) echo "Other" ;;
-    esac
+_get_category_name() {
+    if type registry::get_category_name &>/dev/null; then
+        registry::get_category_name "$1"
+    else
+        case "$1" in
+            creative) echo "Creative" ;;
+            dev) echo "Development" ;;
+            system) echo "System" ;;
+            knowledge) echo "Knowledge" ;;
+            analysis) echo "Analysis" ;;
+            *) echo "Other" ;;
+        esac
+    fi
 }
 
-get_category_color() {
-    case "$1" in
-        creative) echo "lightblue" ;;
-        dev) echo "lightgreen" ;;
-        system) echo "lightyellow" ;;
-        knowledge) echo "lightpink" ;;
-        *) echo "gray" ;;
-    esac
+_get_category_color() {
+    if type registry::get_category_color &>/dev/null; then
+        registry::get_category_color "$1"
+    else
+        case "$1" in
+            creative) echo "lightblue" ;;
+            dev) echo "lightgreen" ;;
+            system) echo "lightyellow" ;;
+            knowledge) echo "lightpink" ;;
+            analysis) echo "lightcoral" ;;
+            *) echo "gray" ;;
+        esac
+    fi
+}
+
+_get_skill_category() {
+    if type registry::get_category &>/dev/null; then
+        registry::get_category "$1"
+    else
+        case "$1" in
+            art-*) echo "creative" ;;
+            git-*) echo "dev" ;;
+            skill-*) echo "dev" ;;
+            *-monitor|shell-*|env-*|ci-*) echo "system" ;;
+            memory-*) echo "knowledge" ;;
+            *-insights|*audit) echo "analysis" ;;
+            *) echo "other" ;;
+        esac
+    fi
 }
 
 # Get skill info from SKILL.md
@@ -90,10 +103,7 @@ get_skill_info() {
     local field="$2"
     local skill_file="$SKILLS_DIR/$skill/SKILL.md"
     
-    if [[ ! -f "$skill_file" ]]; then
-        echo ""
-        return
-    fi
+    [[ -f "$skill_file" ]] || return
     
     case "$field" in
         "description")
@@ -117,19 +127,33 @@ get_skill_info() {
     esac
 }
 
+# Discover all skills
+discover_skills() {
+    for skill_dir in "$SKILLS_DIR"/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        local skill_name=$(basename "$skill_dir")
+        [[ -f "$skill_dir/SKILL.md" ]] && echo "$skill_name"
+    done
+}
+
 # Count skills by category
 count_by_category() {
     local target_category="$1"
     local count=0
     
-    for skill in "${!SKILL_CATEGORIES[@]}"; do
-        local cat="${SKILL_CATEGORIES[$skill]:-}"
-        if [[ "$cat" == "$target_category" ]]; then
-            ((count++)) || true
-        fi
-    done
+    while IFS= read -r skill; do
+        local cat=$(_get_skill_category "$skill")
+        [[ "$cat" == "$target_category" ]] && ((count++)) || true
+    done < <(discover_skills)
     
     echo "$count"
+}
+
+# Get all unique categories
+get_categories() {
+    discover_skills | while IFS= read -r skill; do
+        _get_skill_category "$skill"
+    done | sort -u
 }
 
 # Visual tree output
@@ -140,44 +164,68 @@ show_tree() {
     local total=0
     local executable=0
     
-    for category in creative dev system knowledge; do
-        local icon=$(get_category_icon "$category")
-        local name=$(get_category_name "$category")
+    # Get categories in priority order, then others
+    local ordered_cats="creative dev system knowledge analysis"
+    local all_cats=$(get_categories)
+    
+    for category in $ordered_cats; do
+        # Check if category has skills
         local count=$(count_by_category "$category")
+        [[ "$count" -eq 0 ]] && continue
+        
+        local icon=$(_get_category_icon "$category")
+        local name=$(_get_category_name "$category")
         
         echo -e "${BOLD}$icon $name${RESET} ($count skills)"
         
-        for skill in "${!SKILL_CATEGORIES[@]}"; do
-            local skill_cat="${SKILL_CATEGORIES[$skill]:-}"
-            if [[ "$skill_cat" == "$category" ]]; then
-                local raw_desc=$(get_skill_info "$skill" "description")
-                local desc=""
-                if [[ "$raw_desc" == *" — "* ]]; then
-                    desc=$(echo "$raw_desc" | sed 's/.* — //' | sed 's/\..*//' | xargs 2>/dev/null || echo "")
-                fi
-                local has_exe=$(get_skill_info "$skill" "has_executable")
-                local scripts=$(get_skill_info "$skill" "scripts_count")
-                
-                ((total++)) || true
-                [[ "$has_exe" == "yes" ]] && ((executable++)) || true
-                
-                # Status indicator
-                local status="${GREEN}✓${RESET}"
-                if [[ "$has_exe" != "yes" ]]; then
-                    status="${RED}✗${RESET}"
-                fi
-                
-                # Scripts indicator
-                local scripts_indicator=""
-                if [[ "$scripts" -gt 0 ]]; then
-                    scripts_indicator=" ${GRAY}(${scripts} scripts)${RESET}"
-                fi
-                
-                printf "  %b %-20s %s%b\n" "$status" "$skill" "$desc" "$scripts_indicator" 2>/dev/null || printf "  %s %-20s\n" "$status" "$skill"
+        while IFS= read -r skill; do
+            local skill_cat=$(_get_skill_category "$skill")
+            [[ "$skill_cat" != "$category" ]] && continue
+            
+            local raw_desc=$(get_skill_info "$skill" "description")
+            local desc=""
+            if [[ "$raw_desc" == *" — "* ]]; then
+                desc=$(echo "$raw_desc" | sed 's/.* — //' | sed 's/\..*//' | xargs 2>/dev/null || echo "")
             fi
-        done
+            local has_exe=$(get_skill_info "$skill" "has_executable")
+            local scripts=$(get_skill_info "$skill" "scripts_count")
+            
+            ((total++)) || true
+            [[ "$has_exe" == "yes" ]] && ((executable++)) || true
+            
+            # Status indicator
+            local status="${GREEN}✓${RESET}"
+            if [[ "$has_exe" != "yes" ]]; then
+                status="${RED}✗${RESET}"
+            fi
+            
+            # Scripts indicator
+            local scripts_indicator=""
+            if [[ "$scripts" -gt 0 ]]; then
+                scripts_indicator=" ${GRAY}(${scripts} scripts)${RESET}"
+            fi
+            
+            printf "  %b %-20s %s%b\n" "$status" "$skill" "$desc" "$scripts_indicator" 2>/dev/null || printf "  %s %-20s\n" "$status" "$skill"
+        done < <(discover_skills | sort)
         echo
     done
+    
+    # Handle "other" category if any
+    local other_count=$(count_by_category "other")
+    if [[ "$other_count" -gt 0 ]]; then
+        echo -e "${BOLD}📦 Other${RESET} ($other_count skills)"
+        while IFS= read -r skill; do
+            local skill_cat=$(_get_skill_category "$skill")
+            [[ "$skill_cat" != "other" ]] && continue
+            local has_exe=$(get_skill_info "$skill" "has_executable")
+            local status="${GREEN}✓${RESET}"
+            [[ "$has_exe" != "yes" ]] && status="${RED}✗${RESET}"
+            printf "  %b %-20s\n" "$status" "$skill"
+            ((total++)) || true
+            [[ "$has_exe" == "yes" ]] && ((executable++)) || true
+        done < <(discover_skills | sort)
+        echo
+    fi
     
     # Summary
     echo -e "${GRAY}─────────────────────────${RESET}"
@@ -190,7 +238,7 @@ show_health() {
     
     local issues=0
     
-    for skill in "${!SKILL_CATEGORIES[@]}"; do
+    while IFS= read -r skill; do
         local skill_dir="$SKILLS_DIR/$skill"
         local issues_list=""
         
@@ -222,7 +270,7 @@ show_health() {
             echo -e "${RED}✗${RESET} $skill ${GRAY}—$issues_list${RESET}"
             ((issues++)) || true
         fi
-    done
+    done < <(discover_skills | sort)
     
     echo
     if [[ $issues -eq 0 ]]; then
@@ -238,16 +286,19 @@ show_health() {
 show_deps() {
     echo -e "${BOLD}Skill Dependencies${RESET}\n"
     
-    echo -e "${CYAN}skill-runner${RESET} → discovers all skills via SKILL.md"
-    echo -e "${CYAN}skill-registry${RESET} → used by skill-scaffold for conventions"
-    echo -e "${CYAN}skill-scaffold${RESET} → creates skills following registry conventions"
-    echo -e "${CYAN}art-new${RESET} → uses art-test for validation"
-    echo -e "${CYAN}art-thumbnails${RESET} → uses art-audit for inventory"
-    echo -e "${CYAN}backup-restore${RESET} → captures all skills in backups"
-    echo -e "${CYAN}health-monitor${RESET} → checks SKILL.md consistency"
-    echo -e "${CYAN}git-workflow${RESET} → manages skill commits"
-    echo -e "${CYAN}shell-translate${RESET} → can invoke any skill command"
-    echo
+    # Read from registry config if available
+    if [[ -f "$REGISTRY_DIR/config.yaml" ]]; then
+        echo -e "${CYAN}From registry:${RESET}"
+        grep -A 100 "^dependencies:" "$REGISTRY_DIR/config.yaml" 2>/dev/null | \
+            grep "^[[:space:]]*[a-z-]*:" | \
+            sed 's/://g' | \
+            while IFS= read -r skill; do
+                local deps=$(grep -A 10 "^  $skill:" "$REGISTRY_DIR/config.yaml" | grep "^    -" | sed 's/    - //' | tr '\n' ', ' | sed 's/, $//')
+                [[ -n "$deps" ]] && echo -e "  ${CYAN}$skill${RESET} → $deps"
+            done
+        echo
+    fi
+    
     echo -e "${GRAY}Meta: Skills form a self-referential ecosystem${RESET}"
 }
 
@@ -259,31 +310,51 @@ show_graph() {
     echo
     
     # Category clusters
-    for category in creative dev system knowledge; do
-        local color=$(get_category_color "$category")
-        local name=$(get_category_name "$category")
+    local ordered_cats="creative dev system knowledge analysis"
+    
+    for category in $ordered_cats; do
+        local count=$(count_by_category "$category")
+        [[ "$count" -eq 0 ]] && continue
+        
+        local color=$(_get_category_color "$category")
+        local name=$(_get_category_name "$category")
         
         echo "  subgraph cluster_$category {"
         echo "    label=\"$name\";"
         echo "    style=filled;"
         echo "    color=$color;"
         
-        for skill in "${!SKILL_CATEGORIES[@]}"; do
-            local skill_cat="${SKILL_CATEGORIES[$skill]:-}"
-            if [[ "$skill_cat" == "$category" ]]; then
-                echo "    \"$skill\";"
-            fi
-        done
+        while IFS= read -r skill; do
+            local skill_cat=$(_get_skill_category "$skill")
+            [[ "$skill_cat" == "$category" ]] && echo "    \"$skill\";"
+        done < <(discover_skills)
         echo "  }"
         echo
     done
     
-    # Edges (key relationships)
-    echo "  // Dependencies"
-    echo "  \"skill-runner\" -> \"skill-registry\";"
-    echo "  \"skill-scaffold\" -> \"skill-registry\";"
-    echo "  \"art-new\" -> \"art-test\";"
-    echo "  \"health-monitor\" -> \"backup-restore\";"
+    # Edges from registry
+    if [[ -f "$REGISTRY_DIR/config.yaml" ]]; then
+        echo "  // Dependencies from registry"
+        local in_deps=false
+        local current_skill=""
+        
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^dependencies: ]]; then
+                in_deps=true
+                continue
+            fi
+            $in_deps || continue
+            [[ "$line" =~ ^[a-z] ]] && break  # End of dependencies section
+            
+            if [[ "$line" =~ ^[[:space:]]{2}([a-z-]+): ]]; then
+                current_skill="${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^[[:space:]]{4}-[[:space:]]+([a-z-]+) ]]; then
+                local dep="${BASH_REMATCH[1]}"
+                echo "  \"$current_skill\" -> \"$dep\";"
+            fi
+        done < "$REGISTRY_DIR/config.yaml"
+    fi
+    
     echo "}"
 }
 
