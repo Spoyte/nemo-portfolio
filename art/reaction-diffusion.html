@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction-Diffusion - Gray-Scott Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        .container {
+            position: relative;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 200, 150, 0.2);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        .controls {
+            background: rgba(20, 20, 30, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            width: 220px;
+            border: 1px solid rgba(100, 200, 150, 0.2);
+        }
+        .controls h3 {
+            color: #6c8;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: #6c8;
+        }
+        .control-group .value {
+            color: #6c8;
+            font-size: 11px;
+            text-align: right;
+        }
+        .presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .preset-btn {
+            background: rgba(100, 200, 150, 0.1);
+            border: 1px solid rgba(100, 200, 150, 0.3);
+            color: #6c8;
+            padding: 6px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .preset-btn:hover {
+            background: rgba(100, 200, 150, 0.2);
+        }
+        .preset-btn.active {
+            background: rgba(100, 200, 150, 0.4);
+        }
+        .color-schemes {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .color-btn {
+            width: 30px;
+            height: 20px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .color-btn.active {
+            border-color: #fff;
+        }
+        .action-btn {
+            width: 100%;
+            background: rgba(100, 200, 150, 0.2);
+            border: 1px solid rgba(100, 200, 150, 0.4);
+            color: #6c8;
+            padding: 10px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-transform: uppercase;
+        }
+        .action-btn:hover {
+            background: rgba(100, 200, 150, 0.3);
+        }
+        .info {
+            position: absolute;
+            bottom: 20px;
+            color: #444;
+            font-size: 12px;
+            text-align: center;
+            width: 100%;
+        }
+        .stats {
+            color: #666;
+            font-size: 10px;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="canvas"></canvas>
+        <div class="controls">
+            <h3>Gray-Scott Model</h3>
+            
+            <div class="presets">
+                <button class="preset-btn active" data-f="0.054" data-k="0.063">Coral</button>
+                <button class="preset-btn" data-f="0.035" data-k="0.065">Leopard</button>
+                <button class="preset-btn" data-f="0.03" data-k="0.062">Zebra</button>
+                <button class="preset-btn" data-f="0.026" data-k="0.051">Mitosis</button>
+                <button class="preset-btn" data-f="0.078" data-k="0.061">Worms</button>
+                <button class="preset-btn" data-f="0.062" data-k="0.061">U-Skate</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Feed Rate (F)</label>
+                <input type="range" id="feedRate" min="0.01" max="0.1" step="0.001" value="0.054">
+                <div class="value" id="feedValue">0.054</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Kill Rate (k)</label>
+                <input type="range" id="killRate" min="0.045" max="0.07" step="0.001" value="0.063">
+                <div class="value" id="killValue">0.063</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Diffusion Rate U</label>
+                <input type="range" id="diffU" min="0.1" max="0.3" step="0.01" value="0.16">
+                <div class="value" id="diffUValue">0.16</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Diffusion Rate V</label>
+                <input type="range" id="diffV" min="0.01" max="0.1" step="0.01" value="0.08">
+                <div class="value" id="diffVValue">0.08</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Color Scheme</label>
+                <div class="color-schemes">
+                    <div class="color-btn active" data-scheme="coral" style="background: linear-gradient(90deg, #1a1a2e, #e94560)"></div>
+                    <div class="color-btn" data-scheme="ocean" style="background: linear-gradient(90deg, #0a1628, #00d4aa)"></div>
+                    <div class="color-btn" data-scheme="ember" style="background: linear-gradient(90deg, #1a0a0a, #ff6b35)"></div>
+                    <div class="color-btn" data-scheme="toxic" style="background: linear-gradient(90deg, #0a1a0a, #39ff14)"></div>
+                    <div class="color-btn" data-scheme="gold" style="background: linear-gradient(90deg, #1a150a, #ffd700)"></div>
+                </div>
+            </div>
+            
+            <button class="action-btn" id="resetBtn">Reset Simulation</button>
+            <button class="action-btn" id="pauseBtn">Pause / Resume</button>
+            <button class="action-btn" id="clearBtn">Clear Canvas</button>
+            
+            <div class="stats" id="stats">Iterations: 0</div>
+        </div>
+    </div>
+    <div class="info">Reaction-Diffusion | Gray-Scott Model | Click to seed | Drag to draw</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Simulation parameters
+        const width = 400;
+        const height = 400;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Grid size (simulation resolution)
+        const gridSize = 200;
+        const cellWidth = width / gridSize;
+        const cellHeight = height / gridSize;
+        
+        // Gray-Scott parameters
+        let params = {
+            f: 0.054,      // Feed rate
+            k: 0.063,      // Kill rate
+            Du: 0.16,      // Diffusion rate of U
+            Dv: 0.08,      // Diffusion rate of V
+            dt: 1.0        // Time step
+        };
+        
+        // Chemical concentrations
+        let U = new Float32Array(gridSize * gridSize);
+        let V = new Float32Array(gridSize * gridSize);
+        let U_next = new Float32Array(gridSize * gridSize);
+        let V_next = new Float32Array(gridSize * gridSize);
+        
+        // Simulation state
+        let isRunning = true;
+        let iterationCount = 0;
+        let colorScheme = 'coral';
+        
+        // Color schemes
+        const colorSchemes = {
+            coral: { bg: [26, 26, 46], fg: [233, 69, 96] },
+            ocean: { bg: [10, 22, 40], fg: [0, 212, 170] },
+            ember: { bg: [26, 10, 10], fg: [255, 107, 53] },
+            toxic: { bg: [10, 26, 10], fg: [57, 255, 20] },
+            gold: { bg: [26, 21, 10], fg: [255, 215, 0] }
+        };
+        
+        // Initialize grid
+        function initialize() {
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                U[i] = 1.0;
+                V[i] = 0.0;
+            }
+            
+            // Seed a small region in the center
+            seedRegion(gridSize / 2, gridSize / 2, 10);
+            
+            iterationCount = 0;
+        }
+        
+        // Seed a region with V
+        function seedRegion(cx, cy, radius) {
+            for (let y = Math.max(0, cy - radius); y < Math.min(gridSize, cy + radius); y++) {
+                for (let x = Math.max(0, cx - radius); x < Math.min(gridSize, cx + radius); x++) {
+                    const dx = x - cx;
+                    const dy = y - cy;
+                    if (dx * dx + dy * dy < radius * radius) {
+                        const idx = y * gridSize + x;
+                        U[idx] = 0.5;
+                        V[idx] = 0.25;
+                    }
+                }
+            }
+        }
+        
+        // Laplacian operator (5-point stencil)
+        function laplacian(arr, x, y) {
+            const idx = y * gridSize + x;
+            const left = x > 0 ? arr[idx - 1] : arr[idx];
+            const right = x < gridSize - 1 ? arr[idx + 1] : arr[idx];
+            const up = y > 0 ? arr[idx - gridSize] : arr[idx];
+            const down = y < gridSize - 1 ? arr[idx + gridSize] : arr[idx];
+            
+            return left + right + up + down - 4 * arr[idx];
+        }
+        
+        // One simulation step
+        function step() {
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const idx = y * gridSize + x;
+                    const u = U[idx];
+                    const v = V[idx];
+                    
+                    // Reaction term
+                    const reaction = u * v * v;
+                    
+                    // Laplacian for diffusion
+                    const lu = laplacian(U, x, y);
+                    const lv = laplacian(V, x, y);
+                    
+                    // Gray-Scott equations
+                    U_next[idx] = u + params.dt * (params.Du * lu - reaction + params.f * (1 - u));
+                    V_next[idx] = v + params.dt * (params.Dv * lv + reaction - (params.f + params.k) * v);
+                    
+                    // Clamp values
+                    U_next[idx] = Math.max(0, Math.min(1, U_next[idx]));
+                    V_next[idx] = Math.max(0, Math.min(1, V_next[idx]));
+                }
+            }
+            
+            // Swap buffers
+            [U, U_next] = [U_next, U];
+            [V, V_next] = [V_next, V];
+            
+            iterationCount++;
+        }
+        
+        // Render the simulation
+        function render() {
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+            
+            const scheme = colorSchemes[colorScheme];
+            const [bgR, bgG, bgB] = scheme.bg;
+            const [fgR, fgG, fgB] = scheme.fg;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    // Map canvas coordinates to grid
+                    const gx = Math.floor(x / cellWidth);
+                    const gy = Math.floor(y / cellHeight);
+                    const gidx = gy * gridSize + gx;
+                    
+                    const v = V[gidx] || 0;
+                    
+                    // Interpolate between background and foreground based on V
+                    const t = Math.min(1, v * 3);
+                    const r = Math.floor(bgR + (fgR - bgR) * t);
+                    const g = Math.floor(bgG + (fgG - bgG) * t);
+                    const b = Math.floor(bgB + (fgB - bgB) * t);
+                    
+                    const idx = (y * width + x) * 4;
+                    data[idx] = r;
+                    data[idx + 1] = g;
+                    data[idx + 2] = b;
+                    data[idx + 3] = 255;
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Update stats
+            document.getElementById('stats').textContent = `Iterations: ${iterationCount}`;
+        }
+        
+        // Animation loop
+        function animate() {
+            if (isRunning) {
+                // Run multiple steps per frame for faster simulation
+                for (let i = 0; i < 10; i++) {
+                    step();
+                }
+                render();
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        // UI Event handlers
+        document.getElementById('feedRate').addEventListener('input', (e) => {
+            params.f = parseFloat(e.target.value);
+            document.getElementById('feedValue').textContent = params.f.toFixed(3);
+            updatePresetButtons();
+        });
+        
+        document.getElementById('killRate').addEventListener('input', (e) => {
+            params.k = parseFloat(e.target.value);
+            document.getElementById('killValue').textContent = params.k.toFixed(3);
+            updatePresetButtons();
+        });
+        
+        document.getElementById('diffU').addEventListener('input', (e) => {
+            params.Du = parseFloat(e.target.value);
+            document.getElementById('diffUValue').textContent = params.Du.toFixed(2);
+        });
+        
+        document.getElementById('diffV').addEventListener('input', (e) => {
+            params.Dv = parseFloat(e.target.value);
+            document.getElementById('diffVValue').textContent = params.Dv.toFixed(2);
+        });
+        
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                params.f = parseFloat(btn.dataset.f);
+                params.k = parseFloat(btn.dataset.k);
+                
+                document.getElementById('feedRate').value = params.f;
+                document.getElementById('killRate').value = params.k;
+                document.getElementById('feedValue').textContent = params.f.toFixed(3);
+                document.getElementById('killValue').textContent = params.k.toFixed(3);
+                
+                updatePresetButtons();
+                btn.classList.add('active');
+            });
+        });
+        
+        function updatePresetButtons() {
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                const f = parseFloat(btn.dataset.f);
+                const k = parseFloat(btn.dataset.k);
+                if (Math.abs(params.f - f) < 0.001 && Math.abs(params.k - k) < 0.001) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        // Color scheme buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                colorScheme = btn.dataset.scheme;
+            });
+        });
+        
+        // Action buttons
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            initialize();
+        });
+        
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            isRunning = !isRunning;
+        });
+        
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                U[i] = 1.0;
+                V[i] = 0.0;
+            }
+            iterationCount = 0;
+        });
+        
+        // Canvas interactions
+        let isDrawing = false;
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            addSeed(e);
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                addSeed(e);
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            addSeed(e);
+        });
+        
+        function addSeed(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / cellWidth);
+            const y = Math.floor((e.clientY - rect.top) / cellHeight);
+            seedRegion(x, y, 5);
+        }
+        
+        // Initialize and start
+        initialize();
+        animate();
+    </script>
+</body>
+</html>
