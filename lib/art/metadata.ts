@@ -572,6 +572,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "3d", "detailed", "futuristic"],
     created: "2026-03-02",
   },
+  "volumetric-mist": {
+    category: "3d",
+    complexity: "expert",
+    tags: ["animated", "3d", "atmospheric", "detailed", "colorful", "volumetric"],
+    created: "2026-03-04",
+  },
   "apollonian-gasket": {
     category: "mathematical",
     complexity: "complex",

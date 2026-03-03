@@ -711,6 +711,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderSDFSculptor",
     importName: "sdfSculptor",
   },
+  {
+    id: "volumetric-mist",
+    name: "Volumetric Mist",
+    description: "Ray-marched atmospheric fog with dynamic volumetric lighting and participating media simulation",
+    category: "3d",
+    loader: () => import("./volumetric-mist"),
+    renderFnName: "generateVolumetricMist",
+    importName: "volumetricMist",
+  },
 
   // === INTERACTIVE (10) ===
   {

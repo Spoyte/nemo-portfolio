@@ -121,11 +121,12 @@ import { poetryVisualizer } from "./poetry-visualizer";
 import { codeGarden } from "./code-garden";
 import { calligraphyBrush } from "./calligraphy-brush";
 
-// === 3D (4) ===
+// === 3D (5) ===
 import { lightCaverns } from "./light-caverns";
 import { polyhedralSculptures } from "./polyhedral-sculptures";
 import { crystalLattice } from "./crystal-lattice";
 import { sdfSculptor } from "./sdf-sculptor";
+import { volumetricMist } from "./volumetric-mist";
 
 // === INTERACTIVE (8) ===
 import { floatingLetters } from "./floating-letters";
@@ -235,6 +236,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "polyhedral-sculptures": polyhedralSculptures,
   "crystal-lattice": crystalLattice,
   "sdf-sculptor": sdfSculptor,
+  "volumetric-mist": volumetricMist,
 
   // === INTERACTIVE ===
   "floating-letters": floatingLetters,
