@@ -276,6 +276,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "colorful", "detailed"],
     created: "2026-02-28",
   },
+  "stippled-portraits": {
+    category: "traditional",
+    complexity: "moderate",
+    tags: ["static", "colorful", "detailed", "ordered"],
+    created: "2026-03-03",
+  },
   "moire-pattern": {
     category: "geometric",
     complexity: "moderate",

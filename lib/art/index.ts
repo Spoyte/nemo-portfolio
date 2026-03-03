@@ -112,6 +112,7 @@ import { crossHatching } from "./cross-hatching";
 import { weavingLoom } from "./weaving-loom";
 import { inkDiffusion } from "./ink-diffusion";
 import { paperMarbling } from "./paper-marbling";
+import { stippledPortraits } from "./stippled-portraits";
 
 // === TEXT (5) ===
 import { kineticTypography } from "./kinetic-typography";
@@ -220,6 +221,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "weaving-loom": weavingLoom,
   "ink-diffusion": inkDiffusion,
   "paper-marbling": paperMarbling,
+  "stippled-portraits": stippledPortraits,
 
   // === TEXT ===
   "kinetic-typography": kineticTypography,

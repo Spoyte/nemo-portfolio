@@ -644,6 +644,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderPaperMarbling",
     importName: "paperMarbling",
   },
+  {
+    id: "stippled-portraits",
+    name: "Stippled Portraits",
+    description: "Procedural pointillism creating detailed portraits from thousands of tiny dots - traditional stippling art through density fields",
+    category: "traditional",
+    loader: () => import("./stippled-portraits"),
+    renderFnName: "create",
+    importName: "stippledPortraits",
+  },
 
   // === TEXT (5) ===
   {
