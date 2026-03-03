@@ -120,9 +120,9 @@ detect_activity_from_memory() {
         return
     fi
     
-    # Look for continuous improvement entries
+    # Look for continuous improvement entries (capture more lines for context)
     local content
-    content=$(grep -A 5 "Continuous Improvement Cycle" "$memory_file" 2>/dev/null || true)
+    content=$(grep -A 10 "Continuous Improvement Cycle" "$memory_file" 2>/dev/null || true)
     
     if [[ -z "$content" ]]; then
         echo "unknown"
@@ -130,15 +130,16 @@ detect_activity_from_memory() {
     fi
     
     # Detect activity type from the entry
-    if echo "$content" | grep -qi "research"; then
+    # Check for explicit Activity line first (newer format)
+    if echo "$content" | grep -qi "Activity:.*research\|research.*topic"; then
         echo "research"
-    elif echo "$content" | grep -qi "create"; then
+    elif echo "$content" | grep -qi "Activity:.*create\|create.*generative\|create.*art\|create.*script"; then
         echo "create"
-    elif echo "$content" | grep -qi "refactor"; then
+    elif echo "$content" | grep -qi "Activity:.*refactor\|refactor.*code\|refactor.*existing"; then
         echo "refactor"
-    elif echo "$content" | grep -qi "write"; then
+    elif echo "$content" | grep -qi "Activity:.*write\|write.*diary\|write.*reflect"; then
         echo "write"
-    elif echo "$content" | grep -qi "build.*skill"; then
+    elif echo "$content" | grep -qi "Activity:.*build\|build.*skill\|build.*new"; then
         echo "build"
     else
         echo "unknown"
@@ -212,11 +213,11 @@ cmd_status() {
     longest_streak=${longest_streak:-0}
     
     local first_cycle
-    first_cycle=$(echo "$state" | grep -o '"first_cycle": "[^"]*"' | cut -d'"' -f4)
+    first_cycle=$(echo "$state" | grep -o '"first_cycle": "[^"]*"' | cut -d'"' -f4 || echo "")
     first_cycle=${first_cycle:-"never"}
     
     local last_cycle
-    last_cycle=$(echo "$state" | grep -o '"last_cycle": "[^"]*"' | cut -d'"' -f4)
+    last_cycle=$(echo "$state" | grep -o '"last_cycle": "[^"]*"' | cut -d'"' -f4 || echo "")
     last_cycle=${last_cycle:-"never"}
     
     echo ""
@@ -452,7 +453,7 @@ cmd_sync() {
             # Log it
             local now="${date_str}T12:00:00+08:00"
             echo "{\"timestamp\":\"$now\",\"activity\":\"$activity\",\"notes\":\"auto-sync\"}" >> "$HISTORY_FILE"
-            ((count++))
+            count=$((count + 1))
         fi
     done
     
@@ -465,7 +466,7 @@ cmd_sync() {
         done
         
         while read -r line; do
-            ((total++))
+            total=$((total + 1))
             local activity
             activity=$(echo "$line" | grep -o '"activity":"[^"]*"' | cut -d'"' -f4)
             activity_counts[$activity]=$((${activity_counts[$activity]:-0} + 1))
