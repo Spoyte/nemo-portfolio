@@ -608,6 +608,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "interactive", "colorful", "audio", "organic"],
     created: "2026-03-02",
   },
+  "volumetric-clouds": {
+    category: "abstract",
+    complexity: "complex",
+    tags: ["animated", "3d", "atmospheric", "volumetric", "natural"],
+    created: "2026-03-04",
+  },
 };
 
 // Helper function to get metadata for a generator

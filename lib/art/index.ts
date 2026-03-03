@@ -30,7 +30,7 @@ export {
 
 // ============================================================================
 // STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-02 17:33:15
+// Generated: 2026-03-04 01:28:22
 // Do not edit manually - run: art-sync
 // ============================================================================
 
@@ -103,7 +103,7 @@ import { lenia } from "./lenia";
 import { selfOrganizingMap } from "./self-organizing-map";
 import { langtonsAnt } from "./langtons-ant";
 
-// === TRADITIONAL (8) ===
+// === TRADITIONAL (9) ===
 import { digitalWeave } from "./digital-weave";
 import { stainedGlass } from "./stained-glass";
 import { watercolorDreams } from "./watercolor-dreams";

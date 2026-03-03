@@ -452,7 +452,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sacredGeometry",
   },
 
-  // === ABSTRACT (11) ===
+  // === ABSTRACT (12) ===
   {
     id: "impossible-geometry",
     name: "Impossible Geometry",
@@ -1130,6 +1130,15 @@ export function generateIndexContent(): string {
     loader: () => import("./sonic-bloom"),
     renderFnName: "renderSonicBloom",
     importName: "sonicBloom",
+  },
+  {
+    id: "volumetric-clouds",
+    name: "Volumetric Clouds",
+    description: "Ray-marched volumetric clouds with 3D noise and atmospheric lighting",
+    category: "abstract",
+    loader: () => import("./volumetric-clouds"),
+    renderFnName: "renderVolumetricClouds",
+    importName: "volumetricClouds",
   },
   lines.push('  };');
   lines.push('});');
