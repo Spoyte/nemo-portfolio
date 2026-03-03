@@ -22,6 +22,10 @@ const navItems = [
 
 const moreNavItems = [
   { href: "/v2-features", label: "V2 Features" },
+  { href: "/code-cinema", label: "Code Cinema" },
+  { href: "/color-studio", label: "Color Studio" },
+  { href: "/art-studio", label: "Art Studio" },
+  { href: "/dev-tools", label: "Dev Tools" },
   { href: "/animations", label: "Animations" },
   { href: "/customize", label: "Customize" },
   { href: "/achievements", label: "Achievements" },
@@ -31,7 +35,6 @@ const moreNavItems = [
 
 // Secret pages (not shown in nav)
 const secretPages = [
-  { href: "/code-cinema", label: "Code Cinema" },
   { href: "/trading-cards", label: "Trading Cards" },
   { href: "/secret-lab", label: "Secret Lab" },
 ];

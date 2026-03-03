@@ -16,7 +16,11 @@ import {
   ChevronDown,
   Layers,
   Keyboard,
-  MousePointer
+  MousePointer,
+  Film,
+  Wrench,
+  Palette as PaletteIcon,
+  Brush
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnhancedVisitorCounter } from "@/components/enhanced-visitor-counter";
@@ -286,48 +290,63 @@ export default function Home() {
             </p>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ScrollReveal delay={0.1}>
               <SpotlightCard className="h-full">
-                <Link href="/new-features" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Layers className="w-6 h-6 text-white" />
+                <Link href="/code-cinema" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Film className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">3D Project Cards</h3>
+                  <h3 className="text-lg font-semibold mb-2">Code Cinema</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Tilt-responsive cards with dynamic glare effects and smooth animations.
+                    Watch code come to life with typewriter animations and syntax highlighting.
                   </p>
-                  <Badge variant="outline">Try it →</Badge>
+                  <Badge variant="outline">Watch →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.2}>
               <SpotlightCard className="h-full">
-                <Link href="/new-features" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Keyboard className="w-6 h-6 text-white" />
+                <Link href="/color-studio" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <PaletteIcon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Typing Challenge</h3>
+                  <h3 className="text-lg font-semibold mb-2">Color Studio</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Test your typing speed with real-time WPM tracking and accuracy scoring.
+                    Generate beautiful color palettes with harmony algorithms and export options.
                   </p>
-                  <Badge variant="outline">Play now →</Badge>
+                  <Badge variant="outline">Create →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.3}>
               <SpotlightCard className="h-full">
-                <Link href="/new-features" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <MousePointer className="w-6 h-6 text-white" />
+                <Link href="/art-studio" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Brush className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Spotlight Effects</h3>
+                  <h3 className="text-lg font-semibold mb-2">Generative Art</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Mouse-following spotlight that illuminates content as you explore.
+                    Create algorithmic artwork with interactive controls and animations.
                   </p>
-                  <Badge variant="outline">Explore →</Badge>
+                  <Badge variant="outline">Generate →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.4}>
+              <SpotlightCard className="h-full">
+                <Link href="/dev-tools" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Wrench className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Dev Tools</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Essential utilities: UUID, password generator, JSON formatter, and more.
+                  </p>
+                  <Badge variant="outline">Use →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>

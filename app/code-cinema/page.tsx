@@ -2,705 +2,764 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Volume2, 
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
   VolumeX,
   Maximize,
+  Minimize,
   Settings,
   Film,
-  Star,
-  Clock,
-  Users,
-  Heart,
-  Share2,
-  Plus,
-  Check,
   Sparkles,
   Code2,
-  Terminal,
+  Palette,
   Zap,
-  Award
+  Clock,
+  ChevronRight,
+  Star,
+  Heart,
+  Share2,
+  Download,
+  Subtitles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollReveal } from "@/components/scroll-animations";
 
-// Movie/TV Show styled code presentations
-interface CodeMovie {
+interface CinemaScene {
   id: string;
   title: string;
-  subtitle: string;
   description: string;
-  genre: string[];
-  duration: string;
-  year: string;
-  rating: number;
-  views: string;
-  thumbnail: string;
+  code: string;
+  language: string;
+  duration: number;
+  tags: string[];
   color: string;
-  code: string[];
-  highlights: string[];
 }
 
-const codeMovies: CodeMovie[] = [
+const cinemaScenes: CinemaScene[] = [
   {
-    id: "the-algorithm",
-    title: "The Algorithm",
-    subtitle: "A Journey into Sorting",
-    description: "Watch as data comes alive in this visual masterpiece exploring the beauty of sorting algorithms. From bubble sort's chaotic dance to merge sort's elegant divide-and-conquer, experience code like never before.",
-    genre: ["Animation", "Educational", "Visual"],
-    duration: "12:34",
-    year: "2024",
-    rating: 4.9,
-    views: "2.4M",
-    thumbnail: "🎬",
-    color: "from-purple-600 to-blue-600",
-    code: [
-      "function mergeSort(arr) {",
-      "  if (arr.length <= 1) return arr;",
-      "  const mid = Math.floor(arr.length / 2);",
-      "  const left = mergeSort(arr.slice(0, mid));",
-      "  const right = mergeSort(arr.slice(mid));",
-      "  return merge(left, right);",
-      "}",
-      "",
-      "// The dance of division and conquer",
-      "// Each split, a new universe of possibility"
-    ],
-    highlights: ["Stunning Visualizations", "Interactive Playback", "Step-by-Step Breakdown"]
-  },
-  {
-    id: "async-awaits",
-    title: "Async/Awaits",
-    subtitle: "Promises in the Dark",
-    description: "A noir thriller following Detective Promise as she navigates the shadowy world of asynchronous JavaScript. Callbacks, promises, and async/await collide in this suspenseful code narrative.",
-    genre: ["Thriller", "Noir", "Drama"],
-    duration: "18:22",
-    year: "2024",
-    rating: 4.7,
-    views: "1.8M",
-    thumbnail: "🕵️",
-    color: "from-slate-700 to-slate-900",
-    code: [
-      "async function solveTheCase() {",
-      "  const clues = await gatherEvidence();",
-      "  const suspect = await interrogate(clues);",
-      "  ",
-      "  if (suspect.alibi) {",
-      "    return investigateFurther(suspect);",
-      "  }",
-      "  ",
-      "  return Promise.resolve('Case closed');",
-      "}"
-    ],
-    highlights: ["Cinematic Storytelling", "Real-world Examples", "Best Practices"]
-  },
-  {
-    id: "recursion",
-    title: "Recursion",
-    subtitle: "The Infinite Loop",
-    description: "A mind-bending sci-fi adventure exploring the recursive nature of reality. When a function calls itself, how deep does the rabbit hole go? Features stunning fractal visualizations.",
-    genre: ["Sci-Fi", "Mind-Bending", "Art"],
-    duration: "24:15",
-    year: "2024",
-    rating: 4.8,
-    views: "3.1M",
-    thumbnail: "🌀",
-    color: "from-emerald-500 to-cyan-600",
-    code: [
-      "function dream(depth = 0) {",
-      "  if (depth > reality.layers) {",
-      "    return wakeUp();",
-      "  }",
-      "  ",
-      "  console.log(`Dream level: ${depth}`);",
-      "  return dream(depth + 1); // Deeper...",
-      "}",
-      "",
-      "// To understand recursion",
-      "// You must first understand recursion"
-    ],
-    highlights: ["Fractal Visualizations", "Philosophical Depth", "Interactive Examples"]
-  },
-  {
-    id: "the-framework",
-    title: "The Framework",
-    subtitle: "Rise of Components",
-    description: "An epic saga spanning the evolution of frontend frameworks. From jQuery's humble beginnings to React's component revolution, witness the history of modern web development.",
-    genre: ["Documentary", "Historical", "Epic"],
-    duration: "45:00",
-    year: "2024",
-    rating: 4.9,
-    views: "5.2M",
-    thumbnail: "⚔️",
-    color: "from-orange-500 to-red-600",
-    code: [
-      "// The old ways...",
-      "$('#button').click(function() {",
-      "  alert('Hello World');",
-      "});",
-      "",
-      "// The new era",
-      "const Button = () => {",
-      "  const [count, setCount] = useState(0);",
-      "  return <button>{count}</button>;",
-      "};"
-    ],
-    highlights: ["Historical Context", "Framework Comparison", "Future Predictions"]
-  },
-  {
-    id: "regex-mystery",
-    title: "Regex Mystery",
-    subtitle: "The Pattern Killer",
-    description: "A gripping crime procedural where only Regular Expressions can solve the case. Follow the pattern, catch the bug. Warning: Contains nested groups and lookahead assertions.",
-    genre: ["Crime", "Mystery", "Suspense"],
-    duration: "32:18",
-    year: "2024",
-    rating: 4.6,
-    views: "980K",
-    thumbnail: "🔍",
-    color: "from-amber-600 to-yellow-500",
-    code: [
-      "const pattern = /^(?=.*[A-Z])(?=.*[0-9])",
-      "  (?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{8,}$/;",
-      "",
-      "// Some say it's write-only code",
-      "// Others say it's an art form",
-      "",
-      "const isValid = pattern.test(password);"
-    ],
-    highlights: ["Pattern Breakdown", "Interactive Tester", "Cheat Sheet"]
-  },
-  {
-    id: "css-in-wonderland",
-    title: "CSS in Wonderland",
-    subtitle: "Through the Looking Glass",
-    description: "A whimsical journey through the magical world of CSS. Watch as elements transform, flex, and grid their way through a fantastical landscape of styles and animations.",
-    genre: ["Fantasy", "Art", "Tutorial"],
-    duration: "28:45",
-    year: "2024",
-    rating: 4.8,
-    views: "2.1M",
-    thumbnail: "🎩",
-    color: "from-pink-500 to-rose-600",
-    code: [
-      ".wonderland {",
-      "  display: grid;",
-      "  place-items: center;",
-      "  transform: perspective(1000px)",
-      "             rotateX(45deg);",
-      "  animation: fall 3s infinite;",
-      "}",
-      "",
-      "// Curiouser and curiouser!"
-    ],
-    highlights: ["Creative Animations", "Layout Magic", "Visual Effects"]
-  }
-];
+    id: "1",
+    title: "The Birth of React",
+    description: "Watch how a simple component comes to life",
+    language: "tsx",
+    duration: 15,
+    tags: ["React", "Components"],
+    color: "#61DAFB",
+    code: `import { useState, useEffect } from 'react';
 
-// Typewriter effect for code
-function TypewriterCode({ code, isPlaying, speed = 50 }: { code: string[]; isPlaying: boolean; speed?: number }) {
-  const [displayedLines, setDisplayedLines] = useState<string[]>([]);
-  const [currentLine, setCurrentLine] = useState(0);
-  const [currentChar, setCurrentChar] = useState(0);
+export function MagicCounter() {
+  const [count, setCount] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
-    if (!isPlaying) return;
-    
-    if (currentLine >= code.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedLines([]);
-        setCurrentLine(0);
-        setCurrentChar(0);
-      }, 2000);
-      return () => clearTimeout(timeout);
+    if (count > 0) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 300);
+      return () => clearTimeout(timer);
     }
-
-    const line = code[currentLine];
-    
-    if (currentChar < line.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedLines(prev => {
-          const newLines = [...prev];
-          newLines[currentLine] = (newLines[currentLine] || '') + line[currentChar];
-          return newLines;
-        });
-        setCurrentChar(prev => prev + 1);
-      }, speed);
-      return () => clearTimeout(timeout);
-    } else {
-      const timeout = setTimeout(() => {
-        setCurrentLine(prev => prev + 1);
-        setCurrentChar(0);
-      }, 300);
-      return () => clearTimeout(timeout);
-    }
-  }, [isPlaying, currentLine, currentChar, code, speed]);
+  }, [count]);
 
   return (
-    <div className="font-mono text-sm leading-relaxed">
-      {code.map((line, i) => (
-        <div key={i} className="flex">
-          <span className="text-muted-foreground w-8 text-right mr-4 select-none">
-            {i + 1}
-          </span>
-          <span className={`
-            ${line.startsWith('//') || line.startsWith('/*') ? 'text-green-500' : ''}
-            ${line.includes('function') || line.includes('const') || line.includes('let') || line.includes('var') ? 'text-purple-400' : ''}
-            ${line.includes('return') ? 'text-blue-400' : ''}
-            ${line.includes('if') || line.includes('else') ? 'text-pink-400' : ''}
-          `}>
-            {displayedLines[i] || ''}
-            {i === currentLine && isPlaying && (
-              <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-0.5" />
-            )}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Cinema Screen Component
-function CinemaScreen({ movie, isPlaying }: { movie: CodeMovie; isPlaying: boolean }) {
-  return (
-    <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
-      {/* Film grain effect */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
+    <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500">
+      <h2 className="text-2xl font-bold text-white mb-4">
+        Magic Counter
+      </h2>
       
-      {/* Code display */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-[5] bg-[length:100%_2px,3px_100%] pointer-events-none" />
-        
-        <motion.div 
-          className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-br ${movie.color} opacity-20 blur-3xl`}
-          animate={{ 
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0]
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-        />
-        
-        <div className="relative z-10 h-full flex flex-col">
-          <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
-            <Terminal className="w-3 h-3" />
-            <span>main.{movie.id}.js</span>
-            <span className="ml-auto">UTF-8</span>
-          </div>
-          
-          <div className="flex-1 overflow-hidden">
-            <TypewriterCode code={movie.code} isPlaying={isPlaying} />
-          </div>
-          
-          {/* Scanline */}
-          <motion.div 
-            className="absolute left-0 right-0 h-px bg-primary/30 z-20"
-            animate={{ top: ['0%', '100%', '0%'] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          />
-        </div>
+      <div className={\`
+        text-6xl font-bold text-white text-center
+        transition-transform duration-300
+        \${isAnimating ? 'scale-125' : 'scale-100'}
+      \`}>
+        {count}
       </div>
       
-      {/* Movie title overlay */}
-      <AnimatePresence>
-        {!isPlaying && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-black/60 z-20"
-          >
-            <div className="text-center">
-              <motion.div 
-                className="text-6xl mb-4"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                {movie.thumbnail}
-              </motion.div>
-              <h3 className="text-2xl font-bold text-white">{movie.title}</h3>
-              <p className="text-white/70">{movie.subtitle}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Playing indicator */}
-      {isPlaying && (
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
-          <div className="flex gap-0.5">
-            {[1, 2, 3, 4].map(i => (
-              <motion.div
-                key={i}
-                className="w-1 bg-primary"
-                animate={{ height: [8, 24, 8] }}
-                transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
-              />
-            ))}
-          </div>
-          <span className="text-xs text-white/70">LIVE</span>
-        </div>
-      )}
+      <div className="flex gap-3 mt-6 justify-center">
+        <button
+          onClick={() => setCount(c => c + 1)}
+          className="px-6 py-3 bg-white/20 hover:bg-white/30 
+                     rounded-xl text-white font-medium
+                     transition-all active:scale-95"
+        >
+          ✨ Add Magic
+        </button>
+        
+        <button
+          onClick={() => setCount(0)}
+          className="px-6 py-3 bg-white/10 hover:bg-white/20 
+                     rounded-xl text-white/80
+                     transition-all active:scale-95"
+        >
+          Reset
+        </button>
+      </div>
     </div>
   );
-}
+}`,
+  },
+  {
+    id: "2",
+    title: "The Animation Awakens",
+    description: "Bringing motion to static interfaces",
+    language: "tsx",
+    duration: 20,
+    tags: ["Framer Motion", "Animation"],
+    color: "#FF6B6B",
+    code: `import { motion, AnimatePresence } from 'framer-motion';
 
-// Movie Card Component
-function MovieCard({ movie, isSelected, onClick }: { movie: CodeMovie; isSelected: boolean; onClick: () => void }) {
-  const [isHovered, setIsHovered] = useState(false);
-  
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 100,
+      damping: 12
+    }
+  }
+};
+
+export function AnimatedGrid() {
+  const items = ['Design', 'Code', 'Ship', 'Repeat'];
+
   return (
     <motion.div
-      layout
-      onClick={onClick}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      className={`
-        cursor-pointer rounded-xl overflow-hidden transition-all duration-300
-        ${isSelected ? 'ring-2 ring-primary' : ''}
-        ${isHovered ? 'scale-105' : 'scale-100'}
-      `}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-2 gap-4 p-6"
     >
-      <div className={`aspect-video bg-gradient-to-br ${movie.color} relative p-4 flex flex-col justify-end`}>
-        <div className="absolute top-2 right-2">
-          <Badge variant="secondary" className="bg-black/50 text-white border-0">
-            <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
-            {movie.rating}
-          </Badge>
-        </div>
-        
-        <div className="text-4xl mb-2">{movie.thumbnail}</div>
-        
-        <div className="relative z-10">
-          <h4 className="font-bold text-white text-sm line-clamp-1">{movie.title}</h4>
-          <p className="text-white/70 text-xs line-clamp-1">{movie.subtitle}</p>
-        </div>
-        
-        {/* Hover overlay */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 flex items-center justify-center"
-            >
-              <Play className="w-12 h-12 text-white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      
-      <div className="p-3 bg-card border-x border-b border-border">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="w-3 h-3" />
-          {movie.duration}
-          <span className="mx-1">•</span>
-          {movie.year}
-        </div>
-      </div>
+      {items.map((item, index) => (
+        <motion.div
+          key={item}
+          variants={itemVariants}
+          whileHover={{ 
+            scale: 1.05,
+            rotate: index % 2 === 0 ? 2 : -2
+          }}
+          whileTap={{ scale: 0.95 }}
+          className={\`
+            p-8 rounded-2xl font-bold text-xl text-white
+            flex items-center justify-center cursor-pointer
+            \${index === 0 ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
+              : index === 1 ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+              : index === 2 ? 'bg-gradient-to-br from-orange-500 to-red-500'
+              : 'bg-gradient-to-br from-green-500 to-emerald-500'
+            }
+          \`}
+        >
+          {item}
+        </motion.div>
+      ))}
     </motion.div>
   );
+}`,
+  },
+  {
+    id: "3",
+    title: "The TypeScript Chronicles",
+    description: "Type safety in a dynamic world",
+    language: "ts",
+    duration: 18,
+    tags: ["TypeScript", "Types"],
+    color: "#3178C6",
+    code: `// Define our universe
+type Status = 'idle' | 'loading' | 'success' | 'error';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user' | 'guest';
+  metadata?: Record<string, unknown>;
+}
+
+interface ApiResponse<T> {
+  data: T;
+  status: Status;
+  timestamp: Date;
+  message?: string;
+}
+
+// The guardian function
+type Result<T, E = Error> = 
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+async function fetchUser(id: string): Promise<Result<User>> {
+  try {
+    const response = await fetch(\`/api/users/\${id}\`);
+    
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: new Error(\`HTTP \${response.status}\`)
+      };
+    }
+    
+    const data: ApiResponse<User> = await response.json();
+    
+    return { ok: true, value: data.data };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error : new Error('Unknown error')
+    };
+  }
+}
+
+// Usage with full type safety
+const result = await fetchUser('123');
+
+if (result.ok) {
+  console.log(result.value.name); // ✓ Type-safe access
+} else {
+  console.error(result.error.message); // ✓ Type-safe error handling
+}`,
+  },
+  {
+    id: "4",
+    title: "The Hook Heist",
+    description: "Stealing complexity with custom hooks",
+    language: "ts",
+    duration: 22,
+    tags: ["React", "Hooks"],
+    color: "#FFD93D",
+    code: `import { useState, useEffect, useCallback, useRef } from 'react';
+
+interface UseFetchOptions<T> {
+  url: string;
+  initialData?: T;
+  refreshInterval?: number;
+  onError?: (error: Error) => void;
+}
+
+interface UseFetchReturn<T> {
+  data: T | undefined;
+  loading: boolean;
+  error: Error | null;
+  refetch: () => void;
+  abort: () => void;
+}
+
+export function useFetch<T>({
+  url,
+  initialData,
+  refreshInterval,
+  onError
+}: UseFetchOptions<T>): UseFetchReturn<T> {
+  const [data, setData] = useState<T | undefined>(initialData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const fetchData = useCallback(async () => {
+    // Cancel previous request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(url, {
+        signal: abortControllerRef.current.signal
+      });
+      
+      if (!response.ok) {
+        throw new Error(\`HTTP Error: \${response.status}\`);
+      }
+      
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err);
+        onError?.(err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [url, onError]);
+
+  useEffect(() => {
+    fetchData();
+    
+    // Auto-refresh setup
+    let intervalId: NodeJS.Timeout;
+    if (refreshInterval && refreshInterval > 0) {
+      intervalId = setInterval(fetchData, refreshInterval);
+    }
+    
+    return () => {
+      abortControllerRef.current?.abort();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [fetchData, refreshInterval]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData,
+    abort: () => abortControllerRef.current?.abort()
+  };
+}`,
+  },
+];
+
+// Syntax highlighting colors
+const syntaxColors: Record<string, string> = {
+  keyword: "#ff79c6",
+  string: "#f1fa8c",
+  comment: "#6272a4",
+  function: "#50fa7b",
+  number: "#bd93f9",
+  operator: "#ff79c6",
+  punctuation: "#f8f8f2",
+  tag: "#ff79c6",
+  attribute: "#50fa7b",
+  plain: "#f8f8f2",
+};
+
+function highlightCode(code: string): JSX.Element[] {
+  const lines = code.split("\n");
+  return lines.map((line, lineIndex) => {
+    const parts: JSX.Element[] = [];
+    let remaining = line;
+    let keyIndex = 0;
+
+    // Simple syntax highlighting patterns
+    const patterns = [
+      { regex: /(\/\/.*$)/, type: "comment" },
+      { regex: /(\/\*[\s\S]*?\*\/)/, type: "comment" },
+      { regex: /('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)/, type: "string" },
+      { regex: /\b(import|export|from|const|let|var|function|return|if|else|for|while|switch|case|break|continue|try|catch|finally|async|await|new|this|class|interface|type|extends|implements|public|private|protected|static|readonly)\b/, type: "keyword" },
+      { regex: /\b(true|false|null|undefined)\b/, type: "keyword" },
+      { regex: /\b(\d+\.?\d*)\b/, type: "number" },
+      { regex: /\b([A-Z][a-zA-Z0-9]*)\b/, type: "function" },
+      { regex: /([{}[\]()])/g, type: "punctuation" },
+      { regex: /([=+\-*/<>!&|]+)/g, type: "operator" },
+    ];
+
+    while (remaining.length > 0) {
+      let matched = false;
+      
+      for (const pattern of patterns) {
+        const match = remaining.match(pattern.regex);
+        if (match && match.index === 0) {
+          const color = syntaxColors[pattern.type] || syntaxColors.plain;
+          parts.push(
+            <span key={keyIndex++} style={{ color }}>
+              {match[0]}
+            </span>
+          );
+          remaining = remaining.slice(match[0].length);
+          matched = true;
+          break;
+        }
+      }
+      
+      if (!matched) {
+        parts.push(
+          <span key={keyIndex++} style={{ color: syntaxColors.plain }}>
+            {remaining[0]}
+          </span>
+        );
+        remaining = remaining.slice(1);
+      }
+    }
+
+    return (
+      <div key={lineIndex} className="flex">
+        <span className="w-12 text-right pr-4 text-muted-foreground/50 select-none text-sm">
+          {lineIndex + 1}
+        </span>
+        <span className="flex-1 text-sm font-mono">{parts.length > 0 ? parts : " "}</span>
+      </div>
+    );
+  });
 }
 
 export default function CodeCinemaPage() {
-  const [selectedMovie, setSelectedMovie] = useState<CodeMovie>(codeMovies[0]);
+  const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
-  const [watchlist, setWatchlist] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("featured");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [showSubtitles, setShowSubtitles] = useState(true);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [typedCode, setTypedCode] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Simulate progress
+  const currentScene = cinemaScenes[currentSceneIndex];
+
+  // Typewriter effect for code
   useEffect(() => {
     if (!isPlaying) return;
-    
-    const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          setIsPlaying(false);
-          return 0;
-        }
-        return p + 0.5;
-      });
-    }, 100);
-    
-    return () => clearInterval(interval);
-  }, [isPlaying]);
 
-  const toggleWatchlist = (id: string) => {
-    setWatchlist(prev => 
-      prev.includes(id) 
-        ? prev.filter(m => m !== id)
-        : [...prev, id]
+    const code = currentScene.code;
+    const duration = (currentScene.duration * 1000) / playbackSpeed;
+    const charDelay = duration / code.length;
+    let currentIndex = 0;
+
+    const interval = setInterval(() => {
+      if (currentIndex <= code.length) {
+        setTypedCode(code.slice(0, currentIndex));
+        setProgress((currentIndex / code.length) * 100);
+        currentIndex++;
+      } else {
+        setIsPlaying(false);
+        setProgress(100);
+      }
+    }, charDelay);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, currentScene, playbackSpeed]);
+
+  // Reset when scene changes
+  useEffect(() => {
+    setTypedCode("");
+    setProgress(0);
+    setIsPlaying(false);
+  }, [currentSceneIndex]);
+
+  const handlePlayPause = () => {
+    if (progress >= 100) {
+      setProgress(0);
+      setTypedCode("");
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSceneChange = (direction: "next" | "prev") => {
+    if (direction === "next") {
+      setCurrentSceneIndex((prev) => (prev + 1) % cinemaScenes.length);
+    } else {
+      setCurrentSceneIndex((prev) => (prev - 1 + cinemaScenes.length) % cinemaScenes.length);
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await containerRef.current?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
     );
   };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-16 bg-background">
+    <div className="min-h-screen pt-20 pb-8" ref={containerRef}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-red-600 to-red-800">
-              <Film className="w-6 h-6 text-white" />
-            </div>
+        <ScrollReveal className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Code Cinema</h1>
-              <p className="text-muted-foreground">Where code meets cinema</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Main Cinema Display */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <CinemaScreen movie={selectedMovie} isPlaying={isPlaying} />
-          
-          {/* Player Controls */}
-          <div className="mt-4 bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center gap-4 mb-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setProgress(0)}
-              >
-                <SkipBack className="w-5 h-5" />
-              </Button>
-              
-              <Button
-                size="icon"
-                className="h-12 w-12"
-                onClick={() => setIsPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setProgress(p => Math.min(100, p + 10))}
-              >
-                <SkipForward className="w-5 h-5" />
-              </Button>
-              
-              <div className="flex-1 mx-4">
-                <Slider
-                  value={[progress]}
-                  onValueChange={([v]) => setProgress(v)}
-                  max={100}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>{formatTime(progress * 10)}</span>
-                  <span>{selectedMovie.duration}</span>
+              <div className="flex items-center gap-3 mb-2">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: currentScene.color + "20" }}
+                >
+                  <Film className="w-6 h-6" style={{ color: currentScene.color }} />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">Code Cinema</h1>
+                  <p className="text-muted-foreground text-sm">
+                    Watch code come to life, one keystroke at a time
+                  </p>
                 </div>
               </div>
-              
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatTime(currentScene.duration / playbackSpeed)}
+              </Badge>
+              <Badge variant="secondary">{currentScene.language.toUpperCase()}</Badge>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* Cinema Screen */}
+        <ScrollReveal delay={0.1}>
+          <div className="relative rounded-2xl overflow-hidden bg-[#1e1e2e] border border-border shadow-2xl">
+            {/* Screen Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#181825] border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <span className="ml-4 text-sm text-muted-foreground font-mono">
+                  {currentScene.title.replace(/\s+/g, "-").toLowerCase()}.{currentScene.language}
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsMuted(!isMuted)}
+                  className="h-8 w-8"
+                  onClick={() => toggleFavorite(currentScene.id)}
                 >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  <Heart
+                    className={`w-4 h-4 ${
+                      favorites.includes(currentScene.id) ? "fill-red-500 text-red-500" : ""
+                    }`}
+                  />
                 </Button>
-                <div className="w-24">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Code Display */}
+            <div className="relative h-[400px] md:h-[500px] overflow-auto p-6">
+              <div className="font-mono text-sm leading-relaxed">
+                {highlightCode(typedCode)}
+                {isPlaying && (
+                  <motion.span
+                    animate={{ opacity: [1, 0] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                    className="inline-block w-2 h-5 bg-primary ml-0.5"
+                  />
+                )}
+              </div>
+
+              {/* Subtitles */}
+              <AnimatePresence>
+                {showSubtitles && isPlaying && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/80 rounded-xl text-center"
+                  >
+                    <p className="text-white text-sm">{currentScene.description}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="h-1 bg-muted">
+              <motion.div
+                className="h-full bg-primary"
+                style={{ width: `${progress}%` }}
+                transition={{ duration: 0.1 }}
+              />
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-between px-4 py-4 bg-[#181825] border-t border-border/50">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => handleSceneChange("prev")}>
+                  <SkipBack className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={handlePlayPause}
+                >
+                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleSceneChange("next")}>
+                  <SkipForward className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* Volume */}
+                <div className="hidden sm:flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsMuted(!isMuted)}>
+                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  </Button>
                   <Slider
                     value={[isMuted ? 0 : volume]}
                     onValueChange={([v]) => setVolume(v)}
                     max={100}
+                    step={1}
+                    className="w-24"
                   />
                 </div>
-              </div>
-              
-              <Button variant="ghost" size="icon">
-                <Settings className="w-5 h-5" />
-              </Button>
-              
-              <Button variant="ghost" size="icon">
-                <Maximize className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            {/* Movie Info */}
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-bold">{selectedMovie.title}</h2>
-                <p className="text-muted-foreground">{selectedMovie.subtitle}</p>
-                <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    {selectedMovie.rating}
-                  </span>
-                  <span>{selectedMovie.year}</span>
-                  <span>{selectedMovie.duration}</span>
-                  <span>{selectedMovie.views} views</span>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {selectedMovie.genre.map(g => (
-                    <Badge key={g} variant="secondary">{g}</Badge>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleWatchlist(selectedMovie.id)}
-                >
-                  {watchlist.includes(selectedMovie.id) ? (
-                    <><Check className="w-4 h-4 mr-1" /> Added</>
-                  ) : (
-                    <><Plus className="w-4 h-4 mr-1" /> Watchlist</>
-                  )}
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Share2 className="w-4 h-4 mr-1" /> Share
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Heart className="w-4 h-4 mr-1" /> Like
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="featured">
-              <Sparkles className="w-4 h-4 mr-1" /> Featured
-            </TabsTrigger>
-            <TabsTrigger value="movies">
-              <Film className="w-4 h-4 mr-1" /> All Movies
-            </TabsTrigger>
-            <TabsTrigger value="watchlist">
-              <Heart className="w-4 h-4 mr-1" /> Watchlist ({watchlist.length})
-            </TabsTrigger>
-            <TabsTrigger value="about">
-              <Code2 className="w-4 h-4 mr-1" /> About
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="featured" className="mt-0">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {codeMovies.slice(0, 4).map(movie => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  isSelected={selectedMovie.id === movie.id}
-                  onClick={() => {
-                    setSelectedMovie(movie);
-                    setIsPlaying(false);
-                    setProgress(0);
-                  }}
-                />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="movies" className="mt-0">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {codeMovies.map(movie => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  isSelected={selectedMovie.id === movie.id}
-                  onClick={() => {
-                    setSelectedMovie(movie);
-                    setIsPlaying(false);
-                    setProgress(0);
-                  }}
-                />
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="watchlist" className="mt-0">
-            {watchlist.length === 0 ? (
-              <div className="text-center py-16">
-                <Heart className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Your watchlist is empty</h3>
-                <p className="text-muted-foreground">Add movies to watch them later</p>
+                {/* Settings */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 ${showSettings ? "bg-primary/20" : ""}`}
+                  onClick={() => setShowSettings(!showSettings)}
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+
+                {/* Subtitles */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 ${showSubtitles ? "bg-primary/20" : ""}`}
+                  onClick={() => setShowSubtitles(!showSubtitles)}
+                >
+                  <Subtitles className="w-4 h-4" />
+                </Button>
+
+                {/* Fullscreen */}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen}>
+                  {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                </Button>
               </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {codeMovies.filter(m => watchlist.includes(m.id)).map(movie => (
-                  <MovieCard
-                    key={movie.id}
-                    movie={movie}
-                    isSelected={selectedMovie.id === movie.id}
-                    onClick={() => {
-                      setSelectedMovie(movie);
-                      setIsPlaying(false);
-                      setProgress(0);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="about" className="mt-0">
-            <Card>
-              <CardContent className="p-8">
-                <div className="max-w-2xl mx-auto text-center">
-                  <Film className="w-16 h-16 mx-auto mb-6 text-primary" />
-                  <h2 className="text-2xl font-bold mb-4">Welcome to Code Cinema</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Code Cinema is an experimental platform that presents programming concepts 
-                    as cinematic experiences. Each "movie" is a carefully crafted journey through 
-                    code, combining visual storytelling with technical education.
-                  </p>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <Zap className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                      <p className="font-semibold">Interactive</p>
-                      <p className="text-sm text-muted-foreground">Hands-on learning</p>
-                    </div>
-                    <div>
-                      <Award className="w-8 h-8 mx-auto mb-2 text-purple-500" />
-                      <p className="font-semibold">Cinematic</p>
-                      <p className="text-sm text-muted-foreground">Visual storytelling</p>
-                    </div>
-                    <div>
-                      <Code2 className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                      <p className="font-semibold">Educational</p>
-                      <p className="text-sm text-muted-foreground">Learn by watching</p>
+            </div>
+
+            {/* Settings Panel */}
+            <AnimatePresence>
+              {showSettings && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-[#181825] border-t border-border/50 px-4 py-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Playback Speed</span>
+                    <div className="flex gap-2">
+                      {[0.5, 1, 1.5, 2].map((speed) => (
+                        <Button
+                          key={speed}
+                          variant={playbackSpeed === speed ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPlaybackSpeed(speed)}
+                        >
+                          {speed}x
+                        </Button>
+                      ))}
                     </div>
                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </ScrollReveal>
+
+        {/* Scene Info */}
+        <ScrollReveal delay={0.2} className="mt-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">{currentScene.title}</h2>
+              <p className="text-muted-foreground">{currentScene.description}</p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {currentScene.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary">
+                    <Code2 className="w-3 h-3 mr-1" />
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Download Code
+              </Button>
+              <Button className="gap-2">
+                <Sparkles className="w-4 h-4" />
+                Try It Live
+              </Button>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* Scene Playlist */}
+        <ScrollReveal delay={0.3} className="mt-12">
+          <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <Film className="w-5 h-5 text-primary" />
+            More Scenes
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {cinemaScenes.map((scene, index) => (
+              <motion.button
+                key={scene.id}
+                onClick={() => setCurrentSceneIndex(index)}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  currentSceneIndex === index
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: scene.color + "20" }}
+                  >
+                    <Code2 className="w-5 h-5" style={{ color: scene.color }} />
+                  </div>
+                  {favorites.includes(scene.id) && <Heart className="w-4 h-4 text-red-500 fill-red-500" />}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                <h4 className="font-semibold mb-1 line-clamp-1">{scene.title}</h4>
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{scene.description}</p>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{scene.language.toUpperCase()}</span>
+                  <span>{formatTime(scene.duration)}</span>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </ScrollReveal>
+
+        {/* Stats */}
+        <ScrollReveal delay={0.4} className="mt-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { icon: Film, label: "Total Scenes", value: cinemaScenes.length },
+              { icon: Clock, label: "Total Runtime", value: formatTime(cinemaScenes.reduce((acc, s) => acc + s.duration, 0)) },
+              { icon: Star, label: "Favorites", value: favorites.length },
+              { icon: Zap, label: "Languages", value: new Set(cinemaScenes.map((s) => s.language)).size },
+            ].map((stat) => (
+              <div key={stat.label} className="p-4 rounded-xl bg-card border border-border text-center">
+                <stat.icon className="w-5 h-5 mx-auto mb-2 text-primary" />
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
       </div>
     </div>
   );
