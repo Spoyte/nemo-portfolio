@@ -104,6 +104,31 @@ write_state() {
     echo "$1" > "$STATE_FILE"
 }
 
+# Get skill invocation count from state (uses jq if available)
+get_skill_count() {
+    local state="$1"
+    local skill="$2"
+    
+    if command -v jq &>/dev/null; then
+        echo "$state" | jq -r --arg s "$skill" '.skills[$s]?.invocations // 0'
+    else
+        # Fallback grep parsing
+        echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0
+    fi
+}
+
+# Get skill average satisfaction from state
+get_skill_satisfaction() {
+    local state="$1"
+    local skill="$2"
+    
+    if command -v jq &>/dev/null; then
+        echo "$state" | jq -r --arg s "$skill" '.skills[$s]?.average_satisfaction // 50'
+    else
+        echo 50
+    fi
+}
+
 #───────────────────────────────────────────────────────────────────────────────
 # Skill Discovery
 #───────────────────────────────────────────────────────────────────────────────
@@ -274,7 +299,7 @@ cmd_status() {
         declare -A skill_counts
         
         for skill in $(discover_skills); do
-            local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+            local count=$(get_skill_count "$state" "$skill")
             skill_counts[$skill]=$count
             [[ $count -gt $max_count ]] && max_count=$count
         done
@@ -296,7 +321,7 @@ cmd_status() {
     # Unused skills
     local unused=()
     for skill in $(discover_skills); do
-        local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        local count=$(get_skill_count "$state" "$skill")
         [[ "$count" == "0" ]] && unused+=("$skill")
     done
     
@@ -332,14 +357,8 @@ cmd_list() {
     echo ""
     
     for skill in $(discover_skills | sort); do
-        local skill_data=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" || echo "")
-        local count=0
-        local satisfaction=50
-        
-        if [[ -n "$skill_data" ]]; then
-            count=$(echo "$skill_data" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
-            satisfaction=$(echo "$skill_data" | grep -o '"satisfaction": [0-9]*' | grep -o '[0-9]*' || echo 50)
-        fi
+        local count=$(get_skill_count "$state" "$skill")
+        local satisfaction=$(get_skill_satisfaction "$state" "$skill")
         
         local level=$(calculate_level $count $satisfaction)
         local level_str=$(get_level_info $level)
@@ -424,6 +443,35 @@ cmd_log() {
     local new_level=$(calculate_level $new_count $new_avg_sat)
     local level_str=$(get_level_info $new_level)
     
+    # Update mastery.json state file using jq if available, otherwise use sed approach
+    if command -v jq &>/dev/null; then
+        local new_state=$(echo "$state" | jq --arg skill "$skill" \
+            --argjson count "$new_count" \
+            --argjson total_sat "$new_total_sat" \
+            --argjson log_count "$new_log_count" \
+            --argjson avg_sat "$new_avg_sat" \
+            --argjson level "$new_level" \
+            --arg now "$now" \
+            '.skills[$skill] = {
+                "invocations": $count,
+                "total_satisfaction": $total_sat,
+                "log_count": $log_count,
+                "average_satisfaction": $avg_sat,
+                "level": $level,
+                "last_used": $now
+            } | .stats.total_invocations += 1 | .last_updated = $now')
+        
+        # Update unique skills count
+        local unique_count=$(echo "$new_state" | jq '.skills | keys | length')
+        new_state=$(echo "$new_state" | jq --argjson uc "$unique_count" '.stats.unique_skills_used = $uc')
+        
+        write_state "$new_state"
+    else
+        # Fallback: regenerate state from usage log on next read
+        # For now, just append to usage log - state will be rebuilt
+        :
+    fi
+    
     success "Logged: $skill (use #$new_count, satisfaction: $satisfaction%, level: $level_str)"
 }
 
@@ -439,7 +487,7 @@ cmd_insights() {
         # Find underused skills
         local first=true
         for skill in $(discover_skills); do
-            local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+            local count=$(get_skill_count "$state" "$skill")
             if [[ "$count" == "0" ]]; then
                 if $first; then
                     first=false
@@ -467,7 +515,7 @@ cmd_insights() {
     local experts=()
     
     for skill in $(discover_skills); do
-        local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        local count=$(get_skill_count "$state" "$skill")
         local level=$(calculate_level $count)
         
         if [[ "$count" == "0" ]]; then
@@ -517,7 +565,7 @@ cmd_insights() {
     done
     
     for skill in $(discover_skills); do
-        local count=$(echo "$state" | grep -o "\"$skill\": {[^}]*}" | grep -o '"invocations": [0-9]*' | grep -o '[0-9]*' || echo 0)
+        local count=$(get_skill_count "$state" "$skill")
         local cat=$(get_skill_category "$skill")
         category_counts[$cat]=$((${category_counts[$cat]:-0} + count))
     done
