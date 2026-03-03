@@ -512,9 +512,11 @@ export default function DeveloperStatsPage() {
                         </Badge>
                       </div>
                       
-                      <{goal.completed ? CheckCircle2 : "div"}
-                        className={`w-6 h-6 ${goal.completed ? "text-green-500" : ""}`}
-                      />
+                      {goal.completed ? (
+                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                      ) : (
+                        <div className="w-6 h-6" />
+                      )}
                     </motion.button>
                   ))}
                 </div>

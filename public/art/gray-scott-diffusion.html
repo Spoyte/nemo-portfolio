@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gray-Scott Diffusion — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #05050a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      image-rendering: pixelated;
+    }
+    .controls {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+    }
+    .param-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .param-controls input[type="range"] { width: 80px; }
+    .param-controls select {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .buttons {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button:hover { background: #2a2a2a; color: #aaa; }
+  </style>
+</head>
+<body>
+  <canvas id="art" width="300" height="300" style="width: 600px; height: 600px;"></canvas>
+  <div class="controls">Gray-Scott Reaction-Diffusion — Turing patterns from chemical morphogenesis</div>
+  <div class="param-controls">
+    <label>Pattern: <select id="pattern"><option value="coral" selected>Coral</option><option value="zebra">Zebra</option><option value="bacteria">Bacteria</option><option value="fingerprint">Fingerprint</option><option value="waves">Waves</option></select></label>
+    <label>Colors: <select id="colorScheme"><option value="heat" selected>Heat</option><option value="ocean">Ocean</option><option value="neon">Neon</option><option value="natural">Natural</option><option value="monochrome">Mono</option></select></label>
+    <label>Speed: <input type="range" id="speed" min="1" max="10" value="5"></label>
+    <label>Animated: <input type="checkbox" id="animated" checked></label>
+  </div>
+  <div class="buttons"><button id="regenerate">Reset</button><button id="download">Download</button></div>
+  <script>
+    const canvas = document.getElementById('art'), ctx = canvas.getContext('2d');
+    let animationId, gridA = new Float32Array(90000), gridB = new Float32Array(90000);
+    let nextA = new Float32Array(90000), nextB = new Float32Array(90000);
+    const width = 300, height = 300;
+    const patterns = { coral: {f:0.0545,k:0.062}, zebra: {f:0.035,k:0.06}, bacteria: {f:0.037,k:0.06}, fingerprint: {f:0.037,k:0.064}, waves: {f:0.018,k:0.05} };
+    function getColor(b, s) { const i = Math.min(1,b*2); switch(s){ case 'heat': return [255*i,100*i,50*i]; case 'ocean': return [50*i,100*i,200*i+55]; case 'neon': return [100*i,255*i,150*i]; case 'natural': return [139*i+50,90*i+40,43*i+20]; default: return [i*255,i*255,i*255]; } }
+    function init() { for(let i=0;i<90000;i++){gridA[i]=1;gridB[i]=0;} for(let y=140;y<160;y++)for(let x=140;x<160;x++){const dx=x-150,dy=y-150;if(dx*dx+dy*dy<100)gridB[y*300+x]=1;} }
+    function laplacian(g,x,y){const i=y*300+x;let s=g[i]*-1;s+=(g[(y-1)*300+x]||0)*0.2;s+=(g[(y+1)*300+x]||0)*0.2;s+=(g[y*300+x-1]||0)*0.2;s+=(g[y*300+x+1]||0)*0.2;s+=(g[(y-1)*300+x-1]||0)*0.05;s+=(g[(y-1)*300+x+1]||0)*0.05;s+=(g[(y+1)*300+x-1]||0)*0.05;s+=(g[(y+1)*300+x+1]||0)*0.05;return s;}
+    function step(f,k){for(let y=1;y<299;y++)for(let x=1;x<299;x++){const i=y*300+x,a=gridA[i],b=gridB[i],r=a*b*b;nextA[i]=Math.max(0,Math.min(1,a+laplacian(gridA,x,y)-r+f*(1-a)));nextB[i]=Math.max(0,Math.min(1,b+0.5*laplacian(gridB,x,y)+r-(k+f)*b));} [gridA,nextA]=[nextA,gridA]; [gridB,nextB]=[nextB,gridB]; }
+    function draw(cs){const img=ctx.createImageData(300,300);for(let i=0;i<90000;i++){const c=getColor(gridB[i],cs);img.data[i*4]=c[0];img.data[i*4+1]=c[1];img.data[i*4+2]=c[2];img.data[i*4+3]=255;}ctx.putImageData(img,0,0);}
+    function render(){const p=patterns[document.getElementById('pattern').value],cs=document.getElementById('colorScheme').value,sp=parseInt(document.getElementById('speed').value);for(let i=0;i<sp;i++)step(p.f,p.k);draw(cs);if(document.getElementById('animated').checked)animationId=requestAnimationFrame(render);}
+    init(); render();
+    document.getElementById('regenerate').onclick=()=>{init();if(animationId)cancelAnimationFrame(animationId);render();};
+    document.getElementById('download').onclick=()=>{const l=document.createElement('a');l.download='gray-scott.png';l.href=canvas.toDataURL();l.click();};
+    document.querySelectorAll('input,select').forEach(el=>el.onchange=()=>{if(animationId)cancelAnimationFrame(animationId);render();});
+  </script>
+</body>
+</html>

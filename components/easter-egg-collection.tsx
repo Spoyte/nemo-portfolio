@@ -340,11 +340,9 @@ export function EasterEggCollection() {
                           )}
                         </div>
 
-                        <{egg.unlocked ? Unlock : Lock}
-                          className={`w-4 h-4 ${
-                            egg.unlocked ? "text-white/60" : "text-muted-foreground"
-                          }`}
-                        />
+                        <span>
+                          {egg.unlocked ? <Unlock className="w-4 h-4 text-white/60" /> : <Lock className="w-4 h-4 text-muted-foreground" />}
+                        </span>
                       </div>
                     </motion.div>
                   ))}

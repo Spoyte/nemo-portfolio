@@ -16,10 +16,17 @@ const navItems = [
   { href: "/skills", label: "Skills" },
   { href: "/projects", label: "Projects" },
   { href: "/cases", label: "Cases" },
-  { href: "/stats", label: "Stats" },
   { href: "/blog", label: "Blog" },
-  { href: "/uses", label: "Uses" },
   { href: "/contact", label: "Contact" },
+];
+
+const moreNavItems = [
+  { href: "/v2-features", label: "V2 Features" },
+  { href: "/animations", label: "Animations" },
+  { href: "/customize", label: "Customize" },
+  { href: "/achievements", label: "Achievements" },
+  { href: "/stats", label: "Stats" },
+  { href: "/uses", label: "Uses" },
 ];
 
 // Secret pages (not shown in nav)
@@ -88,7 +95,7 @@ export function Navigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
+                  className={`relative px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
                     pathname === item.href
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -104,6 +111,28 @@ export function Navigation() {
                   <span className="relative">{item.label}</span>
                 </Link>
               ))}
+              
+              {/* More Dropdown */}
+              <div className="relative group">
+                <button className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg">
+                  More
+                </button>
+                <div className="absolute top-full right-0 mt-2 w-48 py-2 rounded-xl bg-popover border shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                  {moreNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`block px-4 py-2 text-sm transition-colors ${
+                        pathname === item.href
+                          ? "text-primary bg-primary/10"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </nav>
 
             {/* Right Side */}
@@ -156,7 +185,7 @@ export function Navigation() {
           >
             <div className="glass-strong mx-4 rounded-2xl p-4 shadow-xl">
               <nav className="flex flex-col gap-2">
-                {navItems.map((item, index) => (
+                {[...navItems, ...moreNavItems].map((item, index) => (
                   <motion.div
                     key={item.href}
                     initial={{ opacity: 0, x: -20 }}

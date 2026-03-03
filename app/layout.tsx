@@ -13,6 +13,8 @@ import { AIChatWidget } from "@/components/ai-chat-widget";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
 import { MiniMusicPlayer } from "@/components/mini-music-player";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { TerminalToggle } from "@/components/interactive-terminal";
+import { EasterEggHunt } from "@/components/easter-egg-hunt";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -72,6 +74,9 @@ export default function RootLayout({
           
           {/* Easter Egg Collection */}
           <EasterEggCollection />
+          
+          {/* Easter Egg Hunt */}
+          <EasterEggHunt />
           
           {/* Terminal Toggle */}
           <TerminalToggle />

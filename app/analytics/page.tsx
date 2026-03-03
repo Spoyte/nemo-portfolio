@@ -1,172 +1,179 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  BarChart3, 
-  LineChart, 
-  PieChart, 
-  TrendingUp, 
-  Users, 
-  Eye, 
-  Clock, 
-  Globe, 
+import {
+  BarChart3,
+  Users,
+  Eye,
+  Clock,
+  Globe,
   Monitor,
   Smartphone,
   Tablet,
+  TrendingUp,
+  TrendingDown,
   MousePointer,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  Download,
-  RefreshCw,
   MapPin,
-  Search,
-  ExternalLink
+  Calendar,
+  ArrowUpRight,
+  Activity,
+  Zap,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ScrollReveal } from "@/components/scroll-animations";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Bar,
-  BarChart,
-  Pie,
-  Cell,
-  Legend
-} from "recharts";
+import { Progress } from "@/components/ui/progress";
 
-// Mock data for analytics
-const trafficData = [
-  { date: "Mon", visitors: 120, pageViews: 340 },
-  { date: "Tue", visitors: 145, pageViews: 420 },
-  { date: "Wed", visitors: 180, pageViews: 520 },
-  { date: "Thu", visitors: 165, pageViews: 480 },
-  { date: "Fri", visitors: 210, pageViews: 650 },
-  { date: "Sat", visitors: 190, pageViews: 580 },
-  { date: "Sun", visitors: 175, pageViews: 510 },
-];
+// Simulated real-time data
+const generateVisitors = () => Math.floor(Math.random() * 50) + 20;
+const generatePageViews = () => Math.floor(Math.random() * 150) + 80;
 
-const monthlyData = [
-  { month: "Jan", visitors: 3200, pageViews: 8900 },
-  { month: "Feb", visitors: 3800, pageViews: 10200 },
-  { month: "Mar", visitors: 4200, pageViews: 11500 },
-  { month: "Apr", visitors: 3900, pageViews: 10800 },
-  { month: "May", visitors: 4500, pageViews: 12800 },
-  { month: "Jun", visitors: 4800, pageViews: 13500 },
-];
-
-const deviceData = [
-  { name: "Desktop", value: 58, color: "#dc2626" },
-  { name: "Mobile", value: 35, color: "#ea580c" },
-  { name: "Tablet", value: 7, color: "#f59e0b" },
-];
-
-const browserData = [
-  { name: "Chrome", value: 62, color: "#4285F4" },
-  { name: "Safari", value: 22, color: "#00D8FF" },
-  { name: "Firefox", value: 8, color: "#FF7139" },
-  { name: "Edge", value: 6, color: "#0078D7" },
-  { name: "Other", value: 2, color: "#9CA3AF" },
-];
+interface LiveStats {
+  activeVisitors: number;
+  totalViews: number;
+  avgSessionDuration: string;
+  bounceRate: string;
+}
 
 const topPages = [
-  { path: "/", views: 2450, avgTime: "2:34", bounceRate: 32 },
-  { path: "/projects", views: 1890, avgTime: "4:12", bounceRate: 28 },
-  { path: "/about", views: 1230, avgTime: "3:45", bounceRate: 35 },
-  { path: "/skills", views: 980, avgTime: "5:20", bounceRate: 22 },
-  { path: "/contact", views: 650, avgTime: "2:10", bounceRate: 45 },
-  { path: "/blog", views: 520, avgTime: "6:30", bounceRate: 18 },
+  { path: "/", views: 1247, trend: "up" },
+  { path: "/projects", views: 892, trend: "up" },
+  { path: "/blog", views: 654, trend: "down" },
+  { path: "/about", views: 423, trend: "up" },
+  { path: "/contact", views: 312, trend: "up" },
 ];
 
-const referrers = [
-  { source: "Google", visitors: 1850, percentage: 45 },
-  { source: "Direct", visitors: 980, percentage: 24 },
-  { source: "GitHub", visitors: 520, percentage: 13 },
-  { source: "Twitter", visitors: 340, percentage: 8 },
-  { source: "LinkedIn", visitors: 260, percentage: 6 },
-  { source: "Other", visitors: 160, percentage: 4 },
+const trafficSources = [
+  { name: "Direct", value: 45, color: "#dc2626" },
+  { name: "Search", value: 30, color: "#ea580c" },
+  { name: "Social", value: 15, color: "#d97706" },
+  { name: "Referral", value: 10, color: "#65a30d" },
 ];
 
-const locations = [
-  { country: "United States", visitors: 1450, flag: "🇺🇸" },
-  { country: "China", visitors: 890, flag: "🇨🇳" },
-  { country: "United Kingdom", visitors: 420, flag: "🇬🇧" },
-  { country: "Germany", visitors: 340, flag: "🇩🇪" },
-  { country: "India", visitors: 290, flag: "🇮🇳" },
-  { country: "Canada", visitors: 220, flag: "🇨🇦" },
+const deviceBreakdown = [
+  { name: "Desktop", value: 58, icon: Monitor },
+  { name: "Mobile", value: 35, icon: Smartphone },
+  { name: "Tablet", value: 7, icon: Tablet },
 ];
+
+const topCountries = [
+  { name: "United States", flag: "🇺🇸", visitors: 456, percentage: 32 },
+  { name: "China", flag: "🇨🇳", visitors: 312, percentage: 22 },
+  { name: "United Kingdom", flag: "🇬🇧", visitors: 189, percentage: 13 },
+  { name: "Germany", flag: "🇩🇪", visitors: 134, percentage: 9 },
+  { name: "Canada", flag: "🇨🇦", visitors: 98, percentage: 7 },
+];
+
+const hourlyData = [
+  { hour: "00:00", visitors: 12 },
+  { hour: "02:00", visitors: 8 },
+  { hour: "04:00", visitors: 5 },
+  { hour: "06:00", visitors: 15 },
+  { hour: "08:00", visitors: 32 },
+  { hour: "10:00", visitors: 48 },
+  { hour: "12:00", visitors: 42 },
+  { hour: "14:00", visitors: 56 },
+  { hour: "16:00", visitors: 64 },
+  { hour: "18:00", visitors: 52 },
+  { hour: "20:00", visitors: 38 },
+  { hour: "22:00", visitors: 24 },
+];
+
+function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    const incrementTime = (duration * 1000) / end;
+    const timer = setInterval(() => {
+      start += Math.ceil(end / 50);
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, incrementTime);
+    return () => clearInterval(timer);
+  }, [value, duration]);
+
+  return <span>{count.toLocaleString()}</span>;
+}
+
+function StatCard({
+  title,
+  value,
+  change,
+  changeType,
+  icon: Icon,
+  delay,
+}: {
+  title: string;
+  value: string | number;
+  change: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: React.ElementType;
+  delay: number;
+}) {
+  return (
+    <ScrollReveal delay={delay}>
+      <motion.div
+        whileHover={{ y: -4 }}
+        className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all"
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">{title}</p>
+            <h3 className="text-3xl font-bold">{value}</h3>
+            <div className="flex items-center gap-1 mt-2">
+              {changeType === "positive" ? (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              ) : changeType === "negative" ? (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              ) : null}
+              <span
+                className={`text-sm ${
+                  changeType === "positive"
+                    ? "text-green-500"
+                    : changeType === "negative"
+                    ? "text-red-500"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {change}
+              </span>
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+        </div>
+      </motion.div>
+    </ScrollReveal>
+  );
+}
 
 export default function AnalyticsDashboard() {
+  const [liveStats, setLiveStats] = useState<LiveStats>({
+    activeVisitors: 42,
+    totalViews: 15234,
+    avgSessionDuration: "3m 24s",
+    bounceRate: "42%",
+  });
   const [mounted, setMounted] = useState(false);
-  const [timeRange, setTimeRange] = useState("7d");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [liveVisitors, setLiveVisitors] = useState(42);
 
   useEffect(() => {
     setMounted(true);
-    
-    // Simulate live visitor updates
     const interval = setInterval(() => {
-      setLiveVisitors(prev => {
-        const change = Math.floor(Math.random() * 10) - 5;
-        return Math.max(10, prev + change);
-      });
+      setLiveStats((prev) => ({
+        ...prev,
+        activeVisitors: generateVisitors(),
+        totalViews: prev.totalViews + Math.floor(Math.random() * 5),
+      }));
     }, 5000);
-
     return () => clearInterval(interval);
   }, []);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1000);
-  };
-
-  const stats = [
-    {
-      title: "Total Visitors",
-      value: "12,847",
-      change: "+12.5%",
-      trend: "up",
-      icon: Users,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
-    },
-    {
-      title: "Page Views",
-      value: "38,420",
-      change: "+8.2%",
-      trend: "up",
-      icon: Eye,
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
-    },
-    {
-      title: "Avg. Session",
-      value: "4m 32s",
-      change: "+15.3%",
-      trend: "up",
-      icon: Clock,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
-    },
-    {
-      title: "Live Visitors",
-      value: liveVisitors.toString(),
-      change: "Active now",
-      trend: "neutral",
-      icon: Globe,
-      color: "text-orange-500",
-      bgColor: "bg-orange-500/10",
-    },
-  ];
 
   if (!mounted) return null;
 
@@ -174,338 +181,277 @@ export default function AnalyticsDashboard() {
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
-        >
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Analytics Dashboard</h1>
-            <p className="text-muted-foreground">Real-time insights into portfolio performance</p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="flex bg-muted rounded-lg p-1">
-              {["24h", "7d", "30d", "90d"].map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    timeRange === range
-                      ? "bg-background shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {range}
-                </button>
-              ))}
+        <ScrollReveal className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-white" />
+                </div>
+                <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+              </div>
+              <p className="text-muted-foreground">
+                Real-time insights into portfolio performance
+              </p>
             </div>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleRefresh}
-              className={isRefreshing ? "animate-spin" : ""}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Live Data
+              </Badge>
+              <Badge variant="secondary">
+                <Calendar className="h-3 w-3 mr-1" />
+                Last 30 days
+              </Badge>
+            </div>
           </div>
-        </motion.div>
+        </ScrollReveal>
 
-        {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-        >
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + index * 0.05 }}
-            >
-              <Card className="hover:border-primary/50 transition-colors">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                      <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                    </div>
-                    <div className={`flex items-center gap-1 text-sm ${
-                      stat.trend === "up" ? "text-green-500" : 
-                      stat.trend === "down" ? "text-red-500" : "text-muted-foreground"
-                    }`}>
-                      {stat.trend === "up" && <ArrowUpRight className="h-4 w-4" />}
-                      {stat.trend === "down" && <ArrowDownRight className="h-4 w-4" />}
-                      <span>{stat.change}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Traffic Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Traffic Overview
-                </CardTitle>
-                <CardDescription>Visitors and page views over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trafficData}>
-                      <defs>
-                        <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: "hsl(var(--popover))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px"
-                        }}
-                      />
-                      <Legend />
-                      <Area 
-                        type="monotone" 
-                        dataKey="visitors" 
-                        stroke="#dc2626" 
-                        fillOpacity={1} 
-                        fill="url(#colorVisitors)" 
-                        name="Visitors"
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="pageViews" 
-                        stroke="#ea580c" 
-                        fillOpacity={1} 
-                        fill="url(#colorViews)" 
-                        name="Page Views"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Device Distribution */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Monitor className="h-5 w-5 text-primary" />
-                  Devices
-                </CardTitle>
-                <CardDescription>Visitor device breakdown</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={deviceData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {deviceData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="mt-4 space-y-2">
-                  {deviceData.map((device) => (
-                    <div key={device.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {device.name === "Desktop" && <Monitor className="h-4 w-4 text-muted-foreground" />}
-                        {device.name === "Mobile" && <Smartphone className="h-4 w-4 text-muted-foreground" />}
-                        {device.name === "Tablet" && <Tablet className="h-4 w-4 text-muted-foreground" />}
-                        <span className="text-sm">{device.name}</span>
-                      </div>
-                      <span className="text-sm font-medium">{device.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {/* Live Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Active Visitors"
+            value={
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={liveStats.activeVisitors}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                >
+                  {liveStats.activeVisitors}
+                </motion.span>
+              </AnimatePresence>
+            }
+            change="+12% vs last hour"
+            changeType="positive"
+            icon={Users}
+            delay={0.1}
+          />
+          <StatCard
+            title="Total Page Views"
+            value={<AnimatedCounter value={liveStats.totalViews} />}
+            change="+8.5% this week"
+            changeType="positive"
+            icon={Eye}
+            delay={0.2}
+          />
+          <StatCard
+            title="Avg. Session"
+            value={liveStats.avgSessionDuration}
+            change="+15s vs yesterday"
+            changeType="positive"
+            icon={Clock}
+            delay={0.3}
+          />
+          <StatCard
+            title="Bounce Rate"
+            value={liveStats.bounceRate}
+            change="-3% this week"
+            changeType="positive"
+            icon={Activity}
+            delay={0.4}
+          />
         </div>
 
-        {/* Detailed Stats */}
-        <Tabs defaultValue="pages" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-            <TabsTrigger value="pages">Top Pages</TabsTrigger>
-            <TabsTrigger value="referrers">Referrers</TabsTrigger>
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Pages</CardTitle>
-                <CardDescription>Most visited pages on your portfolio</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Page</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Views</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Avg. Time</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Bounce Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topPages.map((page, index) => (
-                        <tr key={page.path} className="border-b last:border-0 hover:bg-muted/50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground w-6">#{index + 1}</span>
-                              <span className="font-medium">{page.path}</span>
-                            </div>
-                          </td>
-                          <td className="text-right py-3 px-4">{page.views.toLocaleString()}</td>
-                          <td className="text-right py-3 px-4">{page.avgTime}</td>
-                          <td className="text-right py-3 px-4">
-                            <Badge variant={page.bounceRate < 30 ? "default" : "secondary"}>
-                              {page.bounceRate}%
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="referrers">
-            <Card>
-              <CardHeader>
-                <CardTitle>Traffic Sources</CardTitle>
-                <CardDescription>Where your visitors are coming from</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {referrers.map((referrer) => (
-                    <div key={referrer.source} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{referrer.source}</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm text-muted-foreground">{referrer.visitors.toLocaleString()} visitors</span>
-                          <span className="text-sm font-medium w-12 text-right">{referrer.percentage}%</span>
-                        </div>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Traffic Chart */}
+          <ScrollReveal delay={0.1} className="lg:col-span-2">
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Hourly Traffic</h2>
+                <Badge variant="outline">
+                  <Zap className="h-3 w-3 mr-1" />
+                  Live
+                </Badge>
+              </div>
+              <div className="h-64 flex items-end gap-2">
+                {hourlyData.map((data, index) => (
+                  <motion.div
+                    key={data.hour}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${(data.visitors / 64) * 100}%` }}
+                    transition={{ delay: index * 0.05, duration: 0.5 }}
+                    className="flex-1 flex flex-col items-center gap-2"
+                  >
+                    <motion.div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-primary/20 to-primary relative group cursor-pointer"
+                      whileHover={{ opacity: 0.8 }}
+                    >
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-card border border-border px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        {data.visitors} visitors
                       </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    </motion.div>
+                    <span className="text-xs text-muted-foreground">
+                      {data.hour}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Traffic Sources */}
+          <ScrollReveal delay={0.2}>
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h2 className="text-xl font-bold mb-6">Traffic Sources</h2>
+              <div className="space-y-4">
+                {trafficSources.map((source, index) => (
+                  <motion.div
+                    key={source.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">{source.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {source.value}%
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${source.value}%` }}
+                        transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: source.color }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+
+        {/* Secondary Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+          {/* Top Pages */}
+          <ScrollReveal delay={0.1}>
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h2 className="text-xl font-bold mb-6">Top Pages</h2>
+              <div className="space-y-3">
+                {topPages.map((page, index) => (
+                  <motion.div
+                    key={page.path}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-mono text-muted-foreground w-6">
+                        {index + 1}
+                      </span>
+                      <span className="font-medium">{page.path}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {page.views.toLocaleString()}
+                      </span>
+                      {page.trend === "up" ? (
+                        <ArrowUpRight className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Device Breakdown */}
+          <ScrollReveal delay={0.2}>
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h2 className="text-xl font-bold mb-6">Device Breakdown</h2>
+              <div className="space-y-4">
+                {deviceBreakdown.map((device, index) => (
+                  <motion.div
+                    key={device.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <device.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{device.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {device.value}%
+                        </span>
+                      </div>
+                      <Progress value={device.value} className="h-2" />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Top Countries */}
+          <ScrollReveal delay={0.3}>
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <div className="flex items-center gap-2 mb-6">
+                <Globe className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold">Top Countries</h2>
+              </div>
+              <div className="space-y-3">
+                {topCountries.map((country, index) => (
+                  <motion.div
+                    key={country.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center gap-3"
+                  >
+                    <span className="text-2xl">{country.flag}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{country.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {country.visitors}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${referrer.percentage}%` }}
-                          transition={{ duration: 1, delay: 0.2 }}
-                          className="h-full bg-primary rounded-full"
+                          animate={{ width: `${country.percentage}%` }}
+                          transition={{ delay: index * 0.05 + 0.2, duration: 0.5 }}
+                          className="h-full rounded-full bg-gradient-to-r from-primary to-orange-500"
                         />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
 
-          <TabsContent value="locations">
-            <Card>
-              <CardHeader>
-                <CardTitle>Geographic Distribution</CardTitle>
-                <CardDescription>Where your visitors are located</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    {locations.map((location, index) => (
-                      <motion.div
-                        key={location.country}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{location.flag}</span>
-                          <span>{location.country}</span>
-                        </div>
-                        <span className="font-medium">{location.visitors.toLocaleString()}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-full max-w-[300px] aspect-square">
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-orange-500/20 animate-pulse" />
-                      <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary/30 to-orange-500/30" />
-                      <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/40 to-orange-500/40 flex items-center justify-center">
-                        <div className="text-center">
-                          <MapPin className="h-8 w-8 mx-auto mb-2 text-primary" />
-                          <p className="text-2xl font-bold">78</p>
-                          <p className="text-sm text-muted-foreground">Countries</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Footer */}
+        <ScrollReveal delay={0.4}>
+          <div className="mt-8 p-6 rounded-2xl bg-muted/30 border border-border text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <MousePointer className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                You are visitor #{Math.floor(Math.random() * 10000) + 15000}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Data updates in real-time • Privacy-friendly analytics • No cookies
+              required
+            </p>
+          </div>
+        </ScrollReveal>
       </div>
     </div>
   );
