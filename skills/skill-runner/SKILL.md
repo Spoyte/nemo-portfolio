@@ -25,6 +25,7 @@ nemo docs <skill>             # Read full documentation
 nemo help <skill>             # Show skill's built-in help
 nemo search <query>           # Find skills by keyword
 nemo exec <skill> <script>    # Run specific script from skill
+nemo sync                     # Auto-manage bin/ symlinks
 nemo version                  # Show version and stats
 nemo completion -s bash       # Shell completion (bash/zsh/fish)
 ```
@@ -45,6 +46,13 @@ nemo completion -s bash       # Shell completion (bash/zsh/fish)
 - **Skill caching**: Faster repeated operations
 - **Version command**: Shows nemo version, skills dir, and count
 - **Cleaner code**: Separated concerns, consistent patterns
+
+## Improvements in v2.1
+
+- **New `sync` command**: Auto-manages symlinks in `bin/` directory
+  - Creates symlinks for skills with executables
+  - Removes stale symlinks pointing to deleted skills
+  - Run after adding new skills to make them available directly
 
 ## How It Works
 

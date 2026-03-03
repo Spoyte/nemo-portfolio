@@ -15,7 +15,7 @@ set -euo pipefail
 #───────────────────────────────────────────────────────────────────────────────
 
 readonly SKILLS_DIR="${SKILLS_DIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
-readonly VERSION="2.0.0"
+readonly VERSION="2.1.0"
 
 QUIET=false
 JSON=false
@@ -105,6 +105,7 @@ Commands:
   docs <skill>            Display skill documentation
   search <query>          Find skills matching keyword
   exec <skill> <script>   Run specific script from skill
+  sync                    Auto-manage bin/ symlinks
   help <skill>            Show skill help (if available)
   version                 Show version information
   completion -s <shell>   Generate shell completion script
@@ -126,6 +127,7 @@ Examples:
   nemo info backup-restore        # Show skill details
   nemo search git                 # Find git-related skills
   nemo help art-new               # Show art-new help
+  nemo sync                       # Update bin/ symlinks
 
 EOF
 }
@@ -377,6 +379,51 @@ cmd_run() {
     exec "$skill_exe" "$@"
 }
 
+cmd_sync() {
+    # Auto-manage symlinks in bin/ directory
+    local bin_dir="$(dirname "$SKILLS_DIR")/bin"
+    local created=0 removed=0
+    
+    # Ensure bin directory exists
+    [[ -d "$bin_dir" ]] || mkdir -p "$bin_dir"
+    
+    _cache_skills
+    
+    # Create symlinks for skills with executables
+    for skill_name in "${SKILL_CACHE[@]}"; do
+        local skill_exe="$SKILLS_DIR/$skill_name/$skill_name"
+        local symlink="$bin_dir/$skill_name"
+        
+        if [[ -x "$skill_exe" ]]; then
+            if [[ ! -e "$symlink" ]]; then
+                ln -s "$skill_exe" "$symlink"
+                ((created++)) || true
+                $QUIET || echo -e "${GREEN}+${NC} $skill_name"
+            fi
+        fi
+    done
+    
+    # Remove stale symlinks (pointing to non-existent skills)
+    for symlink in "$bin_dir"/*; do
+        [[ -L "$symlink" ]] || continue
+        
+        local target=$(readlink "$symlink")
+        local skill_name=$(basename "$symlink")
+        
+        # Check if target is a skill executable
+        if [[ "$target" == "$SKILLS_DIR"/* ]] && [[ "$target" == *"/$skill_name/$skill_name" ]]; then
+            if [[ ! -f "$target" ]]; then
+                rm "$symlink"
+                ((removed++)) || true
+                $QUIET || echo -e "${RED}-${NC} $skill_name (stale)"
+            fi
+        fi
+    done
+    
+    $QUIET || echo ""
+    success "Synced: $created created, $removed removed"
+}
+
 cmd_completion() {
     local shell="bash"
     
@@ -530,6 +577,7 @@ main() {
         search)     shift; cmd_search "$1" ;;
         exec)       shift; cmd_exec "$@" ;;
         help)       shift; cmd_help_skill "$1" ;;
+        sync)       shift; cmd_sync "$@" ;;
         version)    cmd_version ;;
         completion) shift; cmd_completion "$@" ;;
         *)          cmd_run "$@" ;;
