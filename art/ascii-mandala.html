@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Mandala — Text-Based Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            padding: 2rem 1rem;
+            color: #e2e8f0;
+        }
+        
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+        }
+        
+        .subtitle {
+            font-size: 0.75rem;
+            color: #475569;
+            margin-bottom: 1.5rem;
+        }
+        
+        #canvas-container {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        
+        #ascii-canvas {
+            font-size: 10px;
+            line-height: 1;
+            letter-spacing: 0;
+            white-space: pre;
+            text-align: center;
+            color: #e2e8f0;
+        }
+        
+        .controls {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .palette-indicator {
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            color: #475569;
+        }
+        
+        .info {
+            margin-top: 2rem;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.6;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+        
+        .stats {
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            color: #475569;
+            display: flex;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 600px) {
+            #ascii-canvas {
+                font-size: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>ASCII MANDALA</h1>
+    <div class="subtitle">Text-Based Generative Art #76</div>
+    
+    <div id="canvas-container">
+        <div id="ascii-canvas"></div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="mandala.generate()">Regenerate</button>
+        <button onclick="mandala.cyclePalette()">Change Palette</button>
+        <button onclick="mandala.toggleAnimation()">Toggle Flow</button>
+        <button onclick="mandala.export()">Export Text</button>
+    </div>
+    
+    <div class="palette-indicator" id="palette-name">Palette: Ethereal</div>
+    
+    <div class="stats">
+        <span id="char-count">Characters: 0</span>
+        <span id="symmetry">Symmetry: 12-fold</span>
+    </div>
+    
+    <div class="info">
+        <p>Mandala patterns rendered entirely with Unicode characters. 
+        Each symbol carries mathematical meaning — density, angle, distance from center.</p>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        
+        const PALETTES = {
+            ethereal: {
+                chars: ' .·∘◦○◌◎◉●⬤',
+                colors: ['#0f172a', '#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0'],
+                name: 'Ethereal'
+            },
+            fire: {
+                chars: ' ·:░▒▓█',
+                colors: ['#7c2d12', '#9a3412', '#c2410c', '#ea580c', '#f97316', '#fb923c', '#fdba74', '#fed7aa'],
+                name: 'Solar Core'
+            },
+            matrix: {
+                chars: ' 01yxλΩ∑∆',
+                colors: ['#052e16', '#14532d', '#166534', '#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac'],
+                name: 'Matrix'
+            },
+            ocean: {
+                chars: ' .~≈≋∿≀≁⌇',
+                colors: ['#082f49', '#0c4a6e', '#075985', '#0369a1', '#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc'],
+                name: 'Deep Ocean'
+            },
+            stone: {
+                chars: ' .▖▗▘▙▚▛▜▝▞▟█',
+                colors: ['#292524', '#44403c', '#57534e', '#78716c', '#a8a29e', '#d6d3d1', '#e7e5e4', '#f5f5f4'],
+                name: 'Stone Geometric'
+            },
+            sacred: {
+                chars: ' ◦◌○◯✧✦✶✷✸✹✺',
+                colors: ['#4c1d95', '#5b21b6', '#6d28d9', '#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'],
+                name: 'Sacred Geometry'
+            }
+        };
+        
+        const GRID_W = 80;
+        const GRID_H = 40;
+        
+        class AsciiMandala {
+            constructor() {
+                this.canvas = document.getElementById('ascii-canvas');
+                this.paletteName = document.getElementById('palette-name');
+                this.charCount = document.getElementById('char-count');
+                this.currentPalette = 'ethereal';
+                this.isAnimating = false;
+                this.animationId = null;
+                this.time = 0;
+                this.grid = [];
+                this.init();
+            }
+            
+            init() {
+                this.generate();
+            }
+            
+            // Distance from center, normalized
+            distFromCenter(x, y) {
+                const cx = GRID_W / 2;
+                const cy = GRID_H / 2;
+                const dx = (x - cx) / cx;
+                const dy = (y - cy) / cy;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            // Angle from center in radians
+            angleFromCenter(x, y) {
+                const cx = GRID_W / 2;
+                const cy = GRID_H / 2;
+                return Math.atan2(y - cy, x - cx);
+            }
+            
+            // Shape functions
+            petalPattern(dist, angle, time) {
+                const petals = 6 + Math.floor(time * 3) % 6;
+                const warp = Math.sin(angle * petals + time) * 0.3;
+                return Math.abs(Math.sin(angle * petals + time * 0.5)) * (1 - dist);
+            }
+            
+            spiralPattern(dist, angle, time) {
+                const spiral = Math.sin(dist * 15 - angle * 3 + time * 2);
+                return (spiral + 1) / 2 * (1 - dist * 0.8);
+            }
+            
+            ringPattern(dist, angle, time) {
+                const rings = Math.sin(dist * 20 - time);
+                return (rings + 1) / 2;
+            }
+            
+            noisePattern(x, y, dist, angle, time) {
+                const nx = Math.sin(x * 0.1 + time) * Math.cos(y * 0.1);
+                const ny = Math.cos(x * 0.15) * Math.sin(y * 0.1 + time * 0.5);
+                return (nx + ny + 2) / 4 * (1 - dist * 0.3);
+            }
+            
+            generate() {
+                const palette = PALETTES[this.currentPalette];
+                const chars = palette.chars;
+                const colors = palette.colors;
+                
+                this.grid = [];
+                let output = '';
+                
+                const seed = Math.random() * 1000;
+                const patternType = Math.floor(Math.random() * 4);
+                
+                for (let y = 0; y < GRID_H; y++) {
+                    const row = [];
+                    for (let x = 0; x < GRID_W; x++) {
+                        const dist = this.distFromCenter(x, y);
+                        const angle = this.angleFromCenter(x, y);
+                        
+                        // Skip outside circle
+                        if (dist > 1) {
+                            row.push({ char: ' ', color: colors[0] });
+                            output += ' ';
+                            continue;
+                        }
+                        
+                        // Combine patterns
+                        let intensity = 0;
+                        const t = this.time;
+                        
+                        switch (patternType) {
+                            case 0:
+                                intensity = this.petalPattern(dist, angle, t) * 0.7 + 
+                                           this.ringPattern(dist, angle, t * 0.7) * 0.3;
+                                break;
+                            case 1:
+                                intensity = this.spiralPattern(dist, angle, t) * 0.8 + 
+                                           this.noisePattern(x, y, dist, angle, t) * 0.2;
+                                break;
+                            case 2:
+                                intensity = this.ringPattern(dist, angle, t) * 0.5 +
+                                           this.noisePattern(x, y, dist, angle, t) * 0.3 +
+                                           this.petalPattern(dist, angle, t * 1.3) * 0.2;
+                                break;
+                            default:
+                                intensity = this.spiralPattern(dist, angle, t * 0.8) * 0.4 +
+                                           this.petalPattern(dist, angle, t * 0.5) * 0.6;
+                        }
+                        
+                        // Add subtle randomness
+                        intensity += (Math.random() - 0.5) * 0.1;
+                        intensity = Math.max(0, Math.min(1, intensity));
+                        
+                        // Map to character
+                        const charIndex = Math.floor(intensity * (chars.length - 1));
+                        const colorIndex = Math.floor(intensity * (colors.length - 1));
+                        
+                        const char = chars[charIndex] || ' ';
+                        const color = colors[colorIndex] || colors[0];
+                        
+                        row.push({ char: char, color: color });
+                        output += `<span style="color:${color}">${char}</span>`;
+                    }
+                    this.grid.push(row);
+                    output += '\n';
+                }
+                
+                this.canvas.innerHTML = output;
+                this.charCount.textContent = `Characters: ${GRID_W * GRID_H}`;
+            }
+            
+            animate() {
+                if (!this.isAnimating) return;
+                
+                this.time += 0.02;
+                this.generate();
+                
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+            
+            toggleAnimation() {
+                this.isAnimating = !this.isAnimating;
+                if (this.isAnimating) {
+                    this.animate();
+                } else {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+            
+            cyclePalette() {
+                const keys = Object.keys(PALETTES);
+                const currentIdx = keys.indexOf(this.currentPalette);
+                this.currentPalette = keys[(currentIdx + 1) % keys.length];
+                this.paletteName.textContent = `Palette: ${PALETTES[this.currentPalette].name}`;
+                this.generate();
+            }
+            
+            export() {
+                const palette = PALETTES[this.currentPalette];
+                let text = '';
+                for (let y = 0; y < GRID_H; y++) {
+                    for (let x = 0; x < GRID_W; x++) {
+                        const cell = this.grid[y]?.[x];
+                        text += cell ? cell.char : ' ';
+                    }
+                    text += '\n';
+                }
+                
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ascii-mandala-${Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        // Initialize
+        window.mandala = new AsciiMandala();
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') {
+                e.preventDefault();
+                mandala.generate();
+            } else if (e.key === 'p' || e.key === 'P') {
+                mandala.cyclePalette();
+            } else if (e.key === 'a' || e.key === 'A') {
+                mandala.toggleAnimation();
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

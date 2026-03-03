@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Field Generative Art</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // High resolution canvas
+        const size = 1200;
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Flow field parameters
+        const scale = 0.003;
+        const particles = [];
+        const numParticles = 3000;
+        const maxSteps = 150;
+        
+        // Color palette - ethereal purples, blues, and golds
+        const colors = [
+            { h: 260, s: 70, l: 60 },  // Purple
+            { h: 280, s: 80, l: 65 },  // Magenta
+            { h: 200, s: 75, l: 55 },  // Blue
+            { h: 320, s: 60, l: 70 },  // Pink
+            { h: 45, s: 90, l: 65 },   // Gold accent
+        ];
+        
+        // Simplex-like noise function for smooth flow
+        function noise(x, y) {
+            return Math.sin(x * scale) * Math.cos(y * scale) + 
+                   Math.sin((x + y) * scale * 0.5) * 0.5 +
+                   Math.sin(x * scale * 2 + y * scale) * 0.25;
+        }
+        
+        // Get flow direction at position
+        function getFlow(x, y) {
+            const n = noise(x, y);
+            const angle = n * Math.PI * 4;
+            return {
+                x: Math.cos(angle),
+                y: Math.sin(angle)
+            };
+        }
+        
+        // Particle class
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * size;
+                this.y = Math.random() * size;
+                this.vx = 0;
+                this.vy = 0;
+                this.life = 0;
+                this.maxLife = 50 + Math.random() * 100;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.hueOffset = Math.random() * 30 - 15;
+                this.width = 0.5 + Math.random() * 1.5;
+            }
+            
+            update() {
+                const flow = getFlow(this.x, this.y);
+                
+                // Smooth interpolation with flow field
+                this.vx += flow.x * 0.3;
+                this.vy += flow.y * 0.3;
+                
+                // Damping
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                this.life++;
+                
+                // Reset if out of bounds or max life reached
+                if (this.x < 0 || this.x > size || this.y < 0 || this.y > size || this.life > this.maxLife) {
+                    this.reset();
+                }
+            }
+            
+            draw(ctx, alpha) {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const lifeRatio = 1 - (this.life / this.maxLife);
+                const a = alpha * lifeRatio * Math.min(speed * 2, 1);
+                
+                const h = (this.color.h + this.hueOffset + speed * 20) % 360;
+                const s = this.color.s;
+                const l = this.color.l + speed * 10;
+                
+                ctx.strokeStyle = `hsla(${h}, ${s}%, ${l}%, ${a})`;
+                ctx.lineWidth = this.width;
+                ctx.beginPath();
+                ctx.moveTo(this.x - this.vx, this.y - this.vy);
+                ctx.lineTo(this.x, this.y);
+                ctx.stroke();
+            }
+        }
+        
+        // Initialize particles
+        for (let i = 0; i < numParticles; i++) {
+            particles.push(new Particle());
+        }
+        
+        // Create gradient background
+        const bgGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size);
+        bgGradient.addColorStop(0, '#1a0a2e');
+        bgGradient.addColorStop(0.5, '#0d0d1a');
+        bgGradient.addColorStop(1, '#050508');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, size, size);
+        
+        // Pre-warm particles
+        for (let i = 0; i < 50; i++) {
+            particles.forEach(p => p.update());
+        }
+        
+        // Draw multiple layers for depth
+        const layers = 3;
+        for (let layer = 0; layer < layers; layer++) {
+            const layerAlpha = 0.3 + (layer * 0.2);
+            
+            // Reset particles for each layer
+            particles.forEach(p => {
+                p.reset();
+                // Offset starting positions per layer
+                p.x += (Math.random() - 0.5) * 100;
+                p.y += (Math.random() - 0.5) * 100;
+            });
+            
+            // Simulate and draw
+            for (let step = 0; step < maxSteps; step++) {
+                particles.forEach(p => {
+                    p.update();
+                    p.draw(ctx, layerAlpha);
+                });
+            }
+        }
+        
+        // Add subtle glow effect by drawing blurred overlay
+        ctx.globalCompositeOperation = 'screen';
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const data = imageData.data;
+        
+        // Enhance brightness in high-density areas
+        for (let i = 0; i < data.length; i += 4) {
+            const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+            if (brightness > 50) {
+                const boost = 1 + (brightness / 255) * 0.5;
+                data[i] = Math.min(255, data[i] * boost);
+                data[i+1] = Math.min(255, data[i+1] * boost);
+                data[i+2] = Math.min(255, data[i+2] * boost);
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        
+        // Add subtle vignette
+        const vignette = ctx.createRadialGradient(size/2, size/2, size * 0.4, size/2, size/2, size * 0.7);
+        vignette.addColorStop(0, 'rgba(0,0,0,0)');
+        vignette.addColorStop(1, 'rgba(0,0,0,0.4)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, size, size);
+        
+        // Save as PNG
+        const link = document.createElement('a');
+        link.download = 'flow-field-generative-art.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    </script>
+</body>
+</html>
