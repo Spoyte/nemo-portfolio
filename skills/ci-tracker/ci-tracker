@@ -18,6 +18,7 @@ readonly DATA_DIR="${DATA_DIR:-$HOME/.local/share/ci-tracker}"
 readonly STATE_FILE="$DATA_DIR/state.json"
 readonly HISTORY_FILE="$DATA_DIR/history.jsonl"
 readonly MEMORY_DIR="${MEMORY_DIR:-$HOME/.openclaw/workspace/memory}"
+readonly WORKSPACE_ROOT="${WORKSPACE_ROOT:-$HOME/.openclaw/workspace}"
 readonly CRON_JOB_ID="521b9c4a-085c-48c0-b4be-e85b4f4e0105"
 
 QUIET=false
@@ -43,6 +44,15 @@ fi
 readonly ACTIVITIES=("research" "create" "refactor" "write" "build")
 readonly ACTIVITY_EMOJIS=("📚" "🎨" "🔧" "✍️" "🏗️")
 readonly ACTIVITY_COLORS=("$BLUE" "$PURPLE" "$YELLOW" "$CYAN" "$GREEN")
+
+# Activity detection patterns (keywords for auto-detection)
+declare -A ACTIVITY_PATTERNS=(
+    ["research"]="research read source article paper blog documentation learn study investigate explore"
+    ["create"]="create generative art script poem visualize draw design compose make build-new"
+    ["refactor"]="refactor clean improve optimize simplify rewrite restructure reorganize polish enhance"
+    ["write"]="write diary reflect journal document essay blog post entry memoir"
+    ["build"]="build skill automate tool utility scaffold framework system infrastructure"
+)
 
 #───────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -108,7 +118,7 @@ write_state() {
 }
 
 #───────────────────────────────────────────────────────────────────────────────
-# Activity Detection
+# Activity Detection (Enhanced)
 #───────────────────────────────────────────────────────────────────────────────
 
 detect_activity_from_memory() {
@@ -122,25 +132,141 @@ detect_activity_from_memory() {
     
     # Look for continuous improvement entries (capture more lines for context)
     local content
-    content=$(grep -A 10 "Continuous Improvement Cycle" "$memory_file" 2>/dev/null || true)
+    content=$(grep -A 15 "Continuous Improvement Cycle\|## [0-9]\{2\}:[0-9]\{2\}" "$memory_file" 2>/dev/null | head -50 || true)
     
     if [[ -z "$content" ]]; then
         echo "unknown"
         return
     fi
     
-    # Detect activity type from the entry
-    # Check for explicit Activity line first (newer format)
-    if echo "$content" | grep -qi "Activity:.*research\|research.*topic"; then
-        echo "research"
-    elif echo "$content" | grep -qi "Activity:.*create\|create.*generative\|create.*art\|create.*script"; then
-        echo "create"
-    elif echo "$content" | grep -qi "Activity:.*refactor\|refactor.*code\|refactor.*existing"; then
-        echo "refactor"
-    elif echo "$content" | grep -qi "Activity:.*write\|write.*diary\|write.*reflect"; then
-        echo "write"
-    elif echo "$content" | grep -qi "Activity:.*build\|build.*skill\|build.*new"; then
-        echo "build"
+    # Score each activity type based on keyword matches
+    declare -A scores
+    for activity in "${ACTIVITIES[@]}"; do
+        scores[$activity]=0
+    done
+    
+    # Check for explicit Activity line first (newer format with higher weight)
+    for activity in "${ACTIVITIES[@]}"; do
+        if echo "$content" | grep -qE "Activity:.*\b$activity\b|\*\*$activity\*\*"; then
+            scores[$activity]=$((scores[$activity] + 10))
+        fi
+    done
+    
+    # Check for keywords in content
+    for activity in "${ACTIVITIES[@]}"; do
+        local pattern="${ACTIVITY_PATTERNS[$activity]}"
+        for keyword in $pattern; do
+            local matches
+            matches=$(echo "$content" | grep -ci "\b$keyword\b" 2>/dev/null || echo 0)
+            # Ensure matches is a number
+            matches=$(echo "$matches" | tr -d '\n' | grep -o '[0-9]*' | head -1)
+            matches=${matches:-0}
+            scores[$activity]=$((scores[$activity] + matches))
+        done
+    done
+    
+    # Check for file operations as hints
+    if echo "$content" | grep -qE "Created.*\.ts|Created.*\.js|Created.*\.py|generative art|algorithm"; then
+        scores[create]=$((scores[create] + 3))
+    fi
+    
+    if echo "$content" | grep -qE "Refactored|reorganized|cleaned up|simplified|optimized"; then
+        scores[refactor]=$((scores[refactor] + 3))
+    fi
+    
+    if echo "$content" | grep -qE "Built.*skill|new skill|automated|scaffold"; then
+        scores[build]=$((scores[build] + 3))
+    fi
+    
+    if echo "$content" | grep -qE "Read.*article|researched|learned about|studied"; then
+        scores[research]=$((scores[research] + 3))
+    fi
+    
+    if echo "$content" | grep -qE "diary|reflected|journal|wrote about"; then
+        scores[write]=$((scores[write] + 3))
+    fi
+    
+    # Find highest scoring activity
+    local max_score=0
+    local detected="unknown"
+    for activity in "${ACTIVITIES[@]}"; do
+        if [[ ${scores[$activity]} -gt $max_score ]]; then
+            max_score=${scores[$activity]}
+            detected=$activity
+        fi
+    done
+    
+    # Only return if we have some confidence
+    if [[ $max_score -ge 2 ]]; then
+        echo "$detected"
+    else
+        echo "unknown"
+    fi
+}
+
+# Detect activity from git diff (what files were changed)
+detect_activity_from_git() {
+    local since="${1:-$(date +%Y-%m-%d)}"
+    
+    if [[ ! -d "$WORKSPACE_ROOT/.git" ]]; then
+        echo "unknown"
+        return
+    fi
+    
+    cd "$WORKSPACE_ROOT"
+    
+    # Get files changed today
+    local files_changed
+    files_changed=$(git diff --name-only HEAD "@{${since} 00:00}" 2>/dev/null || git diff --name-only HEAD~5..HEAD 2>/dev/null || echo "")
+    
+    if [[ -z "$files_changed" ]]; then
+        echo "unknown"
+        return
+    fi
+    
+    # Score based on file types and paths
+    local create_score=0 refactor_score=0 build_score=0 research_score=0 write_score=0
+    
+    # Art creation
+    if echo "$files_changed" | grep -qE "art/.*\.(ts|js)|generative|canvas|visualization"; then
+        create_score=$((create_score + 5))
+    fi
+    
+    # Refactoring (changes to existing skills without new files)
+    if echo "$files_changed" | grep -qE "skills/.*/" && ! echo "$files_changed" | grep -q "SKILL.md"; then
+        refactor_score=$((refactor_score + 3))
+    fi
+    
+    # New skills
+    if echo "$files_changed" | grep -qE "skills/.*/SKILL.md"; then
+        build_score=$((build_score + 5))
+    fi
+    
+    # Documentation/research
+    if echo "$files_changed" | grep -qE "\.md$|README|docs"; then
+        write_score=$((write_score + 3))
+    fi
+    
+    # Determine winner
+    declare -A scores=(
+        [create]=$create_score
+        [refactor]=$refactor_score
+        [build]=$build_score
+        [research]=$research_score
+        [write]=$write_score
+    )
+    
+    local max_score=0
+    local detected="unknown"
+    for activity in "${ACTIVITIES[@]}"; do
+        if [[ ${scores[$activity]} -gt $max_score ]]; then
+            max_score=${scores[$activity]}
+            detected=$activity
+        fi
+    done
+    
+    if [[ $max_score -ge 3 ]]; then
+        echo "$detected"
     else
         echo "unknown"
     fi
@@ -533,6 +659,98 @@ cmd_activities() {
     echo ""
 }
 
+cmd_auto_log() {
+    init_data_dir
+    
+    local today
+    today=$(date +%Y-%m-%d)
+    
+    # Check if already logged today
+    if grep -q "\"timestamp\":\"$today" "$HISTORY_FILE" 2>/dev/null; then
+        local existing
+        existing=$(grep "\"timestamp\":\"$today" "$HISTORY_FILE" | tail -1)
+        local existing_activity
+        existing_activity=$(echo "$existing" | grep -o '"activity":"[^"]*"' | cut -d'"' -f4)
+        info "Already logged today: $existing_activity"
+        return 0
+    fi
+    
+    # Detect from memory
+    local activity
+    activity=$(detect_activity_from_memory "$today")
+    local detection_method="memory"
+    
+    # Fallback to git detection
+    if [[ "$activity" == "unknown" ]]; then
+        activity=$(detect_activity_from_git "$today")
+        detection_method="git"
+    fi
+    
+    if [[ "$activity" == "unknown" ]]; then
+        error "Could not detect activity. Use 'ci-tracker log <activity>' to manually log."
+    fi
+    
+    # Log with detection method noted
+    cmd_log "$activity" "auto-detected via $detection_method"
+}
+
+cmd_predict() {
+    # Analyze patterns and suggest next activity
+    init_data_dir
+    
+    local state
+    state=$(read_state)
+    
+    # Find least used activity
+    declare -A counts
+    local min_count=999
+    local suggested=""
+    
+    for activity in "${ACTIVITIES[@]}"; do
+        local count
+        count=$(echo "$state" | grep -o "\"$activity\": [0-9]*" | grep -o '[0-9]*')
+        count=${count:-0}
+        counts[$activity]=$count
+        
+        if [[ $count -lt $min_count ]]; then
+            min_count=$count
+            suggested=$activity
+        fi
+    done
+    
+    # Check for zero activities (never done)
+    local never_done=()
+    for activity in "${ACTIVITIES[@]}"; do
+        if [[ ${counts[$activity]} -eq 0 ]]; then
+            never_done+=("$activity")
+        fi
+    done
+    
+    echo ""
+    echo -e "  ${BOLD}Activity Prediction${NC}"
+    echo ""
+    
+    if [[ ${#never_done[@]} -gt 0 ]]; then
+        echo -e "  ${YELLOW}Never tried:${NC} ${never_done[*]}"
+        suggested=${never_done[0]}
+    fi
+    
+    local emoji=""
+    for i in "${!ACTIVITIES[@]}"; do
+        [[ "${ACTIVITIES[$i]}" == "$suggested" ]] && emoji="${ACTIVITY_EMOJIS[$i]}"
+    done
+    
+    echo -e "  Suggested: $emoji ${BOLD}$suggested${NC} (count: $min_count)"
+    echo ""
+    
+    # Show distribution
+    echo -e "  ${GRAY}Current distribution:${NC}"
+    for activity in "${ACTIVITIES[@]}"; do
+        printf "    %-12s: %d\n" "$activity" "${counts[$activity]}"
+    done
+    echo ""
+}
+
 cmd_usage() {
     cat << 'EOF'
 Usage: ci-tracker <command> [options]
@@ -540,6 +758,8 @@ Usage: ci-tracker <command> [options]
 Commands:
   status              Show current cycle statistics
   log <activity>      Log a completed cycle
+  auto-log            Automatically detect and log today's activity
+  predict             Suggest next activity based on patterns
   history [n]         Show last n cycles (default: 20)
   sync                Sync cycles from memory files
   activities          Show the five activity types
@@ -561,6 +781,8 @@ Examples:
   ci-tracker status              # View statistics
   ci-tracker log research        # Log a research cycle
   ci-tracker log create "Built ci-tracker skill"
+  ci-tracker auto-log            # Auto-detect and log
+  ci-tracker predict             # Get activity suggestion
   ci-tracker history 10          # Last 10 cycles
   ci-tracker sync                # Import from memory
 
@@ -613,6 +835,8 @@ main() {
     case "$1" in
         status)     shift; cmd_status "$@" ;;
         log)        shift; cmd_log "$@" ;;
+        auto-log)   shift; cmd_auto_log "$@" ;;
+        predict)    shift; cmd_predict "$@" ;;
         history)    shift; cmd_history "$@" ;;
         sync)       shift; cmd_sync "$@" ;;
         activities) cmd_activities ;;
