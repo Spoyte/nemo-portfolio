@@ -28,6 +28,8 @@ import { TestimonialsSection } from "@/components/testimonials-section";
 import { FeaturedProjects } from "@/components/featured-projects";
 import { ScrollReveal, Counter, SpotlightCard } from "@/components/scroll-animations";
 import { Badge } from "@/components/ui/badge";
+import { SkillsVisualization } from "@/components/skills-visualization";
+import { ContactForm } from "@/components/contact-form";
 
 const features = [
   {
@@ -435,6 +437,111 @@ export default function Home() {
       {/* Testimonials */}
       <TestimonialsSection />
 
+      {/* Skills Visualization */}
+      <SkillsVisualization />
+
+      {/* Contact Section */}
+      <section className="py-24 border-y border-border/50 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal className="text-center mb-16">
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
+            >
+              <Mail className="h-4 w-4" />
+              <span className="text-sm font-medium">Get In Touch</span>
+            </motion.div>
+
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+              Let&apos;s Work{" "}
+              <span className="text-gradient-animated">Together</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Have a project in mind? I&apos;d love to hear about it. Send me a message
+              and let&apos;s create something amazing.
+            </p>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            {/* Contact Info */}
+            <ScrollReveal direction="left">
+              <div className="space-y-8">
+                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/5 to-orange-500/5 border border-border p-8">
+                  {/* Background decoration */}
+                  <div className="absolute inset-0 opacity-30">
+                    <div className="absolute top-10 right-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl" />
+                    <div className="absolute bottom-10 left-10 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl" />
+                  </div>
+
+                  <div className="relative space-y-6">
+                    <div>
+                      <h3 className="text-2xl font-bold mb-2">Contact Information</h3>
+                      <p className="text-muted-foreground">
+                        Feel free to reach out through any of these channels.
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {[
+                        { icon: Mail, label: "Email", value: "hello@nemo.dev", href: "mailto:hello@nemo.dev" },
+                        { icon: Twitter, label: "Twitter", value: "@nemo_dev", href: "https://twitter.com" },
+                        { icon: Linkedin, label: "LinkedIn", value: "Nemo Developer", href: "https://linkedin.com" },
+                        { icon: Github, label: "GitHub", value: "@nemo", href: "https://github.com" },
+                      ].map((item, i) => (
+                        <motion.a
+                          key={item.label}
+                          href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-4 p-4 rounded-xl bg-card/50 hover:bg-card transition-colors group"
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.1 + i * 0.1 }}
+                          whileHover={{ x: 5 }}
+                        >
+                          <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                            <item.icon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">{item.label}</p>
+                            <p className="font-medium">{item.value}</p>
+                          </div>
+                        </motion.a>
+                      ))}
+                    </div>
+
+                    <div className="pt-6 border-t border-border">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Usually respond within 24 hours
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        <span className="text-sm font-medium">Available for new projects</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Contact Form */}
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-orange-500/20 rounded-3xl blur-xl opacity-50" />
+              <div className="relative rounded-3xl bg-card border border-border p-8">
+                <ContactForm />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -457,8 +564,8 @@ export default function Home() {
               transition={{ delay: 0.2 }}
               className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6"
             >
-              Let&apos;s Build Something{" "}
-              <span className="text-white">Amazing</span>
+              Ready to Start Your{" "}
+              <span className="text-white">Project?</span>
             </motion.h2>
             
             <motion.p
@@ -468,8 +575,8 @@ export default function Home() {
               transition={{ delay: 0.3 }}
               className="text-primary-foreground/80 max-w-xl mx-auto mb-8 text-lg"
             >
-              Have a project in mind? I&apos;d love to hear about it. Let&apos;s discuss how
-              we can work together to bring your vision to life.
+              Let&apos;s turn your ideas into reality. I&apos;m excited to hear about
+              your next big thing.
             </motion.p>
             
             <motion.div
@@ -477,11 +584,18 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-              <Link href="/contact">
+              <Link href="/hire">
                 <Button size="lg" variant="secondary" className="group">
-                  Start a Conversation
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  Hire Me
+                  <Sparkles className="ml-2 h-4 w-4 group-hover:animate-pulse" />
+                </Button>
+              </Link>
+              <Link href="/projects">
+                <Button size="lg" variant="outline" className="border-white/30 hover:bg-white/10 text-white">
+                  View Projects
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </motion.div>

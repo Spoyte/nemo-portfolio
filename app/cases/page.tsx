@@ -1,576 +1,513 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { 
   ArrowLeft, 
+  Calendar, 
+  Clock, 
+  Tag, 
   ExternalLink, 
-  Github, 
+  Github,
   ChevronRight,
   Lightbulb,
   Wrench,
   Rocket,
+  CheckCircle2,
+  AlertCircle,
   BarChart3,
   Users,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Layers,
-  Database,
-  Globe,
-  Shield,
-  Zap,
-  ArrowUpRight,
-  Star,
-  Eye
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollReveal, SpotlightCard } from "@/components/scroll-animations";
+import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
+import Image from "next/image";
 
-// Case study data
-const CASE_STUDIES = [
+interface CaseStudy {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  thumbnail: string;
+  client: string;
+  duration: string;
+  role: string;
+  team: string;
+  year: string;
+  tags: string[];
+  liveUrl?: string;
+  githubUrl?: string;
+  challenge: string;
+  solution: string;
+  results: {
+    metric: string;
+    value: string;
+    change: string;
+  }[];
+  process: {
+    phase: string;
+    title: string;
+    description: string;
+    icon: React.ElementType;
+  }[];
+  technologies: string[];
+  testimonial?: {
+    quote: string;
+    author: string;
+    role: string;
+    company: string;
+  };
+  gallery: string[];
+}
+
+const caseStudies: CaseStudy[] = [
   {
     id: "ecommerce-platform",
     title: "E-Commerce Platform",
-    subtitle: "Full-stack solution for modern retail",
-    client: "RetailTech Inc.",
+    subtitle: "Modern shopping experience with real-time inventory",
+    description: "A complete redesign and rebuild of an e-commerce platform serving over 1M monthly active users. The project focused on performance, accessibility, and conversion optimization.",
+    thumbnail: "/api/placeholder/800/600",
+    client: "RetailCorp Inc.",
     duration: "6 months",
-    team: "5 developers",
-    role: "Lead Full-Stack Developer",
+    role: "Lead Frontend Developer",
+    team: "8 people",
     year: "2024",
-    thumbnail: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=600&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=400&fit=crop"
-    ],
-    overview: "Built a scalable e-commerce platform handling 100K+ daily transactions. The platform features real-time inventory, AI-powered recommendations, and a seamless checkout experience.",
-    challenge: "The client needed to migrate from a legacy monolithic system to a modern microservices architecture while maintaining 99.99% uptime during the transition.",
-    solution: "We implemented a gradual strangler fig pattern, migrating services one at a time. Used feature flags for safe rollouts and comprehensive monitoring to catch issues early.",
+    tags: ["Next.js", "TypeScript", "PostgreSQL", "Redis"],
+    liveUrl: "https://example.com",
+    githubUrl: "https://github.com",
+    challenge: "The existing platform was built on legacy technology, resulting in slow load times (8+ seconds), poor mobile experience, and declining conversion rates. The client needed a modern solution that could handle high traffic during sales events.",
+    solution: "We rebuilt the platform from the ground up using Next.js with server-side rendering for SEO and performance. Implemented a microservices architecture with Redis caching, real-time inventory updates via WebSockets, and a progressive web app for mobile users.",
     results: [
-      { metric: "40%", label: "Faster checkout", icon: Zap },
-      { metric: "99.99%", label: "Uptime achieved", icon: Shield },
-      { metric: "2M+", label: "Monthly users", icon: Users },
-      { metric: "$50M", label: "Annual revenue", icon: BarChart3 }
+      { metric: "Page Load Time", value: "1.2s", change: "-85%" },
+      { metric: "Conversion Rate", value: "4.8%", change: "+120%" },
+      { metric: "Mobile Revenue", value: "$2.4M", change: "+200%" },
+      { metric: "Core Web Vitals", value: "98/100", change: "Pass" },
     ],
-    technologies: ["Next.js", "Node.js", "PostgreSQL", "Redis", "AWS", "Stripe"],
-    features: [
-      "Real-time inventory management",
-      "AI-powered product recommendations",
-      "Multi-currency support",
-      "Advanced analytics dashboard",
-      "Mobile-first responsive design"
+    process: [
+      { phase: "01", title: "Discovery", description: "User research, competitor analysis, and technical architecture planning", icon: Lightbulb },
+      { phase: "02", title: "Design", description: "UI/UX design system, prototyping, and user testing", icon: Wrench },
+      { phase: "03", title: "Development", description: "Agile sprints, code reviews, and continuous integration", icon: Rocket },
+      { phase: "04", title: "Launch", description: "Performance optimization, monitoring setup, and gradual rollout", icon: CheckCircle2 },
     ],
-    architecture: [
-      { layer: "Frontend", tech: "Next.js 14, Tailwind CSS, Framer Motion", desc: "Server-side rendering for SEO and performance" },
-      { layer: "API Gateway", tech: "AWS API Gateway, Lambda", desc: "Serverless API with auto-scaling" },
-      { layer: "Services", tech: "Node.js microservices", desc: "Domain-driven design with event sourcing" },
-      { layer: "Data", tech: "PostgreSQL, Redis, Elasticsearch", desc: "Multi-tier caching strategy" }
-    ],
-    lessons: [
-      "Event sourcing provides excellent audit trails but increases complexity",
- "Database migration strategies are crucial for zero-downtime deployments",
-      "Load testing early revealed bottlenecks we wouldn't have caught otherwise"
-    ],
+    technologies: ["Next.js 14", "TypeScript", "Tailwind CSS", "PostgreSQL", "Redis", "Prisma", "Stripe", "AWS"],
     testimonial: {
-      quote: "The team's technical expertise and attention to detail transformed our e-commerce experience. Sales increased by 35% within the first quarter.",
+      quote: "The new platform exceeded our expectations. Not only is it significantly faster, but our customers love the new mobile experience. Sales have never been better.",
       author: "Sarah Chen",
-      role: "CTO, RetailTech Inc."
+      role: "CTO",
+      company: "RetailCorp Inc.",
     },
-    links: {
-      demo: "#",
-      github: "#",
-      case: "#"
-    }
+    gallery: ["/api/placeholder/400/300", "/api/placeholder/400/300", "/api/placeholder/400/300"],
   },
   {
-    id: "ai-dashboard",
-    title: "AI Analytics Dashboard",
-    subtitle: "Real-time data visualization platform",
-    client: "DataFlow Systems",
-    duration: "4 months",
-    team: "3 developers",
-    role: "Frontend Lead",
-    year: "2023",
-    thumbnail: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=600&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&h=400&fit=crop"
-    ],
-    overview: "Created an AI-powered analytics dashboard that processes millions of data points in real-time, providing actionable insights through interactive visualizations.",
-    challenge: "Visualizing massive datasets (10M+ records) in real-time without compromising browser performance.",
-    solution: "Implemented Web Workers for data processing, virtualized lists for rendering, and used canvas-based charts for complex visualizations.",
-    results: [
-      { metric: "10M+", label: "Records processed", icon: Database },
-      { metric: "60fps", label: "Rendering performance", icon: Zap },
-      { metric: "3x", label: "Faster insights", icon: Clock },
-      { metric: "95%", label: "User satisfaction", icon: Star }
-    ],
-    technologies: ["React", "D3.js", "WebGL", "Python", "TensorFlow", "WebSocket"],
-    features: [
-      "Real-time data streaming",
-      "Interactive data exploration",
-      "Custom report builder",
-      "AI anomaly detection",
-      "Collaborative annotations"
-    ],
-    architecture: [
-      { layer: "Visualization", tech: "D3.js, WebGL, Canvas", desc: "High-performance rendering" },
-      { layer: "State", tech: "Zustand, React Query", desc: "Efficient state management" },
-      { layer: "Processing", tech: "Web Workers", desc: "Background data processing" },
-      { layer: "ML", tech: "TensorFlow.js", desc: "Client-side predictions" }
-    ],
-    lessons: [
-      "Web Workers are essential for processing large datasets without blocking UI",
-      "Virtualization is critical when rendering thousands of DOM nodes",
-      "Progressive loading improves perceived performance significantly"
-    ],
-    testimonial: {
-      quote: "The dashboard's performance is incredible. We can now analyze data in real-time that used to take hours to process.",
-      author: "Michael Torres",
-      role: "VP of Engineering, DataFlow"
-    },
-    links: {
-      demo: "#",
-      github: "#",
-      case: "#"
-    }
-  },
-  {
-    id: "social-platform",
-    title: "Social Media Platform",
-    subtitle: "Community-driven content platform",
-    client: "ConnectSocial",
+    id: "fintech-dashboard",
+    title: "FinTech Dashboard",
+    subtitle: "Real-time financial analytics platform",
+    description: "A comprehensive financial dashboard providing real-time analytics, portfolio management, and predictive insights for institutional investors.",
+    thumbnail: "/api/placeholder/800/600",
+    client: "InvestPro Financial",
     duration: "8 months",
-    team: "8 developers",
-    role: "Full-Stack Developer",
+    role: "Full Stack Developer",
+    team: "12 people",
     year: "2023",
-    thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&h=600&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=800&h=400&fit=crop"
-    ],
-    overview: "Built a social platform with real-time messaging, stories, live streaming, and content recommendations serving 500K+ active users.",
-    challenge: "Building real-time features at scale while maintaining low latency across global regions.",
-    solution: "Used WebRTC for video, Socket.io for real-time messaging, and a CDN for content delivery. Implemented smart caching strategies.",
+    tags: ["React", "D3.js", "Node.js", "GraphQL"],
+    liveUrl: "https://example.com",
+    challenge: "Financial institutions needed a unified platform to visualize complex data from multiple sources. The existing tools were fragmented, slow, and difficult to use. Security and real-time updates were critical requirements.",
+    solution: "Built a real-time dashboard with WebSocket connections for live market data. Implemented complex D3.js visualizations for portfolio analysis, risk assessment charts, and predictive modeling. Added role-based access control and audit logging for compliance.",
     results: [
-      { metric: "500K+", label: "Active users", icon: Users },
-      { metric: "50ms", label: "Message latency", icon: Zap },
-      { metric: "10M", label: "Messages daily", icon: Globe },
-      { metric: "4.8★", label: "App store rating", icon: Star }
+      { metric: "Data Processing", value: "10ms", change: "-95%" },
+      { metric: "User Adoption", value: "94%", change: "+60%" },
+      { metric: "Report Time", value: "2min", change: "-90%" },
+      { metric: "Client Retention", value: "98%", change: "+25%" },
     ],
-    technologies: ["React Native", "Node.js", "Socket.io", "Redis", "AWS", "WebRTC"],
-    features: [
-      "Real-time messaging",
-      "Stories and live streaming",
-      "Content recommendation engine",
-      "End-to-end encryption",
-      "Cross-platform mobile apps"
+    process: [
+      { phase: "01", title: "Research", description: "Stakeholder interviews, data source analysis, compliance requirements", icon: Lightbulb },
+      { phase: "02", title: "Architecture", description: "System design, database schema, API specifications", icon: Wrench },
+      { phase: "03", title: "Build", description: "Frontend components, backend services, integration testing", icon: Rocket },
+      { phase: "04", title: "Deploy", description: "Security audit, load testing, production deployment", icon: CheckCircle2 },
     ],
-    architecture: [
-      { layer: "Mobile", tech: "React Native, Expo", desc: "Cross-platform development" },
-      { layer: "Real-time", tech: "Socket.io, Redis Pub/Sub", desc: "Event-driven architecture" },
-      { layer: "Media", tech: "WebRTC, AWS S3", desc: "Video streaming and storage" },
-      { layer: "ML", tech: "Python, scikit-learn", desc: "Recommendation engine" }
-    ],
-    lessons: [
-      "Real-time systems require careful handling of connection state",
-      "Media processing is resource-intensive; offload to edge servers",
-      "Content moderation at scale requires automated ML solutions"
-    ],
+    technologies: ["React", "D3.js", "Node.js", "GraphQL", "PostgreSQL", "Redis", "Docker", "Kubernetes"],
     testimonial: {
-      quote: "The platform exceeded our expectations. The real-time features feel instant and the app handles our growing user base effortlessly.",
-      author: "Emily Watson",
-      role: "Product Manager, ConnectSocial"
+      quote: "This dashboard has transformed how our analysts work. What used to take hours now takes minutes. The real-time capabilities give us a competitive edge.",
+      author: "Michael Roberts",
+      role: "Head of Analytics",
+      company: "InvestPro Financial",
     },
-    links: {
-      demo: "#",
-      github: "#",
-      case: "#"
-    }
-  }
+    gallery: ["/api/placeholder/400/300", "/api/placeholder/400/300", "/api/placeholder/400/300"],
+  },
+  {
+    id: "healthcare-app",
+    title: "Healthcare App",
+    subtitle: "Patient management and telemedicine platform",
+    description: "A HIPAA-compliant healthcare platform enabling remote consultations, patient management, and electronic health records for a network of 500+ clinics.",
+    thumbnail: "/api/placeholder/800/600",
+    client: "MediCare Network",
+    duration: "10 months",
+    role: "Technical Lead",
+    team: "15 people",
+    year: "2023",
+    tags: ["React Native", "Node.js", "MongoDB", "WebRTC"],
+    liveUrl: "https://example.com",
+    challenge: "Healthcare providers needed a secure, reliable platform for telemedicine during the pandemic. The solution had to be HIPAA compliant, support video consultations, and integrate with existing EHR systems.",
+    solution: "Developed a cross-platform mobile app with React Native and a robust backend with Node.js. Implemented end-to-end encryption, WebRTC for video calls, and seamless EHR integration. Added offline support for rural areas with poor connectivity.",
+    results: [
+      { metric: "Consultations", value: "50K+", change: "Monthly" },
+      { metric: "Patient Satisfaction", value: "4.8/5", change: "+40%" },
+      { metric: "Wait Time", value: "5min", change: "-80%" },
+      { metric: "Provider Efficiency", value: "+45%", change: "Improvement" },
+    ],
+    process: [
+      { phase: "01", title: "Compliance", description: "HIPAA requirements, security audit, data flow analysis", icon: Lightbulb },
+      { phase: "02", title: "Design", description: "UX for patients and providers, accessibility testing", icon: Wrench },
+      { phase: "03", title: "Develop", description: "Mobile app, backend API, video infrastructure", icon: Rocket },
+      { phase: "04", title: "Validate", description: "Security testing, clinical trials, FDA documentation", icon: CheckCircle2 },
+    ],
+    technologies: ["React Native", "Node.js", "MongoDB", "WebRTC", "AWS", "Twilio", "SendGrid", "HIPAA"],
+    testimonial: {
+      quote: "This platform has been a game-changer for our network. We've been able to serve patients in remote areas who previously had no access to specialists.",
+      author: "Dr. Emily Watson",
+      role: "Medical Director",
+      company: "MediCare Network",
+    },
+    gallery: ["/api/placeholder/400/300", "/api/placeholder/400/300", "/api/placeholder/400/300"],
+  },
 ];
 
-function CaseStudyCard({ study, onClick }: { study: typeof CASE_STUDIES[0]; onClick: () => void }) {
+function CaseStudyCard({ study, onClick, index }: { study: CaseStudy; onClick: () => void; index: number }) {
   return (
-    <SpotlightCard>
-      <motion.div
-        whileHover={{ y: -8 }}
-        onClick={onClick}
-        className="cursor-pointer group"
-      >
-        <Card className="overflow-hidden">
-          <div className="relative h-48 overflow-hidden">
-            <motion.img
-              src={study.thumbnail}
-              alt={study.title}
-              className="w-full h-full object-cover"
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.4 }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            
-            <div className="absolute bottom-4 left-4 right-4">
-              <Badge className="mb-2">{study.year}</Badge>
-              <h3 className="text-xl font-bold text-white">{study.title}</h3>
-              <p className="text-white/80 text-sm">{study.subtitle}</p>
-            </div>
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      onClick={onClick}
+      className="group cursor-pointer"
+    >
+      <div className="relative overflow-hidden rounded-2xl bg-card border border-border hover:border-primary/50 transition-all">
+        {/* Thumbnail */}
+        <div className="relative aspect-video overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-orange-500/20" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-6xl font-bold text-primary/20">{study.title[0]}</div>
           </div>
           
-          <CardContent className="p-6">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {study.technologies.slice(0, 4).map((tech) => (
-                <Badge key={tech} variant="secondary" className="text-xs">
-                  {tech}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+          
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="flex flex-wrap gap-2">
+              {study.tags.slice(0, 3).map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs">
+                  {tag}
                 </Badge>
               ))}
             </div>
-            
-            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-              {study.overview}
-            </p>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" /> {study.duration}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Users className="w-4 h-4" /> {study.team}
-                </span>
-              </div>
-              
-              <Button variant="ghost" size="sm" className="group/btn">
-                View Case
-                <ArrowUpRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </SpotlightCard>
-  );
-}
-
-function CaseStudyDetail({ study, onBack }: { study: typeof CASE_STUDIES[0]; onBack: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-8"
-    >
-      {/* Header */}
-      <div className="relative h-[400px] rounded-2xl overflow-hidden">
-        <img
-          src={study.thumbnail}
-          alt={study.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-        
-        <div className="absolute bottom-0 left-0 right-0 p-8">
-          <Button variant="secondary" onClick={onBack} className="mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Cases
-          </Button>
-          
-          <div className="flex flex-wrap items-center gap-4 mb-4">
-            <Badge>{study.year}</Badge>
-            <Badge variant="secondary">{study.client}</Badge>
-            <span className="text-muted-foreground">{study.role}</span>
           </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">{study.title}</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">{study.subtitle}</p>
         </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {study.results.map((result, index) => (
-          <motion.div
-            key={result.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card>
-              <CardContent className="p-6 text-center">
-                <result.icon className="w-8 h-8 mx-auto mb-3 text-primary" />
-                <p className="text-3xl font-bold">{result.metric}</p>
-                <p className="text-sm text-muted-foreground">{result.label}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Main Content */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="solution">Solution</TabsTrigger>
-          <TabsTrigger value="tech">Tech Stack</TabsTrigger>
-          <TabsTrigger value="gallery">Gallery</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5 text-yellow-500" />
-                    The Challenge
-                  </h3>
-                  <p className="text-muted-foreground">{study.challenge}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Rocket className="w-5 h-5 text-blue-500" />
-                    The Solution
-                  </h3>
-                  <p className="text-muted-foreground">{study.solution}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Key Features</h3>
-                  <ul className="space-y-3">
-                    {study.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4">Project Info</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Client</span>
-                      <span className="font-medium">{study.client}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Duration</span>
-                      <span className="font-medium">{study.duration}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Team</span>
-                      <span className="font-medium">{study.team}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Role</span>
-                      <span className="font-medium">{study.role}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4">Technologies</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {study.technologies.map((tech) => (
-                      <Badge key={tech} variant="secondary">
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-primary/5 to-orange-500/5">
-                <CardContent className="p-6">
-                  <blockquote className="text-sm italic mb-4">
-                    "{study.testimonial.quote}"
-                  </blockquote>
-                  <div>
-                    <p className="font-medium">{study.testimonial.author}</p>
-                    <p className="text-sm text-muted-foreground">{study.testimonial.role}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="solution">
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-6">Architecture Overview</h3>
-              
-              <div className="space-y-6">
-                {study.architecture.map((layer, index) => (
-                  <motion.div
-                    key={layer.layer}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex gap-4 p-4 rounded-xl bg-muted/50"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Layers className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{layer.layer}</h4>
-                      <p className="text-sm font-medium text-primary mb-1">{layer.tech}</p>
-                      <p className="text-sm text-muted-foreground">{layer.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-4">Lessons Learned</h3>
-                <ul className="space-y-3">
-                  {study.lessons.map((lesson, i) => (
-                    <li key={i} className="flex items-start gap-3 text-muted-foreground">
-                      <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-                      {lesson}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tech">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {study.technologies.map((tech, index) => (
-              <motion.div
-                key={tech}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card>
-                  <CardContent className="p-6 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Wrench className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{tech}</h3>
-                      <p className="text-sm text-muted-foreground">Core technology</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="gallery">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {study.images.map((image, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="rounded-xl overflow-hidden"
-              >
-                <img
-                  src={image}
-                  alt={`${study.title} screenshot ${index + 1}`}
-                  className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </motion.div>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* CTA */}
-      <div className="flex flex-wrap gap-4 justify-center pt-8">
-        <Button size="lg" className="gap-2">
-          <ExternalLink className="w-4 h-4" />
-          View Live Demo
-        </Button>
         
-        <Button size="lg" variant="outline" className="gap-2">
-          <Github className="w-4 h-4" />
-          View Code
-        </Button>
+        {/* Content */}
+        <div className="p-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <Calendar className="w-4 h-4" />
+            <span>{study.year}</span>
+            <span>•</span>
+            <Clock className="w-4 h-4" />
+            <span>{study.duration}</span>
+          </div>
+          
+          <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+            {study.title}
+          </h3>
+          
+          <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+            {study.description}
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{study.client}</span>
+            <Button variant="ghost" size="sm" className="group/btn">
+              View Case Study
+              <ChevronRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-export default function CaseStudiesPage() {
-  const [selectedStudy, setSelectedStudy] = useState<typeof CASE_STUDIES[0] | null>(null);
-
+function CaseStudyDetail({ study, onBack }: { study: CaseStudy; onBack: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ container: containerRef });
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
+  const headerScale = useTransform(scrollYProgress, [0, 0.1], [1, 0.95]);
+  
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <AnimatePresence mode="wait">
-          {selectedStudy ? (
-            <CaseStudyDetail
-              key="detail"
-              study={selectedStudy}
-              onBack={() => setSelectedStudy(null)}
-            />
-          ) : (
-            <motion.div
-              key="list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {/* Header */}
-              <ScrollReveal className="text-center mb-12">
+    <motion.div
+      ref={containerRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-background overflow-y-auto"
+    >
+      {/* Progress Bar */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 origin-left"
+        style={{ scaleX: scrollYProgress }}
+      />
+      
+      {/* Header */}
+      <motion.div
+        style={{ opacity: headerOpacity, scale: headerScale }}
+        className="relative h-[60vh] overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-orange-500/10" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-[20rem] font-bold text-primary/5">{study.title[0]}</div>
+        </div>
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        
+        <div className="absolute top-4 left-4">
+          <Button variant="secondary" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Cases
+          </Button>
+        </div>
+        
+        <div className="absolute bottom-0 left-0 right-0 p-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {study.tags.map((tag) => (
+                <Badge key={tag} variant="secondary">{tag}</Badge>
+              ))}
+            </div>
+            
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">{study.title}</h1>
+            <p className="text-xl text-muted-foreground">{study.subtitle}</p>
+          </div>
+        </div>
+      </motion.div>
+      
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Meta Info */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+          <div className="p-4 rounded-xl bg-card border">
+            <p className="text-sm text-muted-foreground mb-1">Client</p>
+            <p className="font-semibold">{study.client}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-card border">
+            <p className="text-sm text-muted-foreground mb-1">Duration</p>
+            <p className="font-semibold">{study.duration}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-card border">
+            <p className="text-sm text-muted-foreground mb-1">Role</p>
+            <p className="font-semibold">{study.role}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-card border">
+            <p className="text-sm text-muted-foreground mb-1">Team</p>
+            <p className="font-semibold">{study.team}</p>
+          </div>
+        </div>
+        
+        {/* Challenge & Solution */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <h3 className="font-semibold text-red-500">The Challenge</h3>
+            </div>
+            <p className="text-muted-foreground">{study.challenge}</p>
+          </div>
+          
+          <div className="p-6 rounded-2xl bg-green-500/5 border border-green-500/20">
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <h3 className="font-semibold text-green-500">The Solution</h3>
+            </div>
+            <p className="text-muted-foreground">{study.solution}</p>
+          </div>
+        </div>
+        
+        {/* Results */}
+        <div className="mb-12">
+          <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-primary" />
+            Results
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {study.results.map((result, index) => (
+              <motion.div
+                key={result.metric}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="p-6 rounded-2xl bg-card border text-center"
+              >
+                <p className="text-sm text-muted-foreground mb-2">{result.metric}</p>
+                <p className="text-3xl font-bold text-primary mb-1">{result.value}</p>
+                <Badge variant="outline" className="text-green-500">{result.change}</Badge>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Process */}
+        <div className="mb-12">
+          <h3 className="text-2xl font-bold mb-6">Process</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {study.process.map((step, index) => {
+              const Icon = step.icon;
+              return (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
+                  key={step.phase}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="p-6 rounded-2xl bg-card border"
                 >
-                  <Eye className="h-4 w-4" />
-                  <span className="text-sm font-medium">Portfolio</span>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-2xl font-bold text-muted-foreground">{step.phase}</span>
+                  </div>
+                  <h4 className="font-semibold mb-2">{step.title}</h4>
+                  <p className="text-sm text-muted-foreground">{step.description}</p>
                 </motion.div>
-
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-                  Case{" "}
-                  <span className="text-gradient-animated">Studies</span>
-                </h1>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Deep dives into my most impactful projects. Explore the challenges, 
-                  solutions, and results from real-world development work.
-                </p>
-              </ScrollReveal>
-
-              {/* Case Studies Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {CASE_STUDIES.map((study, index) => (
-                  <ScrollReveal key={study.id} delay={index * 0.1}>
-                    <CaseStudyCard
-                      study={study}
-                      onClick={() => setSelectedStudy(study)}
-                    />
-                  </ScrollReveal>
-                ))}
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Technologies */}
+        <div className="mb-12">
+          <h3 className="text-2xl font-bold mb-6">Technologies Used</h3>
+          <div className="flex flex-wrap gap-2">
+            {study.technologies.map((tech) => (
+              <Badge key={tech} variant="secondary" className="text-sm px-3 py-1">
+                {tech}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Testimonial */}
+        
+        {study.testimonial && (
+          <div className="mb-12 p-8 rounded-2xl bg-gradient-to-br from-primary/5 to-orange-500/5 border">
+            <blockquote className="text-xl italic mb-6">
+              "{study.testimonial.quote}"
+            </blockquote>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="font-bold text-primary">{study.testimonial.author[0]}</span>
               </div>
-            </motion.div>
+              <div>
+                <p className="font-semibold">{study.testimonial.author}</p>
+                <p className="text-sm text-muted-foreground">
+                  {study.testimonial.role}, {study.testimonial.company}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Links */}
+        <div className="flex flex-wrap gap-4">
+          {study.liveUrl && (
+            <Button asChild>
+              <a href={study.liveUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Live Site
+              </a>
+            </Button>
           )}
-        </AnimatePresence>
+          
+          {study.githubUrl && (
+            <Button variant="outline" asChild>
+              <a href={study.githubUrl} target="_blank" rel="noopener noreferrer">
+                <Github className="w-4 h-4 mr-2" />
+                View Code
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
+    </motion.div>
+  );
+}
+
+export default function CasesPage() {
+  const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
+  
+  return (
+    <div className="min-h-screen py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+            <Zap className="w-4 h-4" />
+            <span className="text-sm font-medium">Selected Work</span>
+          </div>
+          
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Case{" "}
+            <span className="text-gradient-animated">Studies</span>
+          </h1>
+          
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Deep dives into my most impactful projects. Explore the challenges, 
+            solutions, and results that drove success.
+          </p>
+        </motion.div>
+        
+        {/* Case Studies Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {caseStudies.map((study, index) => (
+            <CaseStudyCard
+              key={study.id}
+              study={study}
+              onClick={() => setSelectedStudy(study)}
+              index={index}
+            />
+          ))}
+        </div>
+        
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-16 text-center"
+        >
+          <p className="text-muted-foreground mb-4">
+            Want to see more of my work?
+          </p>
+          <Link href="/projects">
+            <Button variant="outline">
+              View All Projects
+              <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+            </Button>
+          </Link>
+        </motion.div>
+      </div>
+      
+      {/* Detail View */}
+      <AnimatePresence>
+        {selectedStudy && (
+          <CaseStudyDetail
+            study={selectedStudy}
+            onBack={() => setSelectedStudy(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

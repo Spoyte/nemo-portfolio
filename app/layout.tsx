@@ -15,6 +15,9 @@ import { MiniMusicPlayer } from "@/components/mini-music-player";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { TerminalToggle } from "@/components/interactive-terminal";
 import { EasterEggHunt } from "@/components/easter-egg-hunt";
+import { OrbitalBackground } from "@/components/orbital-background";
+import { CustomCursor } from "@/components/custom-cursor";
+import { SecretTerminal } from "@/components/secret-terminal";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -42,15 +45,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased min-h-screen bg-background text-foreground transition-colors duration-300">
+      <body className="antialiased min-h-screen bg-background text-foreground transition-colors duration-300 cursor-none md:cursor-auto">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange={false}
         >
-          {/* Holographic Background */}
+          {/* Background Effects */}
           <HolographicBackground />
+          <OrbitalBackground />
+          
+          {/* Custom Cursor (desktop only) */}
+          <CustomCursor />
           
           <ScrollProgress />
           <Toaster />
@@ -66,8 +73,9 @@ export default function RootLayout({
           <MiniMusicPlayer />
           <ThemeSwitcher />
           
-          {/* Easter Egg */}
+          {/* Easter Eggs */}
           <KonamiCodeEasterEgg />
+          <SecretTerminal />
           
           {/* Achievement System */}
           <AchievementSystem />
