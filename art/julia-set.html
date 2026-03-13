@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Julia Set Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border-bottom: 1px solid #333;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      background: linear-gradient(90deg, #ff6b6b, #feca57);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .canvas-wrapper {
+      flex: 1;
+      position: relative;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+    }
+
+    .canvas-overlay .label {
+      color: #888;
+    }
+
+    .canvas-overlay .value {
+      color: #fff;
+    }
+
+    .controls {
+      width: 320px;
+      background: #151515;
+      border-radius: 8px;
+      padding: 1.5rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 140px);
+    }
+
+    .control-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .control-group h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #666;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    .control {
+      margin-bottom: 1rem;
+    }
+
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+      color: #aaa;
+    }
+
+    .control input[type="range"] {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #333;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, #ff6b6b, #feca57);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .control input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    .control select {
+      width: 100%;
+      padding: 0.6rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .control select:focus {
+      outline: none;
+      border-color: #ff6b6b;
+    }
+
+    .preset-seeds {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+
+    .preset-btn {
+      padding: 0.6rem 0.4rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #aaa;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .preset-btn:hover {
+      background: #2a2a2a;
+      border-color: #555;
+      color: #fff;
+    }
+
+    .preset-btn.active {
+      background: linear-gradient(135deg, #ff6b6b20, #feca5720);
+      border-color: #ff6b6b;
+      color: #ff6b6b;
+    }
+
+    .checkbox-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .checkbox-control input {
+      width: 18px;
+      height: 18px;
+      accent-color: #ff6b6b;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.7rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #2a2a2a;
+      border-color: #555;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .info-box {
+      background: #1a1a1a;
+      border-left: 3px solid #feca57;
+      padding: 0.75rem 1rem;
+      border-radius: 0 4px 4px 0;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #aaa;
+      margin-top: 1rem;
+    }
+
+    .info-box strong {
+      color: #feca57;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .controls {
+        width: 100%;
+        max-height: none;
+      }
+
+      .canvas-wrapper {
+        min-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Julia Set Explorer</h1>
+    <div class="subtitle">The Mandelbrot's complex sibling • Click to zoom • Shift+click to zoom out</div>
+  </header>
+
+  <div class="container">
+    <div class="canvas-wrapper">
+      <canvas id="juliaCanvas"></canvas>
+      <div class="canvas-overlay">
+        <div><span class="label">c = </span><span class="value" id="cValue">-0.8000 + 0.1560i</span></div>
+        <div><span class="label">Seed: </span><span class="value" id="seedName">Dragon</span></div>
+        <div><span class="label">Zoom: </span><span class="value" id="zoomValue">1.00x</span></div>
+        <div><span class="label">Pos: </span><span class="value" id="posValue">0.00, 0.00</span></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <h3>Preset Seeds</h3>
+        <div class="preset-seeds" id="presetSeeds"></div>
+      </div>
+
+      <div class="control-group">
+        <h3>Parameters</h3>
+        <div class="control">
+          <label>C Real <span id="cRealVal">-0.800</span></label>
+          <input type="range" id="cReal" min="-2" max="2" step="0.001" value="-0.8">
+        </div>
+        <div class="control">
+          <label>C Imaginary <span id="cImagVal">0.156</span></label>
+          <input type="range" id="cImag" min="-2" max="2" step="0.001" value="0.156">
+        </div>
+        <div class="control">
+          <label>Zoom <span id="zoomVal">1.0</span></label>
+          <input type="range" id="zoom" min="0.1" max="50" step="0.1" value="1">
+        </div>
+        <div class="control">
+          <label>Max Iterations <span id="iterVal">100</span></label>
+          <input type="range" id="maxIter" min="20" max="500" step="10" value="100">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Appearance</h3>
+        <div class="control">
+          <label>Color Palette</label>
+          <select id="palette">
+            <option value="inferno">Inferno (Fiery)</option>
+            <option value="ocean">Ocean (Deep Blue)</option>
+            <option value="electric">Electric (Neon)</option>
+            <option value="silver">Silver (Grayscale)</option>
+            <option value="psychedelic">Psychedelic</option>
+          </select>
+        </div>
+        <div class="control">
+          <label>Color Cycles <span id="cycleVal">1.0</span></label>
+          <input type="range" id="colorCycles" min="0.5" max="5" step="0.5" value="1">
+        </div>
+        <div class="control">
+          <label class="checkbox-control">
+            <input type="checkbox" id="smoothColoring" checked>
+            <span>Smooth Coloring</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Orbit Visualization</h3>
+        <div class="control">
+          <label class="checkbox-control">
+            <input type="checkbox" id="showOrbit" checked>
+            <span>Show Orbit Trail</span>
+          </label>
+        </div>
+        <div class="control">
+          <label>Orbit Speed <span id="orbitSpeedVal">0.5</span></label>
+          <input type="range" id="orbitSpeed" min="0" max="2" step="0.1" value="0.5">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="resetBtn">Reset View</button>
+        <button class="btn btn-primary" id="randomBtn">Random Seed</button>
+      </div>
+
+      <div class="info-box">
+        <strong>Did you know?</strong> Every point in the Mandelbrot set corresponds to a connected Julia set. Points outside create disconnected "dust" Julia sets. Try the different seeds to explore this relationship!
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Julia Set Explorer
+    // The Mandelbrot's complex sibling - fix c, vary z
+
+    const canvas = document.getElementById('juliaCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // State
+    let state = {
+      cReal: -0.8,
+      cImag: 0.156,
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+      maxIterations: 100,
+      palette: 'inferno',
+      colorCycles: 1,
+      smoothColoring: true,
+      showOrbit: true,
+      orbitSpeed: 0.5,
+      bailout: 4,
+      seedIndex: 0
+    };
+
+    // Interesting Julia set constants
+    const INTERESTING_SEEDS = [
+      { re: -0.8, im: 0.156, name: "Dragon" },
+      { re: -0.4, im: 0.6, name: "Rabbit" },
+      { re: 0.285, im: 0.01, name: "San Marco" },
+      { re: -0.70176, im: -0.3842, name: "Siegel Disk" },
+      { re: -0.835, im: -0.2321, name: "Dendrite" },
+      { re: -0.7269, im: 0.1889, name: "Spiral" },
+      { re: 0.3, im: 0.5, name: "Gaston Julia" },
+      { re: -0.1, im: 0.651, name: "Elephant" },
+      { re: -0.75, im: 0.11, name: "Mini Mandelbrot" },
+      { re: -0.12, im: -0.77, name: "Cauliflower" }
+    ];
+
+    // Color palettes
+    const PALETTES = {
+      inferno: [
+        [0, 0, 4], [31, 12, 72], [85, 15, 109], [136, 34, 106],
+        [186, 54, 85], [227, 89, 66], [249, 140, 71], [252, 206, 127]
+      ],
+      ocean: [
+        [0, 0, 20], [0, 20, 60], [0, 40, 100], [0, 80, 140],
+        [0, 120, 180], [40, 160, 200], [100, 200, 220], [180, 240, 255]
+      ],
+      electric: [
+        [10, 0, 30], [40, 0, 80], [80, 0, 140], [120, 0, 200],
+        [160, 40, 255], [100, 200, 255], [0, 255, 200], [200, 255, 100]
+      ],
+      silver: [
+        [0, 0, 0], [20, 20, 25], [50, 50, 60], [90, 90, 100],
+        [140, 140, 150], [180, 180, 190], [220, 220, 230], [255, 255, 255]
+      ],
+      psychedelic: [
+        [60, 0, 80], [120, 0, 120], [200, 0, 100], [255, 80, 0],
+        [255, 200, 0], [180, 255, 0], [0, 255, 150], [0, 150, 255]
+      ]
+    };
+
+    // Resize canvas
+    function resize() {
+      const wrapper = canvas.parentElement;
+      canvas.width = wrapper.clientWidth;
+      canvas.height = wrapper.clientHeight;
+      render();
+    }
+
+    window.addEventListener('resize', resize);
+
+    // Smooth iteration count for continuous coloring
+    function smoothIteration(zReal, zImag, iterations, maxIterations, bailout) {
+      if (iterations >= maxIterations) return maxIterations;
+      const logZn = Math.log(zReal * zReal + zImag * zImag) / 2;
+      const nu = Math.log(logZn / Math.log(bailout)) / Math.log(2);
+      return iterations + 1 - nu;
+    }
+
+    // Iterate Julia set for a point
+    function iterateJulia(zr, zi, cr, ci, maxIter, bailout) {
+      let zReal = zr;
+      let zImag = zi;
+
+      for (let i = 0; i < maxIter; i++) {
+        const zr2 = zReal * zReal;
+        const zi2 = zImag * zImag;
+
+        if (zr2 + zi2 > bailout) {
+          return { iterations: i, finalZr: zReal, finalZi: zImag, escaped: true };
+        }
+
+        zImag = 2 * zReal * zImag + ci;
+        zReal = zr2 - zi2 + cr;
+      }
+
+      return { iterations: maxIter, finalZr: zReal, finalZi: zImag, escaped: false };
+    }
+
+    // Get color from palette
+    function getColor(iterations, maxIterations, palette, colorCycles, smoothValue) {
+      if (iterations >= maxIterations) {
+        return [0, 0, 0];
+      }
+
+      const t = (smoothValue / maxIterations) * colorCycles;
+      const normalizedT = t - Math.floor(t);
+
+      const paletteIndex = normalizedT * (palette.length - 1);
+      const index1 = Math.floor(paletteIndex);
+      const index2 = Math.min(index1 + 1, palette.length - 1);
+      const frac = paletteIndex - index1;
+
+      const c1 = palette[index1];
+      const c2 = palette[index2];
+
+      return [
+        Math.round(c1[0] + (c2[0] - c1[0]) * frac),
+        Math.round(c1[1] + (c2[1] - c1[1]) * frac),
+        Math.round(c1[2] + (c2[2] - c1[2]) * frac)
+      ];
+    }
+
+    // Generate orbit points
+    function generateOrbit(zr, zi, cr, ci, steps) {
+      const orbit = [{ r: zr, i: zi }];
+      let zReal = zr;
+      let zImag = zi;
+
+      for (let i = 0; i < steps && orbit.length < 50; i++) {
+        const zr2 = zReal * zReal;
+        const zi2 = zImag * zImag;
+
+        if (zr2 + zi2 > 100) break;
+
+        zImag = 2 * zReal * zImag + ci;
+        zReal = zr2 - zi2 + cr;
+
+        orbit.push({ r: zReal, i: zImag });
+      }
+
+      return orbit;
+    }
+
+    // Animation state
+    let time = 0;
+    let animationId = null;
+
+    // Render Julia set
+    function render() {
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // Create image data
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+
+      const palette = PALETTES[state.palette];
+      const aspectRatio = width / height;
+      const scale = 4 / (Math.min(width, height) * state.zoom);
+
+      // Render pixels
+      for (let py = 0; py < height; py++) {
+        for (let px = 0; px < width; px++) {
+          const zReal = (px - width / 2) * scale * aspectRatio + state.offsetX;
+          const zImag = (py - height / 2) * scale + state.offsetY;
+
+          const result = iterateJulia(
+            zReal, zImag,
+            state.cReal, state.cImag,
+            state.maxIterations,
+            state.bailout
+          );
+
+          let smoothValue = result.iterations;
+          if (state.smoothColoring && result.escaped) {
+            smoothValue = smoothIteration(
+              result.finalZr, result.finalZi,
+              result.iterations, state.maxIterations, state.bailout
+            );
+          }
+
+          const color = getColor(
+            result.iterations, state.maxIterations,
+            palette, state.colorCycles, smoothValue
+          );
+
+          const idx = (py * width + px) * 4;
+          data[idx] = color[0];
+          data[idx + 1] = color[1];
+          data[idx + 2] = color[2];
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      // Draw orbit if enabled
+      if (state.showOrbit) {
+        drawOrbit(width, height, scale, aspectRatio);
+      }
+
+      // Update overlay
+      updateOverlay();
+    }
+
+    // Draw orbit visualization
+    function drawOrbit(width, height, scale, aspectRatio) {
+      const orbitTime = time * state.orbitSpeed * 0.5;
+      const orbitRadius = 1.2;
+      const orbitZr = Math.cos(orbitTime) * orbitRadius;
+      const orbitZi = Math.sin(orbitTime * 0.7) * orbitRadius;
+
+      const orbit = generateOrbit(orbitZr, orbitZi, state.cReal, state.cImag, 30);
+
+      if (orbit.length > 1) {
+        ctx.save();
+
+        // Draw orbit trail
+        ctx.beginPath();
+        for (let i = 0; i < orbit.length; i++) {
+          const px = width / 2 + (orbit[i].r - state.offsetX) / (scale * aspectRatio);
+          const py = height / 2 + (orbit[i].i - state.offsetY) / scale;
+
+          if (i === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+
+        const gradient = ctx.createLinearGradient(
+          width / 2 + (orbit[0].r - state.offsetX) / (scale * aspectRatio),
+          height / 2 + (orbit[0].i - state.offsetY) / scale,
+          width / 2 + (orbit[orbit.length - 1].r - state.offsetX) / (scale * aspectRatio),
+          height / 2 + (orbit[orbit.length - 1].i - state.offsetY) / scale
+        );
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 255, 100, 0.2)');
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw orbit points
+        for (let i = 0; i < orbit.length; i++) {
+          const px = width / 2 + (orbit[i].r - state.offsetX) / (scale * aspectRatio);
+          const py = height / 2 + (orbit[i].i - state.offsetY) / scale;
+
+          const alpha = 1 - i / orbit.length;
+          ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(px, py, 3 * alpha + 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    // Animation loop
+    function animate() {
+      time += 0.016;
+      render();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Update overlay text
+    function updateOverlay() {
+      const seed = INTERESTING_SEEDS[state.seedIndex];
+      document.getElementById('cValue').textContent = 
+        `${state.cReal.toFixed(4)} ${state.cImag >= 0 ? '+' : ''}${state.cImag.toFixed(4)}i`;
+      document.getElementById('seedName').textContent = seed ? seed.name : 'Custom';
+      document.getElementById('zoomValue').textContent = `${state.zoom.toFixed(2)}x`;
+    }
+
+    // Create preset buttons
+    function createPresetButtons() {
+      const container = document.getElementById('presetSeeds');
+      INTERESTING_SEEDS.forEach((seed, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn' + (index === 0 ? ' active' : '');
+        btn.textContent = seed.name;
+        btn.onclick = () => selectSeed(index);
+        container.appendChild(btn);
+      });
+    }
+
+    // Select a preset seed
+    function selectSeed(index) {
+      state.seedIndex = index;
+      const seed = INTERESTING_SEEDS[index];
+      state.cReal = seed.re;
+      state.cImag = seed.im;
+
+      // Update UI
+      document.getElementById('cReal').value = seed.re;
+      document.getElementById('cImag').value = seed.im;
+      document.getElementById('cRealVal').textContent = seed.re.toFixed(3);
+      document.getElementById('cImagVal').textContent = seed.im.toFixed(3);
+
+      // Update active button
+      document.querySelectorAll('.preset-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+      });
+    }
+
+    // Event handlers
+    document.getElementById('cReal').addEventListener('input', (e) => {
+      state.cReal = parseFloat(e.target.value);
+      document.getElementById('cRealVal').textContent = state.cReal.toFixed(3);
+      state.seedIndex = -1;
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+    });
+
+    document.getElementById('cImag').addEventListener('input', (e) => {
+      state.cImag = parseFloat(e.target.value);
+      document.getElementById('cImagVal').textContent = state.cImag.toFixed(3);
+      state.seedIndex = -1;
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+    });
+
+    document.getElementById('zoom').addEventListener('input', (e) => {
+      state.zoom = parseFloat(e.target.value);
+      document.getElementById('zoomVal').textContent = state.zoom.toFixed(1);
+    });
+
+    document.getElementById('maxIter').addEventListener('input', (e) => {
+      state.maxIterations = parseInt(e.target.value);
+      document.getElementById('iterVal').textContent = state.maxIterations;
+    });
+
+    document.getElementById('palette').addEventListener('change', (e) => {
+      state.palette = e.target.value;
+    });
+
+    document.getElementById('colorCycles').addEventListener('input', (e) => {
+      state.colorCycles = parseFloat(e.target.value);
+      document.getElementById('cycleVal').textContent = state.colorCycles.toFixed(1);
+    });
+
+    document.getElementById('smoothColoring').addEventListener('change', (e) => {
+      state.smoothColoring = e.target.checked;
+    });
+
+    document.getElementById('showOrbit').addEventListener('change', (e) => {
+      state.showOrbit = e.target.checked;
+    });
+
+    document.getElementById('orbitSpeed').addEventListener('input', (e) => {
+      state.orbitSpeed = parseFloat(e.target.value);
+      document.getElementById('orbitSpeedVal').textContent = state.orbitSpeed.toFixed(1);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      state.zoom = 1;
+      state.offsetX = 0;
+      state.offsetY = 0;
+      document.getElementById('zoom').value = 1;
+      document.getElementById('zoomVal').textContent = '1.0';
+      selectSeed(0);
+    });
+
+    document.getElementById('randomBtn').addEventListener('click', () => {
+      const randomIndex = Math.floor(Math.random() * INTERESTING_SEEDS.length);
+      selectSeed(randomIndex);
+    });
+
+    // Mouse interaction for zoom
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const aspectRatio = width / height;
+      const scale = 4 / (Math.min(width, height) * state.zoom);
+
+      const clickReal = (x - width / 2) * scale * aspectRatio + state.offsetX;
+      const clickImag = (y - height / 2) * scale + state.offsetY;
+
+      if (e.shiftKey) {
+        // Zoom out
+        state.zoom = Math.max(0.1, state.zoom / 2);
+      } else {
+        // Zoom in
+        state.zoom *= 2;
+      }
+
+      state.offsetX = clickReal;
+      state.offsetY = clickImag;
+
+      document.getElementById('zoom').value = state.zoom;
+      document.getElementById('zoomVal').textContent = state.zoom.toFixed(1);
+    });
+
+    // Mouse move for coordinate display
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const aspectRatio = width / height;
+      const scale = 4 / (Math.min(width, height) * state.zoom);
+
+      const real = (x - width / 2) * scale * aspectRatio + state.offsetX;
+      const imag = (y - height / 2) * scale + state.offsetY;
+
+      document.getElementById('posValue').textContent = `${real.toFixed(2)}, ${imag.toFixed(2)}`;
+    });
+
+    // Initialize
+    createPresetButtons();
+    resize();
+    animate();
+  </script>
+</body>
+</html>

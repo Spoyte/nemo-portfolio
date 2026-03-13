@@ -1,0 +1,257 @@
+#!/usr/bin/env bash
+#
+# research - Deep research and synthesis tool
+#
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Defaults
+QUICK_MODE=false
+SOURCE_COUNT=5
+OUTPUT_FILE=""
+JSON_MODE=false
+BULLET_MODE=false
+COMPARE_MODE=false
+TOPIC=""
+
+# Help
+show_help() {
+    cat << 'EOF'
+Research - Deep research and synthesis
+
+Usage:
+  research "your research query"
+  research --quick "topic"                    # Fast mode (3 sources)
+  research --sources 10 "topic"               # Specify source count
+  research --output report.md "topic"         # Save to file
+  research --compare "A vs B"                 # Comparative research
+  research --json "topic"                     # JSON output
+  research --bullet "topic"                   # Bullet summary only
+
+Options:
+  -q, --quick          Quick mode (3 sources)
+  -s, --sources N      Number of sources (default: 5)
+  -o, --output FILE    Save output to file
+  -j, --json           Output as JSON
+  -b, --bullet         Bullet-point summary only
+  -c, --compare        Comparative research mode
+  -h, --help           Show this help
+
+Examples:
+  research "quantum computing applications 2024"
+  research --quick "latest rust features"
+  research --compare "postgresql vs mysql"
+  research --sources 8 --output ai-report.md "AI agent frameworks"
+EOF
+}
+
+# Parse arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -q|--quick)
+                QUICK_MODE=true
+                SOURCE_COUNT=3
+                shift
+                ;;
+            -s|--sources)
+                SOURCE_COUNT="$2"
+                shift 2
+                ;;
+            -o|--output)
+                OUTPUT_FILE="$2"
+                shift 2
+                ;;
+            -j|--json)
+                JSON_MODE=true
+                shift
+                ;;
+            -b|--bullet)
+                BULLET_MODE=true
+                shift
+                ;;
+            -c|--compare)
+                COMPARE_MODE=true
+                shift
+                ;;
+            -*)
+                echo -e "${RED}Unknown option: $1${NC}" >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "$TOPIC" ]]; then
+                    TOPIC="$1"
+                else
+                    TOPIC="$TOPIC $1"
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$TOPIC" ]]; then
+        echo -e "${RED}Error: No research topic provided${NC}" >&2
+        show_help
+        exit 1
+    fi
+}
+
+# Print section header
+header() {
+    if [[ "$BULLET_MODE" == false && "$JSON_MODE" == false ]]; then
+        echo -e "\n${CYAN}## $1${NC}"
+        echo ""
+    fi
+}
+
+# Print bullet point
+bullet() {
+    if [[ "$JSON_MODE" == false ]]; then
+        echo "• $1"
+    fi
+}
+
+# Main research function
+main() {
+    parse_args "$@"
+
+    # Build the research prompt based on mode
+    local search_query="$TOPIC"
+    
+    if [[ "$COMPARE_MODE" == true ]]; then
+        search_query="$TOPIC comparison differences features"
+    fi
+
+    # Mode indicator
+    local mode_str="deep research"
+    [[ "$QUICK_MODE" == true ]] && mode_str="quick overview"
+    [[ "$COMPARE_MODE" == true ]] && mode_str="comparative analysis"
+
+    if [[ "$JSON_MODE" == false && "$BULLET_MODE" == false ]]; then
+        echo -e "${GREEN}🔍 Starting $mode_str on:${NC} ${YELLOW}$TOPIC${NC}"
+        echo -e "${BLUE}   Target sources: $SOURCE_COUNT${NC}"
+        echo ""
+    fi
+
+    # Output buffer for file writing
+    local output_buffer=""
+
+    # Generate research output
+    # Note: This tool uses the web_search capability available in the environment
+    # The actual search is performed by the calling agent using kimi_search
+    
+    if [[ "$JSON_MODE" == true ]]; then
+        # JSON output format
+        cat << EOF
+{
+  "topic": "$TOPIC",
+  "mode": "$mode_str",
+  "sources_requested": $SOURCE_COUNT,
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "note": "Use 'kimi_search' tool with query '$search_query' to perform actual research"
+}
+EOF
+    elif [[ "$BULLET_MODE" == true ]]; then
+        # Bullet mode - minimal output
+        echo "Research: $TOPIC"
+        echo "Mode: $mode_str"
+        echo ""
+        echo "Key points to investigate:"
+        echo "• Primary concepts and definitions"
+        echo "• Current state and recent developments"
+        echo "• Key players or technologies"
+        echo "• Applications and use cases"
+        echo "• Trends and future directions"
+        echo ""
+        echo "Run without --bullet for full synthesis."
+    else
+        # Full research template
+        {
+            echo "# Research: $TOPIC"
+            echo ""
+            echo "**Research Mode:** $mode_str  "
+            echo "**Sources Targeted:** $SOURCE_COUNT  "
+            echo "**Date:** $(date +"%Y-%m-%d %H:%M")  "
+            echo ""
+            echo "---"
+            echo ""
+            echo "## 🔍 Research Query"
+            echo ""
+            echo "\`$search_query\`"
+            echo ""
+            echo "## 📝 Executive Summary"
+            echo ""
+            echo "*[To be synthesized from search results]*"
+            echo ""
+            echo "This research investigates **$TOPIC** by analyzing $SOURCE_COUNT relevant sources."
+            echo ""
+            echo "## 🎯 Key Insights"
+            echo ""
+            echo "1. **[Insight 1]** - *Source: [URL]*"
+            echo "2. **[Insight 2]** - *Source: [URL]*"
+            echo "3. **[Insight 3]** - *Source: [URL]*"
+            echo ""
+            echo "## 📚 Source Analysis"
+            echo ""
+            echo "### Source 1"
+            echo "- **Title:** [Title]"
+            echo "- **URL:** [Link]"
+            echo "- **Type:** [Blog/Documentation/Paper/News]"
+            echo "- **Key Points:**"
+            echo "  - [Point 1]"
+            echo "  - [Point 2]"
+            echo "- **Credibility:** [High/Medium/Low]"
+            echo ""
+            echo "### Source 2"
+            echo "- **Title:** [Title]"
+            echo "- **URL:** [Link]"
+            echo "- **Type:** [Blog/Documentation/Paper/News]"
+            echo "- **Key Points:**"
+            echo "  - [Point 1]"
+            echo "  - [Point 2]"
+            echo "- **Credibility:** [High/Medium/Low]"
+            echo ""
+            echo "## 🔗 Patterns & Trends"
+            echo ""
+            echo "- [Pattern observed across multiple sources]"
+            echo "- [Emerging trend]"
+            echo ""
+            echo "## ⚠️ Contradictions & Gaps"
+            echo ""
+            echo "- [Conflicting information between sources]"
+            echo "- [Areas where more research is needed]"
+            echo ""
+            echo "## ✅ Actionable Takeaways"
+            echo ""
+            echo "- [Specific recommendation or action]"
+            echo "- [Further reading or investigation needed]"
+            echo ""
+            echo "---"
+            echo ""
+            echo "*Research conducted using systematic synthesis methodology*"
+        } >> "${OUTPUT_FILE:-/dev/stdout}"
+
+        if [[ -n "$OUTPUT_FILE" ]]; then
+            echo -e "${GREEN}✓ Research template saved to:${NC} $OUTPUT_FILE"
+            echo ""
+            echo -e "${YELLOW}Next steps:${NC}"
+            echo "  1. Run: kimi_search '$search_query'"
+            echo "  2. Fill in the template with actual findings"
+            echo "  3. Synthesize insights across sources"
+        fi
+    fi
+}
+
+main "$@"
