@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hypercube — 4D Tesseract Visualization</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    
+    .subtitle {
+      color: #888;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    .canvas-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      background: #000;
+      margin-bottom: 1.5rem;
+    }
+    
+    canvas {
+      display: block;
+      width: 500px;
+      height: 500px;
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      max-width: 600px;
+      margin-bottom: 1rem;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    select, button {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    select:hover, button:hover {
+      background: #252525;
+      border-color: #444;
+    }
+    
+    button {
+      min-width: 100px;
+    }
+    
+    button.active {
+      background: #3a86ff;
+      border-color: #3a86ff;
+      color: #fff;
+    }
+    
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    input[type="range"] {
+      width: 120px;
+      accent-color: #3a86ff;
+    }
+    
+    .value-display {
+      font-size: 0.85rem;
+      color: #aaa;
+      min-width: 30px;
+      text-align: center;
+    }
+    
+    .info {
+      color: #666;
+      font-size: 0.8rem;
+      text-align: center;
+      max-width: 500px;
+      line-height: 1.5;
+    }
+    
+    .info code {
+      background: #1a1a1a;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hypercube</h1>
+  <p class="subtitle">A 4D tesseract rotating through space — 16 vertices, 32 edges, projected from 4D to 3D to 2D</p>
+  
+  <div class="canvas-container">
+    <canvas id="canvas" width="500" height="500"></canvas>
+  </div>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label>Color Scheme</label>
+      <select id="colorScheme">
+        <option value="neon">Neon</option>
+        <option value="matrix">Matrix</option>
+        <option value="gold">Gold</option>
+        <option value="ice">Ice</option>
+        <option value="fire">Fire</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label>Projection</label>
+      <select id="projection">
+        <option value="perspective">Perspective</option>
+        <option value="orthographic">Orthographic</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label>Animation</label>
+      <button id="toggleAnim" class="active">Pause</button>
+    </div>
+    
+    <div class="control-group">
+      <label>Line Width</label>
+      <div class="slider-container">
+        <input type="range" id="lineWidth" min="1" max="5" value="2" step="0.5">
+        <span class="value-display" id="lineWidthVal">2</span>
+      </div>
+    </div>
+  </div>
+  
+  <p class="info">
+    The tesseract is the 4D analog of the cube — just as a cube has 6 square faces, 
+    a tesseract has 8 cubic cells. Edges are colored by depth to show the 4D structure.
+  </p>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 4D Hypercube vertices (16 vertices, each with 4 coordinates: x, y, z, w)
+    const HYPERCUBE_VERTICES_4D = [
+      [-1, -1, -1, -1], [1, -1, -1, -1], [1, 1, -1, -1], [-1, 1, -1, -1],
+      [-1, -1, 1, -1], [1, -1, 1, -1], [1, 1, 1, -1], [-1, 1, 1, -1],
+      [-1, -1, -1, 1], [1, -1, -1, 1], [1, 1, -1, 1], [-1, 1, -1, 1],
+      [-1, -1, 1, 1], [1, -1, 1, 1], [1, 1, 1, 1], [-1, 1, 1, 1],
+    ];
+
+    // Edges connect vertices that differ in exactly one coordinate
+    const HYPERCUBE_EDGES = [
+      // Cube at w = -1 (vertices 0-7)
+      [0, 1], [1, 2], [2, 3], [3, 0],
+      [4, 5], [5, 6], [6, 7], [7, 4],
+      [0, 4], [1, 5], [2, 6], [3, 7],
+      // Cube at w = 1 (vertices 8-15)
+      [8, 9], [9, 10], [10, 11], [11, 8],
+      [12, 13], [13, 14], [14, 15], [15, 12],
+      [8, 12], [9, 13], [10, 14], [11, 15],
+      // Edges connecting the two cubes (4th dimension)
+      [0, 8], [1, 9], [2, 10], [3, 11],
+      [4, 12], [5, 13], [6, 14], [7, 15],
+    ];
+
+    // Color palettes
+    const palettes = {
+      neon: ["#FF006E", "#FB5607", "#FFBE0B", "#8338EC", "#3A86FF"],
+      matrix: ["#00FF41", "#008F11", "#003B00", "#0D0208", "#00FF41"],
+      gold: ["#FFD700", "#FFA500", "#FF8C00", "#B8860B", "#DAA520"],
+      ice: ["#00FFFF", "#87CEEB", "#ADD8E6", "#E0FFFF", "#B0E0E6"],
+      fire: ["#FF0000", "#FF4500", "#FF8C00", "#FFD700", "#FF6347"],
+    };
+
+    // State
+    let isAnimating = true;
+    let time = 0;
+    let animationId = null;
+    
+    const params = {
+      rotationSpeedX: 0.5,
+      rotationSpeedY: 0.7,
+      rotationSpeedZ: 0.3,
+      colorScheme: 'neon',
+      lineWidth: 2,
+      projection: 'perspective',
+    };
+
+    // 4D Rotation functions
+    function rotate4DXY(v, angle) {
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      return [v[0] * cos - v[1] * sin, v[0] * sin + v[1] * cos, v[2], v[3]];
+    }
+
+    function rotate4DXZ(v, angle) {
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      return [v[0] * cos - v[2] * sin, v[1], v[0] * sin + v[2] * cos, v[3]];
+    }
+
+    function rotate4DXW(v, angle) {
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      return [v[0] * cos - v[3] * sin, v[1], v[2], v[0] * sin + v[3] * cos];
+    }
+
+    function rotate4DYZ(v, angle) {
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      return [v[0], v[1] * cos - v[2] * sin, v[1] * sin + v[2] * cos, v[3]];
+    }
+
+    function rotate4DZW(v, angle) {
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      return [v[0], v[1], v[2] * cos - v[3] * sin, v[2] * sin + v[3] * cos];
+    }
+
+    // Project 4D to 3D
+    function project4Dto3D(v, distance = 3) {
+      const factor = distance / (distance - v[3]);
+      return [v[0] * factor, v[1] * factor, v[2] * factor];
+    }
+
+    // Project 3D to 2D
+    function project3Dto2D(v, width, height, distance = 3) {
+      const factor = distance / (distance - v[2]);
+      const x = v[0] * factor * width * 0.25 + width / 2;
+      const y = v[1] * factor * width * 0.25 + height / 2;
+      return [x, y];
+    }
+
+    function render() {
+      const { width, height } = canvas;
+      const colors = palettes[params.colorScheme];
+      
+      // Clear
+      ctx.fillStyle = params.colorScheme === 'matrix' ? '#0D0208' : '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+
+      // Animation time
+      const t = time * 0.001;
+      const rotX = t * params.rotationSpeedX;
+      const rotY = t * params.rotationSpeedY;
+      const rotZ = t * params.rotationSpeedZ;
+
+      // Rotate vertices through 4D space
+      const rotatedVertices = HYPERCUBE_VERTICES_4D.map(v => {
+        let r = [...v];
+        r = rotate4DXY(r, rotX);
+        r = rotate4DXZ(r, rotY);
+        r = rotate4DXW(r, rotZ * 0.5);
+        r = rotate4DYZ(r, rotX * 0.3);
+        r = rotate4DZW(r, rotY * 0.4);
+        return r;
+      });
+
+      // Project to 3D then 2D
+      const projected3D = rotatedVertices.map(v => project4Dto3D(v, 3));
+      const vertices2D = projected3D.map(v => 
+        project3Dto2D(v, width, height, params.projection === 'perspective' ? 3 : 1000)
+      );
+
+      // Calculate edge depths and sort
+      const edgeDepths = HYPERCUBE_EDGES.map(([i, j]) => 
+        (projected3D[i][2] + projected3D[j][2]) / 2
+      );
+      
+      const sortedEdges = HYPERCUBE_EDGES.map((edge, idx) => ({
+        edge,
+        depth: edgeDepths[idx],
+        idx,
+      })).sort((a, b) => a.depth - b.depth);
+
+      // Draw edges
+      sortedEdges.forEach(({ edge, depth }, sortIdx) => {
+        const [i, j] = edge;
+        const [x1, y1] = vertices2D[i];
+        const [x2, y2] = vertices2D[j];
+
+        const colorIdx = sortIdx % colors.length;
+        const alpha = 0.4 + 0.6 * ((depth + 2) / 4);
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = colors[colorIdx];
+        ctx.globalAlpha = Math.max(0.3, Math.min(1, alpha));
+        ctx.lineWidth = params.lineWidth * (0.8 + 0.4 * ((depth + 2) / 4));
+        ctx.stroke();
+
+        // Glow effect
+        if (params.colorScheme === 'neon' || params.colorScheme === 'fire') {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = colors[colorIdx];
+          ctx.globalAlpha = alpha * 0.3;
+          ctx.lineWidth = params.lineWidth * 3;
+          ctx.stroke();
+        }
+      });
+
+      // Draw vertices
+      vertices2D.forEach(([x, y], i) => {
+        const z = projected3D[i][2];
+        const size = 2 + (z + 2) / 4 * 3;
+        const alpha = 0.5 + (z + 2) / 4 * 0.5;
+
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.globalAlpha = alpha;
+        ctx.fill();
+      });
+
+      ctx.globalAlpha = 1;
+
+      // Inner cube connections (subtle)
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.strokeStyle = colors[2];
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 4]);
+
+      const innerCubeEdges = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
+      innerCubeEdges.forEach(([i, j]) => {
+        const [x1, y1] = vertices2D[i];
+        const [x2, y2] = vertices2D[j];
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function animate() {
+      if (isAnimating) {
+        time += 16;
+      }
+      render();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Controls
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+
+    document.getElementById('projection').addEventListener('change', (e) => {
+      params.projection = e.target.value;
+    });
+
+    document.getElementById('toggleAnim').addEventListener('click', (e) => {
+      isAnimating = !isAnimating;
+      e.target.textContent = isAnimating ? 'Pause' : 'Play';
+      e.target.classList.toggle('active', isAnimating);
+    });
+
+    document.getElementById('lineWidth').addEventListener('input', (e) => {
+      params.lineWidth = parseFloat(e.target.value);
+      document.getElementById('lineWidthVal').textContent = params.lineWidth;
+    });
+
+    // Start
+    animate();
+  </script>
+</body>
+</html>
