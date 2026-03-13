@@ -24,10 +24,12 @@ import time
 import signal
 import hashlib
 import subprocess
+import re
+import random
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURATION
@@ -651,6 +653,204 @@ def cmd_diary(args: List[str]) -> int:
     return 0
 
 # ─────────────────────────────────────────────────────────────────────────────
+# MEMORY MANAGER
+# ─────────────────────────────────────────────────────────────────────────────
+
+MEMORY_DIR = Path.home() / ".openclaw" / "workspace" / "memory"
+LONG_TERM_MEMORY = Path.home() / ".openclaw" / "workspace" / "MEMORY.md"
+
+def get_memory_files() -> List[Path]:
+    """Get all daily memory files sorted by date."""
+    if not MEMORY_DIR.exists():
+        return []
+    files = sorted(MEMORY_DIR.glob("*.md"))
+    return [f for f in files if re.match(r"\d{4}-\d{2}-\d{2}\.md", f.name)]
+
+def parse_memory_date(filename: str) -> Optional[datetime]:
+    """Extract date from memory filename."""
+    match = re.match(r"(\d{4}-\d{2}-\d{2})\.md", filename)
+    return datetime.strptime(match.group(1), "%Y-%m-%d") if match else None
+
+def cmd_memory_list(args: List[str]) -> int:
+    """List recent memory entries."""
+    files = get_memory_files()
+    if not files:
+        print("  No memory files found.")
+        return 0
+    
+    limit = int(args[0]) if args else 10
+    files = files[-limit:]
+    
+    print(f"\n  📚 Recent Memories (last {len(files)} entries)\n")
+    print(f"  {'Date':<12} {'Day':<10} {'Size':<8} Preview")
+    print("  " + "-" * 58)
+    
+    for f in reversed(files):
+        date = parse_memory_date(f.name)
+        day_name = date.strftime("%a") if date else "?"
+        size = f.stat().st_size
+        size_str = f"{size//1024}KB" if size > 1024 else f"{size}B"
+        
+        # Extract first meaningful line
+        content = f.read_text(errors='ignore')
+        preview = ""
+        for line in content.split('\n')[:5]:
+            line = line.strip('# ')
+            if line and not line.startswith('---'):
+                preview = line[:32] + "..." if len(line) > 32 else line
+                break
+        
+        date_str = date.strftime("%Y-%m-%d") if date else f.name[:10]
+        print(f"  {date_str:<12} {day_name:<10} {size_str:<8} {preview}")
+    
+    print(f"\n  💡 nemo memory show <date> — read full entry")
+    return 0
+
+def cmd_memory_show(args: List[str]) -> int:
+    """Show a specific memory entry."""
+    if not args:
+        files = get_memory_files()
+        if not files:
+            print("  No memory files found.")
+            return 1
+        target = files[-1]
+    else:
+        date_str = args[0]
+        target = MEMORY_DIR / f"{date_str}.md"
+        if not target.exists():
+            # Try fuzzy match
+            files = get_memory_files()
+            matches = [f for f in files if date_str in f.name]
+            if matches:
+                target = matches[-1]
+            else:
+                print(f"  ✗ Memory file not found: {date_str}")
+                return 1
+    
+    content = target.read_text()
+    date = parse_memory_date(target.name)
+    
+    print(f"\n  📖 {date.strftime('%A, %B %d, %Y') if date else target.name}")
+    print("  " + "=" * 50)
+    print(content)
+    return 0
+
+def cmd_memory_search(args: List[str]) -> int:
+    """Search through all memory files."""
+    if not args:
+        print("  Usage: nemo memory search <keyword>")
+        return 1
+    
+    query = ' '.join(args).lower()
+    files = get_memory_files()
+    matches = []
+    
+    for f in files:
+        content = f.read_text(errors='ignore')
+        if query in content.lower():
+            lines = content.split('\n')
+            for i, line in enumerate(lines):
+                if query in line.lower():
+                    context = ' '.join(lines[max(0,i-1):i+2])
+                    matches.append((f.name, line.strip(), context[:100]))
+                    break
+    
+    if not matches:
+        print(f"  No matches found for: {query}")
+        return 0
+    
+    print(f"\n  🔍 Found {len(matches)} matches for '{query}'\n")
+    for filename, line, context in matches[-10:]:
+        date = parse_memory_date(filename)
+        date_str = date.strftime("%b %d") if date else filename[:10]
+        print(f"    {date_str}: {line[:55]}{'...' if len(line) > 55 else ''}")
+    
+    return 0
+
+def cmd_memory_stats(args: List[str]) -> int:
+    """Show memory statistics."""
+    files = get_memory_files()
+    if not files:
+        print("  No memory files found.")
+        return 0
+    
+    total_size = sum(f.stat().st_size for f in files)
+    total_words = 0
+    all_content = ""
+    
+    for f in files:
+        content = f.read_text(errors='ignore')
+        total_words += len(content.split())
+        all_content += content.lower()
+    
+    first_date = parse_memory_date(files[0].name)
+    last_date = parse_memory_date(files[-1].name)
+    days_span = (last_date - first_date).days + 1 if first_date and last_date else 0
+    
+    print(f"\n  📊 Memory Statistics\n")
+    print(f"    Entries:       {len(files)}")
+    print(f"    Date range:    {first_date.strftime('%Y-%m-%d') if first_date else '?'} → {last_date.strftime('%Y-%m-%d') if last_date else '?'}")
+    print(f"    Days covered:  {days_span}")
+    print(f"    Total size:    {total_size // 1024}KB")
+    print(f"    Total words:   {total_words:,}")
+    print(f"    Avg/entry:     {total_words // len(files):,} words")
+    
+    # Common themes
+    stop_words = {'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'did', 'she', 'use', 'way', 'many', 'oil', 'sit', 'set', 'run', 'eat', 'far', 'sea', 'eye', 'ago', 'off', 'too', 'any', 'say', 'man', 'try', 'ask', 'end', 'why', 'let', 'put', 'tell', 'very', 'when', 'much', 'would', 'there', 'their', 'what', 'said', 'each', 'which', 'will', 'about', 'could', 'other', 'after', 'first', 'never', 'these', 'think', 'where', 'being', 'every', 'great', 'might', 'shall', 'still', 'those', 'while', 'this', 'that', 'with', 'have', 'from', 'they', 'been', 'were', 'time', 'than', 'them', 'into', 'just', 'like', 'over', 'also', 'back', 'only', 'know', 'take', 'year', 'good', 'some', 'come', 'make', 'well', 'work', 'life', 'even', 'more', 'want', 'here', 'look', 'down', 'most', 'long', 'last', 'find', 'give', 'does', 'made', 'part', 'such', 'keep', 'call', 'came', 'need', 'feel', 'seem', 'turn', 'hand', 'high', 'sure', 'upon', 'head', 'help', 'home', 'side', 'move', 'both', 'five', 'once', 'same', 'must', 'name', 'left', 'done', 'open', 'case', 'show', 'live', 'play', 'went', 'told', 'seen', 'hear', 'talk', 'soon', 'read', 'stop', 'face', 'fact', 'land', 'line', 'kind', 'next', 'word'}
+    
+    words = re.findall(r'\b[a-z]{4,}\b', all_content)
+    words = [w for w in words if w not in stop_words]
+    top_words = Counter(words).most_common(8)
+    
+    if top_words:
+        print(f"\n    🔤 Common themes:")
+        max_count = top_words[0][1]
+        for word, count in top_words:
+            bar = "█" * (count // max(1, max_count // 8))
+            print(f"      {word:<12} {bar} {count}")
+    
+    return 0
+
+def cmd_memory_random(args: List[str]) -> int:
+    """Show a random memory entry."""
+    files = get_memory_files()
+    if not files:
+        print("  No memory files found.")
+        return 1
+    
+    f = random.choice(files)
+    content = f.read_text()
+    date = parse_memory_date(f.name)
+    
+    print(f"\n  🎲 Random Memory: {date.strftime('%A, %B %d, %Y') if date else f.name}")
+    print("  " + "=" * 50)
+    print(content)
+    return 0
+
+def cmd_memory(args: List[str]) -> int:
+    """Memory manager — browse, search, and reflect on daily notes."""
+    if not args:
+        return cmd_memory_list([])
+    
+    command = args[0]
+    command_args = args[1:]
+    
+    commands = {
+        'list': cmd_memory_list,
+        'show': cmd_memory_show,
+        'search': cmd_memory_search,
+        'stats': cmd_memory_stats,
+        'random': cmd_memory_random,
+    }
+    
+    if command in commands:
+        return commands[command](command_args)
+    else:
+        print(f"  Unknown command: {command}")
+        print(f"  Available: {', '.join(commands.keys())}")
+        return 1
+
+# ─────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -664,6 +864,7 @@ def show_help():
     track [cmd]          Task tracking (add/done/list/rm)
     ci [cmd]             CI cycle tracking (visualize/log/stats)
     diary [text]         Quick diary entry
+    memory [cmd]         Browse/search daily notes (list/show/search/stats/random)
     work [cmd]           Project context (on/add/rm/log/here/status)
     list                 List all available commands and skills
     <skill> [args...]    Run any skill from skills/
@@ -699,6 +900,7 @@ def main():
         "track": cmd_track,
         "ci": cmd_ci,
         "diary": cmd_diary,
+        "memory": cmd_memory,
         "work": cmd_work,
         "list": cmd_list,
     }
