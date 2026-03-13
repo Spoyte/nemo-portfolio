@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Tree — Organic Growth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+        }
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 150, 100, 0.15);
+            border-radius: 4px;
+        }
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        button {
+            background: rgba(20, 30, 25, 0.9);
+            border: 1px solid rgba(100, 150, 100, 0.4);
+            color: #a0c0a0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        button:hover {
+            background: rgba(40, 60, 50, 0.9);
+            border-color: rgba(120, 180, 120, 0.6);
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 192, 160, 0.6);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .season-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 192, 160, 0.8);
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Fractal Tree — Click to regrow</div>
+    <div class="season-indicator" id="season">Spring</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="cycleSeason()">Season</button>
+        <button onclick="regenerate()">Regrow</button>
+        <button onclick="toggleWind()">Wind: ON</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = 800;
+        canvas.height = 600;
+        
+        // State
+        let time = 0;
+        let windEnabled = true;
+        let currentSeason = 0;
+        let growthProgress = 0;
+        let targetGrowth = 1;
+        let treeSeed = Math.random();
+        
+        const seasons = [
+            { name: 'Spring', leafColor: [120, 180, 120], branchColor: [100, 80, 60], bg: ['#0a0a0f', '#1a1a2e', '#16213e'] },
+            { name: 'Summer', leafColor: [40, 140, 40], branchColor: [80, 60, 50], bg: ['#0a0f0a', '#1a2e1a', '#163e16'] },
+            { name: 'Autumn', leafColor: [200, 120, 40], branchColor: [90, 70, 55], bg: ['#0f0a05', '#2e1a0a', '#3e1e16'] },
+            { name: 'Winter', leafColor: [220, 220, 240], branchColor: [70, 65, 60], bg: ['#05050a', '#0a0a1a', '#0d0d20'] }
+        ];
+        
+        // Wind function - multi-layered for organic movement
+        function getWind(x, y, depth) {
+            if (!windEnabled) return 0;
+            const windBase = Math.sin(time * 0.02 + x * 0.01) * 0.3;
+            const windGust = Math.sin(time * 0.05 + y * 0.02) * 0.15;
+            const windDetail = Math.sin(time * 0.1 + depth * 0.5) * 0.05;
+            return (windBase + windGust + windDetail) * (1 - depth * 0.05);
+        }
+        
+        // Pseudo-random function for deterministic trees
+        function random(seed) {
+            const x = Math.sin(seed * 9999) * 10000;
+            return x - Math.floor(x);
+        }
+        
+        // Draw a branch with wind deformation
+        function drawBranch(x, y, angle, length, depth, maxDepth, seed) {
+            if (depth > maxDepth || length < 2) return;
+            
+            // Growth animation - branches appear progressively
+            const depthThreshold = maxDepth * growthProgress;
+            if (depth > depthThreshold + 1) return;
+            
+            const localProgress = Math.min(1, Math.max(0, depthThreshold - depth));
+            const currentLength = length * localProgress;
+            
+            // Apply wind
+            const wind = getWind(x, y, depth);
+            const bentAngle = angle + wind;
+            
+            // Calculate end point
+            const endX = x + Math.cos(bentAngle) * currentLength;
+            const endY = y + Math.sin(bentAngle) * currentLength;
+            
+            // Branch properties
+            const thickness = Math.max(0.5, (maxDepth - depth) * 1.5 * localProgress);
+            const season = seasons[currentSeason];
+            const branchColor = season.branchColor;
+            
+            // Draw branch
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = `rgb(${branchColor[0] + depth * 5}, ${branchColor[1] + depth * 3}, ${branchColor[2] + depth * 2})`;
+            ctx.lineWidth = thickness;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // Draw leaves at terminal branches
+            if (depth >= maxDepth - 2 && localProgress > 0.5 && currentSeason !== 3) {
+                const leafSize = (3 + random(seed + depth) * 4) * localProgress;
+                const leafColor = season.leafColor;
+                const alpha = 0.6 + random(seed) * 0.4;
+                
+                ctx.beginPath();
+                ctx.arc(endX, endY, leafSize, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${leafColor[0] + random(seed) * 40}, ${leafColor[1] + random(seed + 1) * 30}, ${leafColor[2] + random(seed + 2) * 20}, ${alpha})`;
+                ctx.fill();
+                
+                // Leaf glow
+                ctx.beginPath();
+                ctx.arc(endX, endY, leafSize * 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${leafColor[0]}, ${leafColor[1]}, ${leafColor[2]}, 0.1)`;
+                ctx.fill();
+            }
+            
+            // Winter snow accumulation
+            if (currentSeason === 3 && depth < maxDepth - 3) {
+                ctx.beginPath();
+                ctx.arc(endX, endY - 2, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.fill();
+            }
+            
+            // Recursive branching
+            if (depth < maxDepth && localProgress > 0.3) {
+                const numBranches = 2 + Math.floor(random(seed + depth) * 2);
+                
+                for (let i = 0; i < numBranches; i++) {
+                    const branchSeed = seed + depth * 100 + i * 50;
+                    const angleOffset = (random(branchSeed) - 0.5) * 1.2;
+                    const lengthFactor = 0.6 + random(branchSeed + 1) * 0.25;
+                    const newAngle = bentAngle + angleOffset;
+                    const newLength = length * lengthFactor;
+                    
+                    drawBranch(endX, endY, newAngle, newLength, depth + 1, maxDepth, branchSeed);
+                }
+            }
+        }
+        
+        // Draw ground
+        function drawGround() {
+            const season = seasons[currentSeason];
+            const gradient = ctx.createLinearGradient(0, canvas.height - 50, 0, canvas.height);
+            gradient.addColorStop(0, `rgba(${season.branchColor[0]}, ${season.branchColor[1]}, ${season.branchColor[2]}, 0.3)`);
+            gradient.addColorStop(1, `rgba(${season.branchColor[0]}, ${season.branchColor[1]}, ${season.branchColor[2]}, 0.1)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+        }
+        
+        // Main render
+        function render() {
+            // Clear canvas
+            const season = seasons[currentSeason];
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGradient.addColorStop(0, season.bg[0]);
+            bgGradient.addColorStop(0.5, season.bg[1]);
+            bgGradient.addColorStop(1, season.bg[2]);
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ground
+            drawGround();
+            
+            // Update growth
+            if (growthProgress < targetGrowth) {
+                growthProgress += 0.015;
+            }
+            
+            // Draw tree
+            const startX = canvas.width / 2;
+            const startY = canvas.height - 30;
+            const initialAngle = -Math.PI / 2;
+            const initialLength = 100 + random(treeSeed) * 40;
+            const maxDepth = 10;
+            
+            drawBranch(startX, startY, initialAngle, initialLength, 0, maxDepth, treeSeed);
+            
+            // Update time
+            time += 1;
+            
+            requestAnimationFrame(render);
+        }
+        
+        // Controls
+        function cycleSeason() {
+            currentSeason = (currentSeason + 1) % seasons.length;
+            document.getElementById('season').textContent = seasons[currentSeason].name;
+            // Update body background
+            const season = seasons[currentSeason];
+            document.body.style.background = `linear-gradient(180deg, ${season.bg[0]} 0%, ${season.bg[1]} 50%, ${season.bg[2]} 100%)`;
+        }
+        
+        function regenerate() {
+            treeSeed = Math.random();
+            growthProgress = 0;
+            targetGrowth = 1;
+        }
+        
+        function toggleWind() {
+            windEnabled = !windEnabled;
+            event.target.textContent = `Wind: ${windEnabled ? 'ON' : 'OFF'}`;
+        }
+        
+        // Click to regrow
+        canvas.addEventListener('click', regenerate);
+        
+        // Start
+        render();
+    </script>
+</body>
+</html>
