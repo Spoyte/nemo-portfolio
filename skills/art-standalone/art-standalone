@@ -1,0 +1,321 @@
+#!/usr/bin/env python3
+"""
+art-standalone: Manage standalone HTML generative art pieces
+"""
+
+import argparse
+import os
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+
+ART_DIR = Path("/root/.openclaw/workspace/art")
+TEMPLATE = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            background: #0a0a0f;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+        }}
+        canvas {{
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }}
+        .controls {{
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }}
+        button {{
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }}
+        button:hover {{
+            background: rgba(255, 255, 255, 0.2);
+        }}
+        .info {{
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            z-index: 10;
+        }}
+    </style>
+</head>
+<body>
+    <div class="info">{title} — click to regenerate</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button id="regen">Regenerate</button>
+    </div>
+
+    <script>
+        /*
+         * {title}
+         * 
+         * Rams Design Principles:
+         * - Innovative: {innovation}
+         * - Useful: {useful}
+         * - Aesthetic: {aesthetic}
+         * - Understandable: Simple controls, clear feedback
+         * - Unobtrusive: Full immersion, minimal UI
+         * - Honest: Shows the algorithm clearly
+         * - Long-lasting: Timeless mathematical beauty
+         * - Thorough: Polished and complete
+         * - Less design: No decoration, just the art
+         */
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height, dpr;
+        let animationId;
+        let time = 0;
+
+        function resize() {{
+            dpr = window.devicePixelRatio || 1;
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            ctx.scale(dpr, dpr);
+        }}
+
+        function random(seed) {{
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }}
+
+        function generate() {{
+            // TODO: Implement your algorithm here
+            const seed = Date.now();
+            
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Example: draw some random circles
+            for (let i = 0; i < 50; i++) {{
+                const x = random(seed + i) * width;
+                const y = random(seed + i + 100) * height;
+                const r = random(seed + i + 200) * 50 + 10;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${{random(seed + i + 300) * 360}}, 70%, 60%, 0.5)`;
+                ctx.fill();
+            }}
+        }}
+
+        function animate() {{
+            time += 0.01;
+            // TODO: Add animation logic
+            animationId = requestAnimationFrame(animate);
+        }}
+
+        function init() {{
+            resize();
+            generate();
+            animate();
+        }}
+
+        window.addEventListener('resize', () => {{
+            resize();
+            generate();
+        }});
+
+        canvas.addEventListener('click', generate);
+        document.getElementById('regen').addEventListener('click', generate);
+
+        init();
+    </script>
+</body>
+</html>
+'''
+
+
+def slugify(name: str) -> str:
+    """Convert name to filename-friendly slug."""
+    return re.sub(r'[^\w]+', '-', name.lower()).strip('-')
+
+
+def cmd_new(args):
+    """Create a new standalone art piece."""
+    name = args.name
+    slug = slugify(name)
+    filepath = ART_DIR / f"{slug}.html"
+    
+    if filepath.exists():
+        print(f"Error: {filepath} already exists")
+        return 1
+    
+    title = name.replace('-', ' ').title()
+    
+    # Prompt for Rams principles
+    print(f"Creating '{title}'...")
+    innovation = input("Innovation (what's new?): ").strip() or "Unique algorithmic approach"
+    useful = input("Useful (what does it explore?): ").strip() or "Interactive exploration of generative patterns"
+    aesthetic = input("Aesthetic (visual style?): ").strip() or "Minimal, immersive, full-screen experience"
+    
+    content = TEMPLATE.format(
+        title=title,
+        innovation=innovation,
+        useful=useful,
+        aesthetic=aesthetic
+    )
+    
+    filepath.write_text(content)
+    print(f"Created: {filepath}")
+    print(f"Open in browser: file://{filepath.absolute()}")
+    return 0
+
+
+def cmd_list(args):
+    """List all standalone art pieces."""
+    pieces = sorted(ART_DIR.glob("*.html"))
+    
+    if not pieces:
+        print("No standalone art pieces found.")
+        return 0
+    
+    print(f"\n{'Piece':<30} {'Size':>10} {'Modified':>20}")
+    print("-" * 65)
+    
+    for piece in pieces:
+        stat = piece.stat()
+        size = stat.st_size
+        mtime = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+        
+        # Format size
+        if size < 1024:
+            size_str = f"{size}B"
+        elif size < 1024 * 1024:
+            size_str = f"{size/1024:.1f}KB"
+        else:
+            size_str = f"{size/(1024*1024):.1f}MB"
+        
+        print(f"{piece.stem:<30} {size_str:>10} {mtime:>20}")
+    
+    print(f"\nTotal: {len(pieces)} pieces")
+    return 0
+
+
+def cmd_validate(args):
+    """Validate all standalone art pieces."""
+    pieces = sorted(ART_DIR.glob("*.html"))
+    issues = []
+    
+    print(f"Validating {len(pieces)} pieces...\n")
+    
+    for piece in pieces:
+        content = piece.read_text()
+        piece_issues = []
+        
+        # Check for required elements
+        if '<canvas' not in content:
+            piece_issues.append("Missing canvas element")
+        if 'devicePixelRatio' not in content:
+            piece_issues.append("Missing devicePixelRatio handling")
+        if 'Rams' not in content and 'rams' not in content:
+            piece_issues.append("Missing Rams principles documentation")
+        if 'requestAnimationFrame' not in content:
+            piece_issues.append("Missing animation loop")
+        
+        # Check for common issues
+        if 'document.write' in content:
+            piece_issues.append("Uses deprecated document.write()")
+        if content.count('<script>') > 2:
+            piece_issues.append("Multiple script blocks (consider consolidating)")
+        
+        status = "✓" if not piece_issues else "✗"
+        print(f"{status} {piece.name}")
+        
+        for issue in piece_issues:
+            print(f"   - {issue}")
+            issues.append(f"{piece.name}: {issue}")
+    
+    print(f"\n{'All pieces valid!' if not issues else f'Found {len(issues)} issue(s)'}")
+    return 0 if not issues else 1
+
+
+def cmd_gallery(args):
+    """Update the gallery index.html with current pieces."""
+    pieces = [p for p in sorted(ART_DIR.glob("*.html")) if p.name != "index.html"]
+    
+    # Generate gallery items
+    items = []
+    for piece in pieces:
+        title = piece.stem.replace('-', ' ').title()
+        items.append(f'''        <a href="{piece.name}" class="art-card">
+            <div class="art-thumb" data-piece="{piece.stem}"></div>
+            <div class="art-info">
+                <h3>{title}</h3>
+            </div>
+        </a>''')
+    
+    print(f"Gallery contains {len(pieces)} pieces")
+    print("\nTo regenerate the full gallery with thumbnails, run:")
+    print("  art-standalone render --all")
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Manage standalone HTML generative art pieces"
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    
+    # new
+    new_parser = subparsers.add_parser("new", help="Create a new art piece")
+    new_parser.add_argument("name", help="Name of the piece (e.g., 'flow-field')")
+    
+    # list
+    subparsers.add_parser("list", help="List all art pieces")
+    
+    # validate
+    subparsers.add_parser("validate", help="Validate all art pieces")
+    
+    # gallery
+    subparsers.add_parser("gallery", help="Show gallery info")
+    
+    args = parser.parse_args()
+    
+    # Ensure art directory exists
+    ART_DIR.mkdir(parents=True, exist_ok=True)
+    
+    commands = {
+        "new": cmd_new,
+        "list": cmd_list,
+        "validate": cmd_validate,
+        "gallery": cmd_gallery,
+    }
+    
+    return commands[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
