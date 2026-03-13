@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambient Breathing — Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0f;
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 10;
+        }
+
+        body:hover .controls {
+            opacity: 1;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .title {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        body:hover .title {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Ambient Breathing</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button id="paletteBtn">Change Mood</button>
+        <button id="speedBtn">Speed</button>
+        <button id="densityBtn">Density</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let time = 0;
+        let speed = 0.3;
+        let density = 1;
+        let paletteIndex = 0;
+
+        // Breathing orbs that drift and pulse
+        const orbs = [];
+        const numOrbs = 15;
+
+        // Color palettes for different moods
+        const palettes = [
+            { // Deep Ocean
+                bg: ['#0a0a1a', '#1a1a3a'],
+                orbs: ['#4a90d9', '#5fa8e8', '#7ec8f0', '#3d7ab8', '#2e5a8a']
+            },
+            { // Warm Ember
+                bg: ['#1a0a0a', '#2a1510'],
+                orbs: ['#e85d4a', '#f07050', '#ff8a65', '#d94e3a', '#b83a2a']
+            },
+            { // Forest Mist
+                bg: ['#0a1a0a', '#152a15'],
+                orbs: ['#5a9a5a', '#6ab86a', '#7ad67a', '#4a8a4a', '#3a7a3a']
+            },
+            { // Cosmic Purple
+                bg: ['#0f0a1a', '#1a0f2a'],
+                orbs: ['#9a6be8', '#b88af5', '#d4aaff', '#7a4bd0', '#5a3ab8']
+            },
+            { // Monochrome
+                bg: ['#0a0a0a', '#1a1a1a'],
+                orbs: ['#666666', '#888888', '#aaaaaa', '#555555', '#444444']
+            }
+        ];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        function createOrb() {
+            const palette = palettes[paletteIndex];
+            return {
+                x: Math.random() * width,
+                y: Math.random() * height,
+                baseX: Math.random() * width,
+                baseY: Math.random() * height,
+                radius: 50 + Math.random() * 150,
+                baseRadius: 50 + Math.random() * 150,
+                color: palette.orbs[Math.floor(Math.random() * palette.orbs.length)],
+                phase: Math.random() * Math.PI * 2,
+                driftPhase: Math.random() * Math.PI * 2,
+                driftSpeed: 0.0005 + Math.random() * 0.001,
+                pulseSpeed: 0.5 + Math.random() * 0.5,
+                opacity: 0.1 + Math.random() * 0.2
+            };
+        }
+
+        function initOrbs() {
+            orbs.length = 0;
+            for (let i = 0; i < numOrbs * density; i++) {
+                orbs.push(createOrb());
+            }
+        }
+
+        function drawGradientBackground() {
+            const palette = palettes[paletteIndex];
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, palette.bg[0]);
+            gradient.addColorStop(1, palette.bg[1]);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        function drawOrb(orb) {
+            // Drift movement
+            const driftX = Math.sin(time * orb.driftSpeed + orb.driftPhase) * 100;
+            const driftY = Math.cos(time * orb.driftSpeed * 0.7 + orb.driftPhase) * 80;
+            
+            // Breathing pulse
+            const pulse = Math.sin(time * 0.001 * orb.pulseSpeed + orb.phase);
+            const currentRadius = orb.baseRadius * (1 + pulse * 0.15);
+            
+            const x = orb.baseX + driftX;
+            const y = orb.baseY + driftY;
+
+            // Create soft glow
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, currentRadius);
+            const alpha = orb.opacity * (0.8 + pulse * 0.2);
+            
+            // Parse hex to rgba
+            const hex = orb.color.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+
+            gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+            gradient.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, ${alpha * 0.5})`);
+            gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawNoiseOverlay() {
+            // Subtle film grain for texture
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 16) { // Skip pixels for performance
+                const noise = (Math.random() - 0.5) * 8;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+                data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function animate() {
+            time += 16 * speed;
+
+            drawGradientBackground();
+
+            // Draw orbs from back to front (sorted by implicit z via order)
+            orbs.forEach(orb => drawOrb(orb));
+
+            // Very subtle noise every few frames
+            if (Math.random() < 0.1) {
+                drawNoiseOverlay();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Controls
+        document.getElementById('paletteBtn').addEventListener('click', () => {
+            paletteIndex = (paletteIndex + 1) % palettes.length;
+            // Update orb colors gradually
+            orbs.forEach(orb => {
+                const palette = palettes[paletteIndex];
+                orb.color = palette.orbs[Math.floor(Math.random() * palette.orbs.length)];
+            });
+        });
+
+        document.getElementById('speedBtn').addEventListener('click', () => {
+            speed = speed === 0.3 ? 0.8 : speed === 0.8 ? 1.5 : 0.3;
+        });
+
+        document.getElementById('densityBtn').addEventListener('click', () => {
+            density = density === 1 ? 1.5 : density === 1.5 ? 0.6 : 1;
+            initOrbs();
+        });
+
+        // Initialize
+        window.addEventListener('resize', () => {
+            resize();
+            initOrbs();
+        });
+
+        resize();
+        initOrbs();
+        animate();
+    </script>
+</body>
+</html>

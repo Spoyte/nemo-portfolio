@@ -149,60 +149,60 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ScrollReveal delay={0.1}>
               <SpotlightCard className="h-full">
-                <Link href="/projects" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Layers className="w-6 h-6 text-white" />
+                <Link href="/matrix-rain" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Terminal className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">3D Project Cards</h3>
+                  <h3 className="text-lg font-semibold mb-2">Matrix Rain</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Interactive 3D tilt cards with hover effects and smooth animations.
+                    Interactive Matrix-style digital rain with customizable colors and effects.
                   </p>
-                  <Badge variant="outline">Explore →</Badge>
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.2}>
               <SpotlightCard className="h-full">
-                <Link href="/fun-zone" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Gamepad2 className="w-6 h-6 text-white" />
+                <Link href="/typing-race" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Keyboard className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Fun Zone</h3>
+                  <h3 className="text-lg font-semibold mb-2">Typing Race</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Mini games including reaction time, click speed, and memory tests.
+                    Test your typing speed and accuracy with real-time WPM tracking.
                   </p>
-                  <Badge variant="outline">Play →</Badge>
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.3}>
               <SpotlightCard className="h-full">
-                <Link href="/cases" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Briefcase className="w-6 h-6 text-white" />
+                <Link href="/soundboard" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Volume2 className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Case Studies</h3>
+                  <h3 className="text-lg font-semibold mb-2">Dev Soundboard</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Detailed project breakdowns with challenges, solutions, and results.
+                    Classic developer sound effects, jokes, and programming wisdom.
                   </p>
-                  <Badge variant="outline">Read →</Badge>
+                  <Badge variant="outline" className="bg-pink-500/10 text-pink-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.4}>
               <SpotlightCard className="h-full">
-                <Link href="/terminal" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Terminal className="w-6 h-6 text-white" />
+                <Link href="/challenges" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Trophy className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Magic Terminal</h3>
+                  <h3 className="text-lg font-semibold mb-2">Daily Challenges</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Interactive command-line interface with hidden commands.
+                    Complete challenges, earn points, unlock achievements and rewards.
                   </p>
-                  <Badge variant="outline">Try Ctrl+Shift+K →</Badge>
+                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>

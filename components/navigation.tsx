@@ -23,6 +23,11 @@ const navItems = [
 
 const moreNavItems = [
   { href: "/v2-features", label: "V2 Features", badge: "New" },
+  { href: "/matrix-rain", label: "Matrix Rain", badge: "New" },
+  { href: "/typing-race", label: "Typing Race", badge: "New" },
+  { href: "/soundboard", label: "Soundboard", badge: "New" },
+  { href: "/idea-generator", label: "Idea Generator", badge: "New" },
+  { href: "/challenges", label: "Daily Challenges", badge: "New" },
   { href: "/code-cinema", label: "Code Cinema" },
   { href: "/color-studio", label: "Color Studio" },
   { href: "/art-studio", label: "Art Studio" },

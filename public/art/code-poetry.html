@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Poetry — Syntax as Visual Art</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .ui h1 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #f0f6fc;
+    }
+
+    .ui p {
+      font-size: 12px;
+      color: #8b949e;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .control-group {
+      margin-bottom: 12px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 11px;
+      color: #8b949e;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    button {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+
+    button.active {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: white;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: #30363d;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #1f6feb;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .stats {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-size: 11px;
+      color: #484f58;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <div class="ui">
+    <h1>📝 Code Poetry</h1>
+    <p>Source code transformed into visual poetry. Syntax becomes structure, tokens become texture.</p>
+    
+    <div class="control-group">
+      <label>Poem Structure</label>
+      <div class="btn-group">
+        <button class="active" data-structure="columns">Columns</button>
+        <button data-structure="spiral">Spiral</button>
+        <button data-structure="waves">Waves</button>
+        <button data-structure="tree">Tree</button>
+        <button data-structure="cascade">Cascade</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Source Code</label>
+      <div class="btn-group">
+        <button class="active" data-source="poetic">Poetic JS</button>
+        <button data-source="algorithm">Algorithm</button>
+        <button data-source="nature">Nature Sim</button>
+        <button data-source="love">Love Letter</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Color Theme</label>
+      <div class="btn-group">
+        <button class="active" data-theme="github">GitHub</button>
+        <button data-theme="dracula">Dracula</button>
+        <button data-theme="monokai">Monokai</button>
+        <button data-theme="solarized">Solarized</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Flow Speed</label>
+      <input type="range" id="speed" min="0" max="100" value="30">
+    </div>
+
+    <div class="control-group">
+      <label>Density</label>
+      <input type="range" id="density" min="10" max="100" value="50">
+    </div>
+  </div>
+
+  <div class="stats">
+    <span id="tokenCount">0 tokens</span> · 
+    <span id="fps">0 FPS</span>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let tokens = [];
+    let time = 0;
+    
+    const config = {
+      structure: 'columns',
+      source: 'poetic',
+      theme: 'github',
+      speed: 0.3,
+      density: 0.5,
+      fontSize: 14
+    };
+
+    const themes = {
+      github: {
+        background: '#0d1117',
+        keyword: '#ff7b72',
+        string: '#a5d6ff',
+        comment: '#8b949e',
+        function: '#d2a8ff',
+        number: '#79c0ff',
+        operator: '#ff7b72',
+        variable: '#e6edf3',
+        punctuation: '#c9d1d9'
+      },
+      dracula: {
+        background: '#282a36',
+        keyword: '#ff79c6',
+        string: '#f1fa8c',
+        comment: '#6272a4',
+        function: '#50fa7b',
+        number: '#bd93f9',
+        operator: '#ff79c6',
+        variable: '#f8f8f2',
+        punctuation: '#f8f8f2'
+      },
+      monokai: {
+        background: '#272822',
+        keyword: '#f92672',
+        string: '#e6db74',
+        comment: '#75715e',
+        function: '#a6e22e',
+        number: '#ae81ff',
+        operator: '#f92672',
+        variable: '#f8f8f2',
+        punctuation: '#f8f8f2'
+      },
+      solarized: {
+        background: '#002b36',
+        keyword: '#cb4b16',
+        string: '#2aa198',
+        comment: '#586e75',
+        function: '#b58900',
+        number: '#d33682',
+        operator: '#cb4b16',
+        variable: '#839496',
+        punctuation: '#93a1a1'
+      }
+    };
+
+    const sources = {
+      poetic: `// The dance of creation
+function breathe() {
+  const stars = [];
+  let time = 0;
+  
+  while (time < forever) {
+    const light = new Promise((resolve) => {
+      setTimeout(() => {
+        resolve("beauty");
+      }, time);
+    });
+    
+    stars.push(light);
+    time += Math.sin(time) * 0.01;
+  }
+  
+  return stars.map(s => s.glow());
+}
+
+// Where code meets poetry
+const universe = breathe();
+console.log("Hello, world of wonder");`,
+
+      algorithm: `class BinaryTree {
+  constructor(value) {
+    this.value = value;
+    this.left = null;
+    this.right = null;
+  }
+  
+  insert(value) {
+    if (value < this.value) {
+      if (this.left === null) {
+        this.left = new BinaryTree(value);
+      } else {
+        this.left.insert(value);
+      }
+    } else {
+      if (this.right === null) {
+        this.right = new BinaryTree(value);
+      } else {
+        this.right.insert(value);
+      }
+    }
+  }
+  
+  search(value) {
+    if (value === this.value) return true;
+    if (value < this.value) {
+      return this.left ? this.left.search(value) : false;
+    }
+    return this.right ? this.right.search(value) : false;
+  }
+}`,
+
+      nature: `// Simulate the growth of a forest
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+
+class Tree {
+  constructor(x, y, angle, depth) {
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+    this.depth = depth;
+    this.branches = [];
+  }
+  
+  grow() {
+    if (this.depth <= 0) return;
+    
+    const length = this.depth * 8;
+    const endX = this.x + Math.cos(this.angle) * length;
+    const endY = this.y + Math.sin(this.angle) * length;
+    
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    
+    // Branch out
+    this.branches.push(
+      new Tree(endX, endY, this.angle - 0.3, this.depth - 1),
+      new Tree(endX, endY, this.angle + 0.3, this.depth - 1)
+    );
+    
+    this.branches.forEach(b => b.grow());
+  }
+}
+
+// Plant the seed
+const forest = new Tree(400, 600, -Math.PI / 2, 10);
+forest.grow();`,
+
+      love: `// A love letter in JavaScript
+const myHeart = {
+  owner: "you",
+  capacity: Infinity,
+  contents: [],
+  
+  fill(withLove) {
+    while (this.contents.length < this.capacity) {
+      this.contents.push({
+        type: "affection",
+        intensity: Math.random() * 100 + 9000,
+        timestamp: Date.now(),
+        message: "I think of you"
+      });
+    }
+  },
+  
+  beat() {
+    return new Promise((resolve) => {
+      setInterval(() => {
+        console.log("thump-thump 💓");
+        resolve("still beating");
+      }, 800);
+    });
+  },
+  
+  share() {
+    return this.contents.map(feeling => {
+      return feeling.message.toUpperCase() + "!!!";
+    }).join("\\n");
+  }
+};
+
+// Execute love
+myHeart.fill(true);
+myHeart.beat().then(() => {
+  console.log("Forever and always");
+});
+`
+    };
+
+    // Tokenize source code
+    function tokenize(code) {
+      const tokens = [];
+      const lines = code.split('\n');
+      
+      lines.forEach((line, lineNum) => {
+        // Check for comment first
+        const commentMatch = line.match(/\/\/.*$/);
+        if (commentMatch) {
+          const beforeComment = line.substring(0, commentMatch.index);
+          const commentText = commentMatch[0];
+          
+          if (beforeComment.trim()) {
+            tokenizeLine(beforeComment, lineNum, 0, tokens);
+          }
+          
+          tokens.push({
+            type: 'comment',
+            value: commentText.trim(),
+            line: lineNum,
+            col: commentMatch.index,
+            original: commentText.trim()
+          });
+        } else {
+          tokenizeLine(line, lineNum, 0, tokens);
+        }
+      });
+      
+      return tokens;
+    }
+
+    function tokenizeLine(line, lineNum, startCol, tokens) {
+      const words = line.match(/\S+/g) || [];
+      let col = startCol;
+      
+      words.forEach(word => {
+        const trimmed = word.trim();
+        if (!trimmed) return;
+        
+        let type = 'variable';
+        
+        if (/^["'`]/.test(trimmed)) type = 'string';
+        else if (/^\d/.test(trimmed)) type = 'number';
+        else if (/^(const|let|var|function|class|if|else|while|for|return|new|this|true|false|null|undefined|import|export|from|async|await|constructor|extends|static|get|set)$/.test(trimmed)) type = 'keyword';
+        else if (/^(console|Math|Date|document|window|Promise|setTimeout|setInterval|Array|Object|String|Number)$/.test(trimmed)) type = 'function';
+        else if (/^[\+\-\*\/\=\<\>\!\&\|\?\:\%]+$/.test(trimmed)) type = 'operator';
+        else if (/^[\(\)\{\}\[\]\;\,\.]+$/.test(trimmed)) type = 'punctuation';
+        
+        tokens.push({
+          type,
+          value: trimmed,
+          line: lineNum,
+          col,
+          original: trimmed
+        });
+        
+        col += word.length + 1;
+      });
+    }
+
+    // Initialize positions based on structure
+    function initPositions() {
+      const theme = themes[config.theme];
+      const tokenCount = Math.floor(tokens.length * config.density);
+      const selectedTokens = tokens.slice(0, tokenCount);
+      
+      selectedTokens.forEach((token, i) => {
+        const t = { ...token };
+        const progress = i / tokenCount;
+        
+        switch (config.structure) {
+          case 'columns':
+            const colCount = Math.floor(width / 150);
+            const col = i % colCount;
+            const row = Math.floor(i / colCount);
+            t.x = 100 + col * 140;
+            t.y = 80 + row * 25;
+            t.vx = 0;
+            t.vy = config.speed * 0.5;
+            t.baseX = t.x;
+            t.baseY = t.y;
+            break;
+            
+          case 'spiral':
+            const angle = progress * Math.PI * 8;
+            const radius = 50 + progress * Math.min(width, height) * 0.35;
+            t.x = width / 2 + Math.cos(angle) * radius;
+            t.y = height / 2 + Math.sin(angle) * radius;
+            t.vx = 0;
+            t.vy = 0;
+            t.angle = angle;
+            t.radius = radius;
+            break;
+            
+          case 'waves':
+            t.x = progress * width;
+            t.y = height / 2 + Math.sin(progress * Math.PI * 4) * 100;
+            t.vx = config.speed;
+            t.vy = 0;
+            t.phase = progress * Math.PI * 4;
+            break;
+            
+          case 'tree':
+            const level = Math.floor(Math.log2(i + 2));
+            const indexInLevel = i - (Math.pow(2, level) - 1);
+            const totalInLevel = Math.pow(2, level);
+            const xPos = (indexInLevel + 0.5) / totalInLevel;
+            t.x = xPos * width * 0.8 + width * 0.1;
+            t.y = 100 + level * 40;
+            t.vx = 0;
+            t.vy = 0;
+            t.level = level;
+            break;
+            
+          case 'cascade':
+            t.x = Math.random() * width;
+            t.y = -Math.random() * height;
+            t.vx = (Math.random() - 0.5) * 0.5;
+            t.vy = 1 + Math.random() * 2;
+            t.opacity = 0;
+            break;
+        }
+        
+        t.size = config.fontSize;
+        t.color = theme[token.type] || theme.variable;
+        t.originalSize = t.size;
+        
+        tokens[i] = t;
+      });
+      
+      tokens.length = tokenCount;
+    }
+
+    // Update positions
+    function update() {
+      time += config.speed * 0.1;
+      
+      tokens.forEach((t, i) => {
+        switch (config.structure) {
+          case 'columns':
+            t.y += t.vy;
+            if (t.y > height + 20) {
+              t.y = -20;
+            }
+            t.x = t.baseX + Math.sin(time + i * 0.1) * 5;
+            break;
+            
+          case 'spiral':
+            t.angle += config.speed * 0.02;
+            t.x = width / 2 + Math.cos(t.angle) * t.radius;
+            t.y = height / 2 + Math.sin(t.angle) * t.radius;
+            t.size = t.originalSize * (1 + Math.sin(time * 2 + i * 0.05) * 0.3);
+            break;
+            
+          case 'waves':
+            t.phase += config.speed * 0.05;
+            t.y = height / 2 + Math.sin(t.phase) * 150 + Math.sin(t.phase * 2) * 50;
+            t.x = ((i / tokens.length) * width + time * 50) % (width + 200) - 100;
+            break;
+            
+          case 'tree':
+            t.x += Math.sin(time + t.level * 0.5) * 0.3;
+            break;
+            
+          case 'cascade':
+            t.y += t.vy;
+            t.x += t.vx + Math.sin(time + t.y * 0.01) * 0.5;
+            
+            if (t.y < 100) {
+              t.opacity = t.y / 100;
+            } else if (t.y > height - 100) {
+              t.opacity = (height - t.y) / 100;
+            } else {
+              t.opacity = 1;
+            }
+            
+            if (t.y > height + 50) {
+              t.y = -50;
+              t.x = Math.random() * width;
+              t.vx = (Math.random() - 0.5) * 0.5;
+            }
+            break;
+        }
+      });
+    }
+
+    // Draw frame
+    function draw() {
+      const theme = themes[config.theme];
+      
+      ctx.fillStyle = theme.background;
+      ctx.fillRect(0, 0, width, height);
+      
+      ctx.font = `${config.fontSize}px 'SF Mono', Monaco, monospace`;
+      ctx.textBaseline = 'middle';
+      
+      tokens.forEach(t => {
+        ctx.fillStyle = t.color;
+        
+        if (config.structure === 'cascade') {
+          ctx.globalAlpha = t.opacity;
+        } else {
+          ctx.globalAlpha = 1;
+        }
+        
+        if (t.type === 'keyword' || t.type === 'string') {
+          ctx.shadowColor = t.color;
+          ctx.shadowBlur = 10;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+        
+        ctx.font = `${t.size}px 'SF Mono', Monaco, monospace`;
+        
+        const display = t.value.length > 15 ? t.value.substring(0, 12) + '...' : t.value;
+        ctx.fillText(display, t.x, t.y);
+      });
+      
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
+
+    // Animation loop
+    let lastTime = 0;
+    let frameCount = 0;
+    let fpsTime = 0;
+
+    function animate(currentTime) {
+      const delta = currentTime - lastTime;
+      lastTime = currentTime;
+      
+      update();
+      draw();
+      
+      frameCount++;
+      fpsTime += delta;
+      if (fpsTime >= 1000) {
+        document.getElementById('fps').textContent = frameCount + ' FPS';
+        frameCount = 0;
+        fpsTime = 0;
+      }
+      
+      requestAnimationFrame(animate);
+    }
+
+    // Resize handler
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      
+      tokens = tokenize(sources[config.source]);
+      initPositions();
+      document.getElementById('tokenCount').textContent = tokens.length + ' tokens';
+    }
+
+    // Event listeners
+    window.addEventListener('resize', resize);
+
+    document.querySelectorAll('button[data-structure]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('button[data-structure]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        config.structure = btn.dataset.structure;
+        initPositions();
+      });
+    });
+
+    document.querySelectorAll('button[data-source]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('button[data-source]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        config.source = btn.dataset.source;
+        tokens = tokenize(sources[config.source]);
+        initPositions();
+        document.getElementById('tokenCount').textContent = tokens.length + ' tokens';
+      });
+    });
+
+    document.querySelectorAll('button[data-theme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('button[data-theme]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        config.theme = btn.dataset.theme;
+        initPositions();
+      });
+    });
+
+    document.getElementById('speed').addEventListener('input', (e) => {
+      config.speed = e.target.value / 100;
+    });
+
+    document.getElementById('density').addEventListener('input', (e) => {
+      config.density = e.target.value / 100;
+      initPositions();
+    });
+
+    // Initialize
+    resize();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

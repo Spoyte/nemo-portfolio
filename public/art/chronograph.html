@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronograph — Living Timepiece</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+        }
+        
+        #canvas {
+            border-radius: 50%;
+            box-shadow: 
+                0 0 60px rgba(100, 150, 255, 0.1),
+                0 0 120px rgba(100, 150, 255, 0.05),
+                inset 0 0 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 20px;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        button.active {
+            background: rgba(100, 150, 255, 0.2);
+            border-color: rgba(100, 150, 255, 0.4);
+            color: #a0c0ff;
+        }
+        
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .digital-time {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="digital-time" id="digitalTime">00:00:00</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="setMode('solar')" id="btn-solar" class="active">Solar</button>
+        <button onclick="setMode('orbital')" id="btn-orbital">Orbital</button>
+        <button onclick="setMode('organic')" id="btn-organic">Organic</button>
+        <button onclick="setMode('minimal')" id="btn-minimal">Minimal</button>
+        <button onclick="toggleSeconds()" id="btn-seconds">Show Seconds</button>
+        <button onclick="toggleNumbers()" id="btn-numbers">Show Numbers</button>
+    </div>
+    
+    <div class="info">Chronograph — A living timepiece. Time as generative art.</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const digitalTimeEl = document.getElementById('digitalTime');
+        
+        let mode = 'solar';
+        let showSeconds = false;
+        let showNumbers = false;
+        let particles = [];
+        let time = 0;
+        
+        // Initialize particles for organic mode
+        for (let i = 0; i < 60; i++) {
+            particles.push({
+                angle: (i / 60) * Math.PI * 2,
+                radius: 200 + Math.random() * 50,
+                speed: 0.001 + Math.random() * 0.002,
+                phase: Math.random() * Math.PI * 2
+            });
+        }
+        
+        function setMode(newMode) {
+            mode = newMode;
+            document.querySelectorAll('.controls button').forEach(btn => {
+                if (btn.id.startsWith('btn-') && !btn.id.includes('seconds') && !btn.id.includes('numbers')) {
+                    btn.classList.remove('active');
+                }
+            });
+            document.getElementById(`btn-${newMode}`).classList.add('active');
+        }
+        
+        function toggleSeconds() {
+            showSeconds = !showSeconds;
+            document.getElementById('btn-seconds').classList.toggle('active');
+        }
+        
+        function toggleNumbers() {
+            showNumbers = !showNumbers;
+            document.getElementById('btn-numbers').classList.toggle('active');
+        }
+        
+        function getTimeComponents() {
+            const now = new Date();
+            return {
+                hours: now.getHours(),
+                minutes: now.getMinutes(),
+                seconds: now.getSeconds(),
+                milliseconds: now.getMilliseconds()
+            };
+        }
+        
+        function updateDigitalTime(t) {
+            const pad = n => n.toString().padStart(2, '0');
+            digitalTimeEl.textContent = `${pad(t.hours)}:${pad(t.minutes)}:${pad(t.seconds)}`;
+        }
+        
+        function drawSolarMode(t, smoothSec) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Background glow based on hour
+            const hourHue = (t.hours % 12) / 12 * 360;
+            const gradient = ctx.createRadialGradient(cx, cy, 50, cx, cy, 280);
+            gradient.addColorStop(0, `hsla(${hourHue}, 70%, 50%, 0.3)`);
+            gradient.addColorStop(0.5, `hsla(${hourHue + 30}, 60%, 40%, 0.1)`);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Outer ring - hours
+            ctx.strokeStyle = `hsla(${hourHue}, 60%, 60%, 0.3)`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 250, -Math.PI / 2, -Math.PI / 2 + (t.hours % 12 + t.minutes / 60) / 12 * Math.PI * 2);
+            ctx.stroke();
+            
+            // Middle ring - minutes
+            ctx.strokeStyle = `hsla(${hourHue + 60}, 70%, 65%, 0.5)`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 220, -Math.PI / 2, -Math.PI / 2 + (t.minutes + smoothSec / 60) / 60 * Math.PI * 2);
+            ctx.stroke();
+            
+            // Inner ring - seconds (if enabled)
+            if (showSeconds) {
+                ctx.strokeStyle = `hsla(${hourHue + 120}, 80%, 70%, 0.7)`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 190, -Math.PI / 2, -Math.PI / 2 + smoothSec / 60 * Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Center sun
+            const sunGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 80);
+            sunGradient.addColorStop(0, `hsla(${hourHue}, 80%, 70%, 1)`);
+            sunGradient.addColorStop(0.5, `hsla(${hourHue + 20}, 70%, 60%, 0.5)`);
+            sunGradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = sunGradient;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Orbiting particles
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 - Math.PI / 2 + (t.minutes + smoothSec / 60) / 60 * Math.PI * 2;
+                const x = cx + Math.cos(angle) * 160;
+                const y = cy + Math.sin(angle) * 160;
+                const size = 3 + Math.sin(time * 0.05 + i) * 1;
+                
+                ctx.fillStyle = `hsla(${hourHue + i * 15}, 70%, 70%, ${0.3 + Math.sin(time * 0.03 + i) * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function drawOrbitalMode(t, smoothSec) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Hour orbit
+            const hourAngle = -Math.PI / 2 + (t.hours % 12 + t.minutes / 60) / 12 * Math.PI * 2;
+            const hx = cx + Math.cos(hourAngle) * 150;
+            const hy = cy + Math.sin(hourAngle) * 150;
+            
+            // Minute orbit
+            const minAngle = -Math.PI / 2 + (t.minutes + smoothSec / 60) / 60 * Math.PI * 2;
+            const mx = cx + Math.cos(minAngle) * 200;
+            const my = cy + Math.sin(minAngle) * 200;
+            
+            // Second orbit
+            let sx, sy;
+            if (showSeconds) {
+                const secAngle = -Math.PI / 2 + smoothSec / 60 * Math.PI * 2;
+                sx = cx + Math.cos(secAngle) * 100;
+                sy = cy + Math.sin(secAngle) * 100;
+            }
+            
+            // Draw orbital trails
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // Hour trail
+            ctx.beginPath();
+            ctx.arc(cx, cy, 150, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Minute trail
+            ctx.beginPath();
+            ctx.arc(cx, cy, 200, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Second trail
+            if (showSeconds) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, 100, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Draw connections
+            ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(hx, hy);
+            ctx.lineTo(mx, my);
+            if (showSeconds) {
+                ctx.lineTo(sx, sy);
+                ctx.lineTo(cx, cy);
+            } else {
+                ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+            
+            // Draw bodies
+            // Hour
+            const hourGradient = ctx.createRadialGradient(hx, hy, 0, hx, hy, 20);
+            hourGradient.addColorStop(0, 'rgba(255, 200, 100, 1)');
+            hourGradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+            ctx.fillStyle = hourGradient;
+            ctx.beginPath();
+            ctx.arc(hx, hy, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Minute
+            const minGradient = ctx.createRadialGradient(mx, my, 0, mx, my, 15);
+            minGradient.addColorStop(0, 'rgba(100, 200, 255, 1)');
+            minGradient.addColorStop(1, 'rgba(100, 200, 255, 0)');
+            ctx.fillStyle = minGradient;
+            ctx.beginPath();
+            ctx.arc(mx, my, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Second
+            if (showSeconds) {
+                const secGradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, 10);
+                secGradient.addColorStop(0, 'rgba(255, 100, 150, 1)');
+                secGradient.addColorStop(1, 'rgba(255, 100, 150, 0)');
+                ctx.fillStyle = secGradient;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Center
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawOrganicMode(t, smoothSec) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Update and draw particles
+            particles.forEach((p, i) => {
+                // Update based on time
+                const isSecond = i < t.seconds;
+                const isCurrentSecond = i === Math.floor(smoothSec);
+                
+                p.angle += p.speed * (isCurrentSecond ? 3 : 1);
+                const wobble = Math.sin(time * 0.02 + p.phase) * 20;
+                const r = p.radius + wobble;
+                
+                const x = cx + Math.cos(p.angle) * r;
+                const y = cy + Math.sin(p.angle) * r;
+                
+                // Color based on position and time
+                const hue = (i / 60) * 120 + 180 + t.hours * 15;
+                const alpha = isSecond ? 0.8 : 0.2;
+                const size = isCurrentSecond ? 8 : 3;
+                
+                ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw connections to nearby particles
+                if (isSecond || isCurrentSecond) {
+                    particles.slice(i + 1).forEach((p2, j) => {
+                        const j2 = i + j + 1;
+                        if (j2 < t.seconds || j2 === Math.floor(smoothSec)) {
+                            const x2 = cx + Math.cos(p2.angle) * (p2.radius + Math.sin(time * 0.02 + p2.phase) * 20);
+                            const y2 = cy + Math.sin(p2.angle) * (p2.radius + Math.sin(time * 0.02 + p2.phase) * 20);
+                            const dist = Math.hypot(x - x2, y - y2);
+                            
+                            if (dist < 100) {
+                                ctx.strokeStyle = `hsla(${hue}, 50%, 50%, ${0.3 * (1 - dist / 100)})`;
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(x, y);
+                                ctx.lineTo(x2, y2);
+                                ctx.stroke();
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Hour indicator - subtle center glow
+            const hourIntensity = (t.hours % 12) / 12;
+            const centerGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100);
+            centerGradient.addColorStop(0, `hsla(${200 + hourIntensity * 60}, 60%, 50%, 0.3)`);
+            centerGradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = centerGradient;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 100, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawMinimalMode(t, smoothSec) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Ultra minimal - just arcs
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 1;
+            ctx.lineCap = 'round';
+            
+            // Hours - single arc
+            const hourEnd = -Math.PI / 2 + (t.hours % 12 + t.minutes / 60) / 12 * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 200, -Math.PI / 2, hourEnd);
+            ctx.stroke();
+            
+            // Minutes - dots
+            for (let i = 0; i < t.minutes; i++) {
+                const angle = -Math.PI / 2 + (i / 60) * Math.PI * 2;
+                const x = cx + Math.cos(angle) * 150;
+                const y = cy + Math.sin(angle) * 150;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Current minute
+            const minAngle = -Math.PI / 2 + (t.minutes + smoothSec / 60) / 60 * Math.PI * 2;
+            const mx = cx + Math.cos(minAngle) * 150;
+            const my = cy + Math.sin(minAngle) * 150;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(mx, my, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Seconds - subtle ring
+            if (showSeconds) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 100, -Math.PI / 2, -Math.PI / 2 + smoothSec / 60 * Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        function drawNumbers(t) {
+            if (!showNumbers) return;
+            
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            for (let i = 1; i <= 12; i++) {
+                const angle = -Math.PI / 2 + (i / 12) * Math.PI * 2;
+                const x = cx + Math.cos(angle) * 270;
+                const y = cy + Math.sin(angle) * 270;
+                ctx.fillText(i.toString(), x, y);
+            }
+        }
+        
+        function animate() {
+            // Clear with fade for trails
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const t = getTimeComponents();
+            const smoothSec = t.seconds + t.milliseconds / 1000;
+            
+            updateDigitalTime(t);
+            
+            switch (mode) {
+                case 'solar':
+                    drawSolarMode(t, smoothSec);
+                    break;
+                case 'orbital':
+                    drawOrbitalMode(t, smoothSec);
+                    break;
+                case 'organic':
+                    drawOrganicMode(t, smoothSec);
+                    break;
+                case 'minimal':
+                    drawMinimalMode(t, smoothSec);
+                    break;
+            }
+            
+            drawNumbers(t);
+            
+            time++;
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bioluminescent Plankton — Evolutionary Art</title>
+  <title>Bioluminescent Plankton — Genetic Algorithm Simulation</title>
   <style>
     * {
       margin: 0;
@@ -12,153 +12,284 @@
     }
     
     body {
-      background: #000;
-      color: #fff;
       font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #000510;
+      color: #fff;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+    }
+    
+    #canvas {
+      display: block;
+      width: 100vw;
       height: 100vh;
     }
     
-    #canvas-container {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    #ui {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 280px;
+      background: rgba(0, 5, 16, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(100, 150, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     
-    canvas {
-      max-width: 100%;
-      max-height: 100%;
-      box-shadow: 0 0 40px rgba(0, 200, 255, 0.1);
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #a0d0ff;
     }
     
-    #controls {
-      padding: 16px 24px;
-      background: rgba(10, 15, 30, 0.95);
-      border-top: 1px solid rgba(100, 200, 255, 0.1);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
+    .subtitle {
+      font-size: 11px;
+      color: #6080a0;
+      margin-bottom: 16px;
     }
     
     .control-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      margin-bottom: 14px;
     }
     
     label {
-      color: #88aacc;
+      display: block;
       font-size: 11px;
+      color: #80a0c0;
+      margin-bottom: 4px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     input[type="range"] {
-      width: 80px;
-      accent-color: #00d4ff;
+      width: 100%;
+      height: 4px;
+      background: rgba(100, 150, 255, 0.2);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #60a0ff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #60a0ff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .value-display {
+      font-size: 11px;
+      color: #a0d0ff;
+      text-align: right;
+      margin-top: 2px;
     }
     
     select {
-      background: #1a2030;
+      width: 100%;
+      padding: 6px 10px;
+      background: rgba(100, 150, 255, 0.1);
+      border: 1px solid rgba(100, 150, 255, 0.3);
+      border-radius: 6px;
       color: #fff;
-      border: 1px solid #334455;
-      padding: 4px 8px;
-      border-radius: 4px;
       font-size: 12px;
+      cursor: pointer;
+    }
+    
+    select option {
+      background: #000510;
+    }
+    
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
     }
     
     input[type="checkbox"] {
-      accent-color: #00d4ff;
+      width: 16px;
+      height: 16px;
+      accent-color: #60a0ff;
+    }
+    
+    .checkbox-wrapper label {
+      margin: 0;
+      cursor: pointer;
     }
     
     #stats {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: rgba(0, 10, 20, 0.8);
-      padding: 12px 16px;
-      border-radius: 8px;
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
       font-family: 'SF Mono', monospace;
       font-size: 12px;
+      color: rgba(160, 208, 255, 0.7);
+      background: rgba(0, 5, 16, 0.8);
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(100, 150, 255, 0.2);
+    }
+    
+    .stat-row {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .stat-label {
+      font-size: 10px;
+      color: #6080a0;
+      text-transform: uppercase;
+    }
+    
+    .stat-value {
+      font-size: 14px;
+      color: #a0d0ff;
+      font-weight: 600;
+    }
+    
+    #info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      max-width: 300px;
+      font-size: 12px;
       line-height: 1.6;
-      color: #88aacc;
-      border: 1px solid rgba(0, 200, 255, 0.2);
+      color: rgba(160, 208, 255, 0.6);
     }
     
-    #stats span {
-      color: #00d4ff;
-    }
-    
-    .value {
-      display: inline-block;
-      min-width: 30px;
-      text-align: right;
-      color: #fff;
+    @media (max-width: 768px) {
+      #ui {
+        width: calc(100vw - 40px);
+        max-height: 50vh;
+        top: auto;
+        bottom: 20px;
+      }
+      
+      #info {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="canvas-container">
-    <canvas id="canvas" width="800" height="600"></canvas>
-    <div id="stats">
-      <div>Generation: <span id="gen">1</span></div>
-      <div>Population: <span id="pop">150</span></div>
-      <div>Avg Fitness: <span id="fit">0</span></div>
-    </div>
+  <canvas id="canvas"></canvas>
+  
+  <div id="info">
+    Watch as bioluminescent organisms evolve through generations. Each plankton has a unique genome determining its size, color, glow, speed, and behavior. They seek food, leave trails, and reproduce with mutation.
   </div>
   
-  <div id="controls">
+  <div id="ui">
+    <h1>Bioluminescent Plankton</h1>
+    <div class="subtitle">Genetic Algorithm Simulation</div>
+    
     <div class="control-group">
-      <label>Population</label>
-      <input type="range" id="populationSize" min="50" max="300" value="150">
-      <span class="value" id="popVal">150</span>
+      <label>Population Size</label>
+      <input type="range" id="populationSize" min="50" max="300" step="10" value="150">
+      <div class="value-display" id="populationSizeVal">150</div>
     </div>
+    
     <div class="control-group">
-      <label>Mutation</label>
-      <input type="range" id="mutationRate" min="1" max="30" value="8">
-      <span class="value" id="mutVal">0.08</span>
+      <label>Mutation Rate</label>
+      <input type="range" id="mutationRate" min="0.01" max="0.3" step="0.01" value="0.08">
+      <div class="value-display" id="mutationRateVal">0.08</div>
     </div>
+    
     <div class="control-group">
-      <label>Selection</label>
-      <input type="range" id="selectionPressure" min="10" max="100" value="60">
-      <span class="value" id="selVal">0.6</span>
+      <label>Selection Pressure</label>
+      <input type="range" id="selectionPressure" min="0.1" max="1.0" step="0.05" value="0.6">
+      <div class="value-display" id="selectionPressureVal">0.6</div>
     </div>
+    
     <div class="control-group">
-      <label>Glow</label>
-      <input type="range" id="glowIntensity" min="3" max="20" value="12">
-      <span class="value" id="glowVal">1.2</span>
+      <label>Glow Intensity</label>
+      <input type="range" id="glowIntensity" min="0.3" max="2.0" step="0.1" value="1.2">
+      <div class="value-display" id="glowIntensityVal">1.2</div>
     </div>
+    
     <div class="control-group">
       <label>Speed</label>
-      <input type="range" id="speed" min="1" max="20" value="10">
-      <span class="value" id="speedVal">1.0</span>
+      <input type="range" id="speed" min="0.1" max="2.0" step="0.1" value="1.0">
+      <div class="value-display" id="speedVal">1.0</div>
     </div>
+    
     <div class="control-group">
-      <label>Theme</label>
+      <label>Trail Persistence</label>
+      <input type="range" id="trailPersistence" min="0.01" max="0.3" step="0.01" value="0.08">
+      <div class="value-display" id="trailPersistenceVal">0.08</div>
+    </div>
+    
+    <div class="control-group">
+      <label>Color Scheme</label>
       <select id="colorScheme">
-        <option value="deep-ocean" selected>Deep Ocean</option>
+        <option value="deep-ocean">Deep Ocean</option>
         <option value="aurora">Aurora</option>
-        <option value="coral">Coral</option>
+        <option value="coral">Coral Reef</option>
         <option value="midnight">Midnight</option>
         <option value="toxic">Toxic</option>
       </select>
     </div>
+    
     <div class="control-group">
-      <label>Evolution</label>
-      <input type="checkbox" id="enableEvolution" checked>
+      <label>Food Regeneration</label>
+      <input type="range" id="foodRegeneration" min="1" max="10" step="1" value="5">
+      <div class="value-display" id="foodRegenerationVal">5</div>
+    </div>
+    
+    <div class="control-group">
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="enableEvolution" checked>
+        <label for="enableEvolution">Enable Evolution</label>
+      </div>
+    </div>
+  </div>
+  
+  <div id="stats">
+    <div class="stat-row">
+      <div class="stat">
+        <span class="stat-label">Generation</span>
+        <span class="stat-value" id="genVal">1</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Population</span>
+        <span class="stat-value" id="popVal">150</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Avg Fitness</span>
+        <span class="stat-value" id="fitVal">0.0</span>
+      </div>
     </div>
   </div>
 
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
     
     // Color schemes
     const COLOR_SCHEMES = {
@@ -182,14 +313,35 @@
       foodRegeneration: 5,
     };
     
-    // State
-    let plankton = [];
-    let food = [];
-    let generation = 1;
-    let avgFitness = 0;
-    let time = 0;
+    // UI bindings
+    const bindings = [
+      ['populationSize', 'populationSizeVal'],
+      ['mutationRate', 'mutationRateVal'],
+      ['selectionPressure', 'selectionPressureVal'],
+      ['glowIntensity', 'glowIntensityVal'],
+      ['speed', 'speedVal'],
+      ['trailPersistence', 'trailPersistenceVal'],
+      ['foodRegeneration', 'foodRegenerationVal'],
+    ];
     
-    // Genome functions
+    bindings.forEach(([id, valId]) => {
+      const el = document.getElementById(id);
+      const valEl = document.getElementById(valId);
+      el.addEventListener('input', (e) => {
+        params[id] = parseFloat(e.target.value);
+        valEl.textContent = params[id];
+      });
+    });
+    
+    document.getElementById('colorScheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+    
+    document.getElementById('enableEvolution').addEventListener('change', (e) => {
+      params.enableEvolution = e.target.checked;
+    });
+    
+    // Genome structure
     function randomGenome() {
       return {
         size: 2 + Math.random() * 6,
@@ -203,16 +355,16 @@
       };
     }
     
-    function mutateGenome(genome) {
+    function mutateGenome(genome, mutationRate) {
       const mutate = (val, min, max, scale = 0.1) => {
-        if (Math.random() > params.mutationRate) return val;
+        if (Math.random() > mutationRate) return val;
         const delta = (Math.random() - 0.5) * scale * (max - min);
         return Math.max(min, Math.min(max, val + delta));
       };
       
       return {
         size: mutate(genome.size, 2, 8, 0.15),
-        hue: (genome.hue + (Math.random() < params.mutationRate ? (Math.random() - 0.5) * 60 : 0) + 360) % 360,
+        hue: (genome.hue + (Math.random() < mutationRate ? (Math.random() - 0.5) * 60 : 0) + 360) % 360,
         glow: mutate(genome.glow, 0.5, 2.0, 0.2),
         speedFactor: mutate(genome.speedFactor, 0.5, 1.5, 0.15),
         sensorRange: mutate(genome.sensorRange, 20, 100, 0.2),
@@ -236,7 +388,13 @@
       };
     }
     
-    // Initialize population
+    // Simulation state
+    let plankton = [];
+    let food = [];
+    let generation = 1;
+    let avgFitness = 0;
+    let time = 0;
+    
     function initPopulation() {
       plankton = [];
       for (let i = 0; i < params.populationSize; i++) {
@@ -255,20 +413,21 @@
       generation = 1;
     }
     
-    // Render loop
-    function render() {
+    function update() {
       const colors = COLOR_SCHEMES[params.colorScheme];
-      time += 1;
+      const width = canvas.width;
+      const height = canvas.height;
       
-      // Fade background
-      ctx.fillStyle = colors.bg + Math.floor(params.trailPersistence * 255).toString(16).padStart(2, '0');
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Clear with fade
+      const alphaHex = Math.floor(params.trailPersistence * 255).toString(16).padStart(2, '0');
+      ctx.fillStyle = colors.bg + alphaHex;
+      ctx.fillRect(0, 0, width, height);
       
       // Spawn food
       if (Math.random() < params.foodRegeneration * 0.01) {
         food.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
+          x: Math.random() * width,
+          y: Math.random() * height,
           energy: 20 + Math.random() * 30,
           pulse: Math.random() * Math.PI * 2,
         });
@@ -293,6 +452,7 @@
       let totalFitness = 0;
       
       plankton.forEach(p => {
+        // Age and energy decay
         p.age += 1;
         p.energy -= 0.1;
         
@@ -328,7 +488,7 @@
           p.vy += (Math.random() - 0.5) * 0.1 + Math.sin(wobble) * 0.05;
         }
         
-        // Speed limit
+        // Apply speed limit
         const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
         const maxSpeed = 2 * p.genome.speedFactor * params.speed;
         if (speed > maxSpeed) {
@@ -341,18 +501,18 @@
         p.y += p.vy;
         
         // Wrap edges
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
         
-        // Trail
+        // Update trail
         p.trail.push({ x: p.x, y: p.y, age: 0 });
         if (p.trail.length > 20) p.trail.shift();
-        p.trail.forEach(t => { t.age += 1; });
+        p.trail.forEach(t => t.age += 1);
         p.trail = p.trail.filter(t => t.age < 20);
         
-        // Fitness
+        // Calculate fitness
         p.fitness = p.energy + p.age * 0.01;
         totalFitness += p.fitness;
         
@@ -377,6 +537,7 @@
         const glowSize = p.genome.size * p.genome.glow * params.glowIntensity;
         const alpha = Math.min(1, p.energy / 50);
         
+        // Outer glow
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowSize * 2);
         gradient.addColorStop(0, `hsla(${p.genome.hue}, ${colors.sat}%, ${colors.light + 20}%, ${alpha})`);
         gradient.addColorStop(0.5, `hsla(${p.genome.hue}, ${colors.sat}%, ${colors.light}%, ${alpha * 0.5})`);
@@ -387,18 +548,20 @@
         ctx.fillStyle = gradient;
         ctx.fill();
         
+        // Core body
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.genome.size, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${p.genome.hue}, ${colors.sat}%, ${colors.light + 30}%, ${alpha})`;
         ctx.fill();
         
+        // Inner highlight
         ctx.beginPath();
         ctx.arc(p.x - p.genome.size * 0.3, p.y - p.genome.size * 0.3, p.genome.size * 0.3, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${p.genome.hue}, ${colors.sat}%, 90%, ${alpha * 0.8})`;
         ctx.fill();
       });
       
-      // Evolution
+      // Evolution step
       if (params.enableEvolution && survivors.length > 0) {
         avgFitness = totalFitness / plankton.length;
         
@@ -414,11 +577,11 @@
           while (newPlankton.length < params.populationSize) {
             const parent1 = parents[Math.floor(Math.random() * parents.length)];
             const parent2 = parents[Math.floor(Math.random() * parents.length)];
-            const childGenome = mutateGenome(crossoverGenome(parent1.genome, parent2.genome));
+            const childGenome = mutateGenome(crossoverGenome(parent1.genome, parent2.genome), params.mutationRate);
             
             newPlankton.push({
-              x: Math.random() * canvas.width,
-              y: Math.random() * canvas.height,
+              x: Math.random() * width,
+              y: Math.random() * height,
               vx: (Math.random() - 0.5) * 2,
               vy: (Math.random() - 0.5) * 2,
               genome: childGenome,
@@ -437,8 +600,8 @@
         plankton = survivors;
         while (plankton.length < params.populationSize) {
           plankton.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            x: Math.random() * width,
+            y: Math.random() * height,
             vx: (Math.random() - 0.5) * 2,
             vy: (Math.random() - 0.5) * 2,
             genome: randomGenome(),
@@ -450,51 +613,18 @@
         }
       }
       
-      // Update stats
-      document.getElementById('gen').textContent = generation;
-      document.getElementById('pop').textContent = plankton.length;
-      document.getElementById('fit').textContent = avgFitness.toFixed(1);
+      // Update stats display
+      document.getElementById('genVal').textContent = generation;
+      document.getElementById('popVal').textContent = plankton.length;
+      document.getElementById('fitVal').textContent = avgFitness.toFixed(1);
       
-      requestAnimationFrame(render);
+      time++;
+      requestAnimationFrame(update);
     }
-    
-    // Event listeners
-    document.getElementById('populationSize').addEventListener('input', (e) => {
-      params.populationSize = parseInt(e.target.value);
-      document.getElementById('popVal').textContent = params.populationSize;
-    });
-    
-    document.getElementById('mutationRate').addEventListener('input', (e) => {
-      params.mutationRate = parseInt(e.target.value) / 100;
-      document.getElementById('mutVal').textContent = params.mutationRate.toFixed(2);
-    });
-    
-    document.getElementById('selectionPressure').addEventListener('input', (e) => {
-      params.selectionPressure = parseInt(e.target.value) / 100;
-      document.getElementById('selVal').textContent = params.selectionPressure.toFixed(1);
-    });
-    
-    document.getElementById('glowIntensity').addEventListener('input', (e) => {
-      params.glowIntensity = parseInt(e.target.value) / 10;
-      document.getElementById('glowVal').textContent = params.glowIntensity.toFixed(1);
-    });
-    
-    document.getElementById('speed').addEventListener('input', (e) => {
-      params.speed = parseInt(e.target.value) / 10;
-      document.getElementById('speedVal').textContent = params.speed.toFixed(1);
-    });
-    
-    document.getElementById('colorScheme').addEventListener('change', (e) => {
-      params.colorScheme = e.target.value;
-    });
-    
-    document.getElementById('enableEvolution').addEventListener('change', (e) => {
-      params.enableEvolution = e.target.checked;
-    });
     
     // Start
     initPopulation();
-    render();
+    update();
   </script>
 </body>
 </html>
