@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mecha Core — Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #050508;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #canvas {
+            box-shadow: 0 0 100px rgba(0, 200, 255, 0.1);
+            cursor: pointer;
+        }
+        
+        .info {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0, 200, 255, 0.5);
+            font-size: 11px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+        
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1) 0px,
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <canvas id="canvas"></canvas>
+    <div class="info">/// Click to reinitialize core ///</div>
+    
+    <script>
+        /*
+         * Mecha Core — Industrial Generative Machinery
+         * 
+         * Dieter Rams Principles:
+         * - Innovative: Procedural mechanical systems with functional aesthetics
+         * - Useful: Visual reference for industrial/mechanical design
+         * - Aesthetic: Precise, engineered, purposeful
+         * - Understandable: Clear mechanical hierarchy
+         * - Unobtrusive: Dark palette, non-distracting
+         * - Honest: Shows its procedural nature
+         * - Long-lasting: Industrial design is timeless
+         * - Thorough: Multiple systems, layers, details
+         * - Minimal: Only essential mechanical elements
+         */
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const displaySize = 800;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = displaySize * dpr;
+        canvas.height = displaySize * dpr;
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
+        ctx.scale(dpr, dpr);
+        
+        let seed = Math.random() * 10000;
+        let time = 0;
+        let gears = [];
+        let pistons = [];
+        let circuits = [];
+        let corePulse = 0;
+        
+        function random() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        
+        function randomRange(min, max) {
+            return min + random() * (max - min);
+        }
+        
+        // Color palettes
+        const palettes = [
+            { // Industrial Blue
+                primary: '#00c8ff',
+                secondary: '#0080aa',
+                accent: '#ff3366',
+                dark: '#0a1520',
+                light: '#e0f4ff'
+            },
+            { // Amber Alert
+                primary: '#ffaa00',
+                secondary: '#cc7700',
+                accent: '#ff3333',
+                dark: '#1a1205',
+                light: '#ffe4b3'
+            },
+            { // Toxic Green
+                primary: '#39ff14',
+                secondary: '#22aa0d',
+                accent: '#ff00ff',
+                dark: '#0a1a0a',
+                light: '#ccffcc'
+            }
+        ];
+        
+        let palette = palettes[Math.floor(random() * palettes.length)];
+        
+        class Gear {
+            constructor(x, y, radius, teeth, speed, parent = null) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.teeth = teeth;
+                this.baseSpeed = speed;
+                this.angle = random() * Math.PI * 2;
+                this.parent = parent;
+                this.children = [];
+                this.pitchRadius = radius + 8;
+            }
+            
+            update() {
+                if (this.parent) {
+                    // Calculate rotation based on parent
+                    const ratio = this.parent.teeth / this.teeth;
+                    this.angle = -this.parent.angle * ratio + Math.PI / this.teeth;
+                } else {
+                    this.angle += this.baseSpeed;
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                // Gear body glow
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = palette.primary;
+                
+                // Outer ring
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = palette.primary;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Teeth
+                ctx.shadowBlur = 0;
+                for (let i = 0; i < this.teeth; i++) {
+                    const a = (i / this.teeth) * Math.PI * 2;
+                    const toothWidth = (Math.PI * 2 * this.radius / this.teeth) * 0.4;
+                    const toothHeight = 6;
+                    
+                    ctx.save();
+                    ctx.rotate(a);
+                    ctx.fillStyle = palette.secondary;
+                    ctx.fillRect(-toothWidth/2, this.radius - 2, toothWidth, toothHeight);
+                    ctx.restore();
+                }
+                
+                // Inner hub
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2);
+                ctx.fillStyle = palette.dark;
+                ctx.fill();
+                ctx.strokeStyle = palette.primary;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Spokes
+                const spokes = 4;
+                for (let i = 0; i < spokes; i++) {
+                    const a = (i / spokes) * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(Math.cos(a) * this.radius * 0.85, Math.sin(a) * this.radius * 0.85);
+                    ctx.strokeStyle = palette.secondary;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Center bolt
+                ctx.beginPath();
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.fillStyle = palette.light;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        class Piston {
+            constructor(x, y, length, angle, speed, phase) {
+                this.x = x;
+                this.y = y;
+                this.length = length;
+                this.angle = angle;
+                this.speed = speed;
+                this.phase = phase;
+                this.extension = 0;
+            }
+            
+            update() {
+                this.extension = Math.sin(time * this.speed + this.phase) * 0.3 + 0.5;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                const housingLength = this.length * 0.6;
+                const rodLength = this.length * 0.5 * this.extension;
+                
+                // Housing
+                ctx.fillStyle = palette.dark;
+                ctx.strokeStyle = palette.secondary;
+                ctx.lineWidth = 2;
+                ctx.fillRect(-housingLength/2, -12, housingLength, 24);
+                ctx.strokeRect(-housingLength/2, -12, housingLength, 24);
+                
+                // Housing details
+                ctx.beginPath();
+                ctx.moveTo(-housingLength/2 + 5, -12);
+                ctx.lineTo(-housingLength/2 + 5, 12);
+                ctx.moveTo(housingLength/2 - 5, -12);
+                ctx.lineTo(housingLength/2 - 5, 12);
+                ctx.strokeStyle = palette.primary;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Piston rod
+                ctx.fillStyle = palette.light;
+                ctx.fillRect(0, -6, rodLength, 12);
+                
+                // Rod highlight
+                ctx.fillStyle = palette.primary;
+                ctx.fillRect(0, -2, rodLength, 4);
+                
+                // Piston head
+                ctx.beginPath();
+                ctx.arc(rodLength, 0, 10, 0, Math.PI * 2);
+                ctx.fillStyle = palette.secondary;
+                ctx.fill();
+                ctx.strokeStyle = palette.primary;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Mount points
+                ctx.beginPath();
+                ctx.arc(-housingLength/2, 0, 6, 0, Math.PI * 2);
+                ctx.fillStyle = palette.dark;
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+        
+        class Circuit {
+            constructor(points) {
+                this.points = points;
+                this.pulseOffset = random() * 100;
+                this.pulseSpeed = 0.5 + random() * 0.5;
+            }
+            
+            draw() {
+                if (this.points.length < 2) return;
+                
+                // Draw trace
+                ctx.beginPath();
+                ctx.moveTo(this.points[0].x, this.points[0].y);
+                for (let i = 1; i < this.points.length; i++) {
+                    ctx.lineTo(this.points[i].x, this.points[i].y);
+                }
+                ctx.strokeStyle = palette.secondary;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.4;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+                
+                // Draw pulse
+                const pulsePos = ((time * this.pulseSpeed + this.pulseOffset) % 100) / 100;
+                const idx = Math.floor(pulsePos * (this.points.length - 1));
+                const frac = (pulsePos * (this.points.length - 1)) % 1;
+                
+                if (idx < this.points.length - 1) {
+                    const p1 = this.points[idx];
+                    const p2 = this.points[idx + 1];
+                    const x = p1.x + (p2.x - p1.x) * frac;
+                    const y = p1.y + (p2.y - p1.y) * frac;
+                    
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = palette.primary;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = palette.primary;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+                
+                // Draw nodes
+                for (const p of this.points) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = palette.secondary;
+                    ctx.fill();
+                }
+            }
+        }
+        
+        function generateGears() {
+            gears = [];
+            const centerX = displaySize / 2;
+            const centerY = displaySize / 2;
+            
+            // Central drive gear
+            const mainGear = new Gear(centerX, centerY, 60, 16, 0.01);
+            gears.push(mainGear);
+            
+            // Surrounding gears
+            const numSatellites = Math.floor(randomRange(3, 6));
+            for (let i = 0; i < numSatellites; i++) {
+                const angle = (i / numSatellites) * Math.PI * 2 + randomRange(-0.2, 0.2);
+                const dist = randomRange(90, 130);
+                const x = centerX + Math.cos(angle) * dist;
+                const y = centerY + Math.sin(angle) * dist;
+                const radius = randomRange(30, 45);
+                const teeth = Math.floor(randomRange(8, 14));
+                
+                const gear = new Gear(x, y, radius, teeth, 0, mainGear);
+                gears.push(gear);
+                mainGear.children.push(gear);
+                
+                // Secondary gears
+                if (random() > 0.5) {
+                    const angle2 = angle + randomRange(0.5, 1);
+                    const dist2 = radius + randomRange(35, 50);
+                    const x2 = x + Math.cos(angle2) * dist2;
+                    const y2 = y + Math.sin(angle2) * dist2;
+                    const radius2 = randomRange(20, 30);
+                    const teeth2 = Math.floor(randomRange(6, 10));
+                    
+                    const gear2 = new Gear(x2, y2, radius2, teeth2, 0, gear);
+                    gears.push(gear2);
+                    gear.children.push(gear2);
+                }
+            }
+        }
+        
+        function generatePistons() {
+            pistons = [];
+            const numPistons = Math.floor(randomRange(4, 8));
+            
+            for (let i = 0; i < numPistons; i++) {
+                const angle = random() * Math.PI * 2;
+                const dist = randomRange(180, 280);
+                const x = displaySize/2 + Math.cos(angle) * dist;
+                const y = displaySize/2 + Math.sin(angle) * dist;
+                const length = randomRange(80, 120);
+                const pistonAngle = angle + Math.PI / 2 + randomRange(-0.3, 0.3);
+                const speed = randomRange(0.02, 0.05);
+                const phase = random() * Math.PI * 2;
+                
+                pistons.push(new Piston(x, y, length, pistonAngle, speed, phase));
+            }
+        }
+        
+        function generateCircuits() {
+            circuits = [];
+            const numCircuits = Math.floor(randomRange(6, 12));
+            
+            for (let i = 0; i < numCircuits; i++) {
+                const points = [];
+                let x = randomRange(50, displaySize - 50);
+                let y = randomRange(50, displaySize - 50);
+                points.push({x, y});
+                
+                const segments = Math.floor(randomRange(3, 6));
+                for (let j = 0; j < segments; j++) {
+                    if (random() > 0.5) {
+                        x += randomRange(-100, 100);
+                    } else {
+                        y += randomRange(-100, 100);
+                    }
+                    x = Math.max(30, Math.min(displaySize - 30, x));
+                    y = Math.max(30, Math.min(displaySize - 30, y));
+                    points.push({x, y});
+                }
+                
+                circuits.push(new Circuit(points));
+            }
+        }
+        
+        function drawGrid() {
+            ctx.strokeStyle = palette.secondary;
+            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 0.15;
+            
+            const gridSize = 40;
+            for (let x = 0; x <= displaySize; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, displaySize);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= displaySize; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(displaySize, y);
+                ctx.stroke();
+            }
+            
+            ctx.globalAlpha = 1;
+        }
+        
+        function drawCore() {
+            const cx = displaySize / 2;
+            const cy = displaySize / 2;
+            
+            // Core glow
+            const pulse = Math.sin(time * 0.05) * 0.3 + 0.7;
+            const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 150);
+            gradient.addColorStop(0, palette.primary + '40');
+            gradient.addColorStop(0.5, palette.primary + '10');
+            gradient.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(cx - 150, cy - 150, 300, 300);
+            
+            // Core ring
+            ctx.beginPath();
+            ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+            ctx.strokeStyle = palette.primary;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = palette.primary;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Rotating core markers
+            const markerCount = 8;
+            for (let i = 0; i < markerCount; i++) {
+                const angle = (i / markerCount) * Math.PI * 2 + time * 0.02;
+                const r = 80;
+                const x = cx + Math.cos(angle) * r;
+                const y = cy + Math.sin(angle) * r;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = palette.accent;
+                ctx.fill();
+            }
+            
+            // Inner core
+            ctx.beginPath();
+            ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+            ctx.fillStyle = palette.dark;
+            ctx.fill();
+            ctx.strokeStyle = palette.accent;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Core energy
+            ctx.beginPath();
+            ctx.arc(cx, cy, 20 * pulse, 0, Math.PI * 2);
+            ctx.fillStyle = palette.accent + '60';
+            ctx.fill();
+        }
+        
+        function drawFrame() {
+            // Background
+            ctx.fillStyle = '#050508';
+            ctx.fillRect(0, 0, displaySize, displaySize);
+            
+            drawGrid();
+            
+            // Circuits (background layer)
+            for (const circuit of circuits) {
+                circuit.draw();
+            }
+            
+            // Core
+            drawCore();
+            
+            // Gears
+            for (const gear of gears) {
+                gear.update();
+                gear.draw();
+            }
+            
+            // Pistons
+            for (const piston of pistons) {
+                piston.update();
+                piston.draw();
+            }
+            
+            // Corner brackets
+            ctx.strokeStyle = palette.secondary;
+            ctx.lineWidth = 2;
+            const cornerSize = 30;
+            const offset = 15;
+            
+            // Top left
+            ctx.beginPath();
+            ctx.moveTo(offset, offset + cornerSize);
+            ctx.lineTo(offset, offset);
+            ctx.lineTo(offset + cornerSize, offset);
+            ctx.stroke();
+            
+            // Top right
+            ctx.beginPath();
+            ctx.moveTo(displaySize - offset - cornerSize, offset);
+            ctx.lineTo(displaySize - offset, offset);
+            ctx.lineTo(displaySize - offset, offset + cornerSize);
+            ctx.stroke();
+            
+            // Bottom left
+            ctx.beginPath();
+            ctx.moveTo(offset, displaySize - offset - cornerSize);
+            ctx.lineTo(offset, displaySize - offset);
+            ctx.lineTo(offset + cornerSize, displaySize - offset);
+            ctx.stroke();
+            
+            // Bottom right
+            ctx.beginPath();
+            ctx.moveTo(displaySize - offset - cornerSize, displaySize - offset);
+            ctx.lineTo(displaySize - offset, displaySize - offset);
+            ctx.lineTo(displaySize - offset, displaySize - offset - cornerSize);
+            ctx.stroke();
+        }
+        
+        function animate() {
+            time++;
+            drawFrame();
+            requestAnimationFrame(animate);
+        }
+        
+        function init() {
+            seed = Math.random() * 10000;
+            palette = palettes[Math.floor(random() * palettes.length)];
+            time = 0;
+            
+            generateGears();
+            generatePistons();
+            generateCircuits();
+        }
+        
+        canvas.addEventListener('click', init);
+        
+        init();
+        animate();
+    </script>
+</body>
+</html>
