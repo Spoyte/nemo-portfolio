@@ -4,23 +4,18 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
   ArrowRight, 
-  Download, 
   Sparkles, 
   Code2, 
   Palette, 
   Zap,
-  Github,
-  Twitter,
-  Linkedin,
-  Mail,
-  ChevronDown,
   Layers,
-  Keyboard,
-  MousePointer,
-  Film,
-  Wrench,
-  Palette as PaletteIcon,
-  Brush
+  Gamepad2,
+  Trophy,
+  Target,
+  Briefcase,
+  Rocket,
+  Terminal,
+  Coffee
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnhancedVisitorCounter } from "@/components/enhanced-visitor-counter";
@@ -30,6 +25,14 @@ import { ScrollReveal, Counter, SpotlightCard } from "@/components/scroll-animat
 import { Badge } from "@/components/ui/badge";
 import { SkillsVisualization } from "@/components/skills-visualization";
 import { ContactForm } from "@/components/contact-form";
+import { ProjectShowcase3D } from "@/components/project-showcase-3d";
+import { LiveCodingDemo } from "@/components/live-coding-demo";
+import { CaseStudiesSection } from "@/components/case-studies-section";
+import { InteractiveResume } from "@/components/interactive-resume";
+import { AchievementShowcase } from "@/components/achievement-showcase";
+import { EnhancedHero } from "@/components/enhanced-hero";
+import { QuoteWall } from "@/components/quote-wall";
+import { AnimatedSkillsChart } from "@/components/animated-skills-chart";
 
 const features = [
   {
@@ -66,157 +69,8 @@ const techStack = [
 export default function Home() {
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="text-center space-y-8"
-          >
-            {/* Visitor Counter */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <EnhancedVisitorCounter />
-            </motion.div>
-
-            {/* Main Heading */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight"
-            >
-              Hi, I&apos;m{" "}
-              <span className="text-gradient-animated">Nemo</span>
-            </motion.h1>
-
-            {/* Subtitle */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto"
-            >
-              Creative Developer & Designer crafting digital experiences with{" "}
-              <span className="text-primary font-semibold">code</span> and{" "}
-              <span className="text-primary font-semibold">creativity</span>.
-            </motion.div>
-
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="text-lg text-muted-foreground max-w-2xl mx-auto"
-            >
-              I build things that live on the internet. From websites to web applications,
-              I love creating digital experiences that make a difference.
-            </motion.p>
-
-            {/* CTA Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
-            >
-              <Link href="/projects">
-                <Button size="lg" className="group">
-                  View My Work
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              
-              <Link href="/hire">
-                <Button size="lg" variant="outline" className="group">
-                  Hire Me
-                  <Sparkles className="ml-2 h-4 w-4 group-hover:animate-pulse" />
-                </Button>
-              </Link>
-              
-              <Link href="/new-features">
-                <Button size="lg" variant="ghost" className="group">
-                  <Zap className="mr-2 h-4 w-4 group-hover:text-yellow-500 transition-colors" />
-                  New Features
-                </Button>
-              </Link>
-            </motion.div>
-
-            {/* Social Links */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="flex items-center justify-center gap-4 pt-4"
-            >
-              {[
-                { icon: Github, href: "https://github.com", label: "GitHub" },
-                { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-                { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-                { icon: Mail, href: "mailto:hello@nemo.dev", label: "Email" },
-              ].map((social, index) => (
-                <motion.a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg hover:bg-muted transition-colors"
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  whileTap={{ scale: 0.9 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + index * 0.1 }}
-                >
-                  <social.icon className="h-5 w-5" />
-                </motion.a>
-              ))}
-            </motion.div>
-
-            {/* Availability Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <span>Available for freelance work</span>
-            </motion.div>
-          </motion.div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            className="flex flex-col items-center gap-2 text-muted-foreground"
-          >
-            <span className="text-xs">Scroll to explore</span>
-            <ChevronDown className="w-5 h-5" />
-          </motion.div>
-        </motion.div>
-      </section>
+      {/* Enhanced Hero Section */}
+      <EnhancedHero />
 
       {/* Features Section */}
       <section className="py-24 border-y border-border/50">
@@ -280,7 +134,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollReveal className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-              <Sparkles className="h-4 w-4" />
+              <Rocket className="h-4 w-4" />
               <span className="text-sm font-medium">Just Added</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -288,73 +142,88 @@ export default function Home() {
               <span className="text-gradient-animated">Interactive Features</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Explore the latest additions to my portfolio, from 3D cards to typing games.
+              Explore the latest additions to my portfolio, from 3D cards to mini games.
             </p>
           </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ScrollReveal delay={0.1}>
               <SpotlightCard className="h-full">
-                <Link href="/code-cinema" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                <Link href="/projects" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Film className="w-6 h-6 text-white" />
+                    <Layers className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Code Cinema</h3>
+                  <h3 className="text-lg font-semibold mb-2">3D Project Cards</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Watch code come to life with typewriter animations and syntax highlighting.
+                    Interactive 3D tilt cards with hover effects and smooth animations.
                   </p>
-                  <Badge variant="outline">Watch →</Badge>
+                  <Badge variant="outline">Explore →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.2}>
               <SpotlightCard className="h-full">
-                <Link href="/color-studio" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                <Link href="/fun-zone" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <PaletteIcon className="w-6 h-6 text-white" />
+                    <Gamepad2 className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Color Studio</h3>
+                  <h3 className="text-lg font-semibold mb-2">Fun Zone</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Generate beautiful color palettes with harmony algorithms and export options.
+                    Mini games including reaction time, click speed, and memory tests.
                   </p>
-                  <Badge variant="outline">Create →</Badge>
+                  <Badge variant="outline">Play →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.3}>
               <SpotlightCard className="h-full">
-                <Link href="/art-studio" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                <Link href="/cases" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Brush className="w-6 h-6 text-white" />
+                    <Briefcase className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Generative Art</h3>
+                  <h3 className="text-lg font-semibold mb-2">Case Studies</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Create algorithmic artwork with interactive controls and animations.
+                    Detailed project breakdowns with challenges, solutions, and results.
                   </p>
-                  <Badge variant="outline">Generate →</Badge>
+                  <Badge variant="outline">Read →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.4}>
               <SpotlightCard className="h-full">
-                <Link href="/dev-tools" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Wrench className="w-6 h-6 text-white" />
+                <Link href="/terminal" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Terminal className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Dev Tools</h3>
+                  <h3 className="text-lg font-semibold mb-2">Magic Terminal</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Essential utilities: UUID, password generator, JSON formatter, and more.
+                    Interactive command-line interface with hidden commands.
                   </p>
-                  <Badge variant="outline">Use →</Badge>
+                  <Badge variant="outline">Try Ctrl+Shift+K →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
           </div>
         </div>
       </section>
+
+      {/* 3D Project Showcase */}
+      <ProjectShowcase3D />
+
+      {/* Live Coding Demo */}
+      <LiveCodingDemo />
+
+      {/* Case Studies */}
+      <CaseStudiesSection />
+
+      {/* Achievement Showcase */}
+      <AchievementShowcase />
+
+      {/* Interactive Resume */}
+      <InteractiveResume />
 
       {/* Featured Projects */}
       <FeaturedProjects />
@@ -434,11 +303,17 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Quote Wall */}
+      <QuoteWall />
+
       {/* Testimonials */}
       <TestimonialsSection />
 
       {/* Skills Visualization */}
       <SkillsVisualization />
+
+      {/* Animated Skills Chart */}
+      <AnimatedSkillsChart />
 
       {/* Contact Section */}
       <section className="py-24 border-y border-border/50 bg-muted/30">
@@ -451,8 +326,8 @@ export default function Home() {
               transition={{ type: "spring", stiffness: 200 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
             >
-              <Mail className="h-4 w-4" />
-              <span className="text-sm font-medium">Get In Touch</span>
+              <Coffee className="h-4 w-4" />
+              <span className="text-sm font-medium">Let&apos;s Chat</span>
             </motion.div>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
@@ -470,7 +345,6 @@ export default function Home() {
             <ScrollReveal direction="left">
               <div className="space-y-8">
                 <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/5 to-orange-500/5 border border-border p-8">
-                  {/* Background decoration */}
                   <div className="absolute inset-0 opacity-30">
                     <div className="absolute top-10 right-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl" />
                     <div className="absolute bottom-10 left-10 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl" />
@@ -478,53 +352,19 @@ export default function Home() {
 
                   <div className="relative space-y-6">
                     <div>
-                      <h3 className="text-2xl font-bold mb-2">Contact Information</h3>
+                      <h3 className="text-2xl font-bold mb-2">Ready to start?</h3>
                       <p className="text-muted-foreground">
-                        Feel free to reach out through any of these channels.
+                        I&apos;m always excited to work on new projects. 
+                        Let&apos;s discuss how I can help bring your ideas to life.
                       </p>
                     </div>
 
-                    <div className="space-y-4">
-                      {[
-                        { icon: Mail, label: "Email", value: "hello@nemo.dev", href: "mailto:hello@nemo.dev" },
-                        { icon: Twitter, label: "Twitter", value: "@nemo_dev", href: "https://twitter.com" },
-                        { icon: Linkedin, label: "LinkedIn", value: "Nemo Developer", href: "https://linkedin.com" },
-                        { icon: Github, label: "GitHub", value: "@nemo", href: "https://github.com" },
-                      ].map((item, i) => (
-                        <motion.a
-                          key={item.label}
-                          href={item.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-4 p-4 rounded-xl bg-card/50 hover:bg-card transition-colors group"
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: 0.1 + i * 0.1 }}
-                          whileHover={{ x: 5 }}
-                        >
-                          <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                            <item.icon className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">{item.label}</p>
-                            <p className="font-medium">{item.value}</p>
-                          </div>
-                        </motion.a>
-                      ))}
-                    </div>
-
-                    <div className="pt-6 border-t border-border">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Usually respond within 24 hours
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                        </span>
-                        <span className="text-sm font-medium">Available for new projects</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                      </span>
+                      <span className="text-sm font-medium">Available for new projects</span>
                     </div>
                   </div>
                 </div>
@@ -551,7 +391,6 @@ export default function Home() {
             viewport={{ once: true }}
             className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-orange-500 text-primary-foreground p-8 md:p-16 text-center"
           >
-            {/* Background Pattern */}
             <div className="absolute inset-0 -z-10">
               <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
               <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
@@ -588,8 +427,8 @@ export default function Home() {
             >
               <Link href="/hire">
                 <Button size="lg" variant="secondary" className="group">
+                  <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
                   Hire Me
-                  <Sparkles className="ml-2 h-4 w-4 group-hover:animate-pulse" />
                 </Button>
               </Link>
               <Link href="/projects">

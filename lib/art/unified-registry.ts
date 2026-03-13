@@ -452,7 +452,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sacredGeometry",
   },
 
-  // === ABSTRACT (12) ===
+  // === ABSTRACT (13) ===
   {
     id: "impossible-geometry",
     name: "Impossible Geometry",
@@ -1148,6 +1148,15 @@ export function generateIndexContent(): string {
     loader: () => import("./volumetric-clouds"),
     renderFnName: "renderVolumetricClouds",
     importName: "volumetricClouds",
+  },
+  {
+    id: "chromatic-aberration",
+    name: "Chromatic Aberration",
+    description: "TODO: Add description for Chromatic Aberration",
+    category: "abstract",
+    loader: () => import("./chromatic-aberration"),
+    renderFnName: "renderChromaticAberration",
+    importName: "chromaticAberration",
   },
   lines.push('  };');
   lines.push('});');

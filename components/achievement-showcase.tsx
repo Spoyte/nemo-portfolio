@@ -4,533 +4,361 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Trophy, 
-  Star, 
-  Zap, 
   Target, 
-  Flame,
+  Zap, 
+  Star, 
+  Lock,
+  Unlock,
+  Sparkles,
+  Gamepad2,
+  Code2,
+  Palette,
+  Terminal,
+  MousePointer,
+  Keyboard,
+  Eye,
+  EyeOff,
   Crown,
   Medal,
-  Award,
-  Gem,
-  Sparkles,
-  Lock,
-  CheckCircle2,
-  X,
-  Share2,
-  RotateCcw
+  Award
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface Achievement {
   id: string;
   title: string;
   description: string;
   icon: React.ElementType;
-  rarity: "common" | "rare" | "epic" | "legendary";
-  points: number;
   unlocked: boolean;
-  unlockedAt?: Date;
   progress: number;
   maxProgress: number;
-  category: "explorer" | "social" | "mastery" | "special";
+  rarity: "common" | "rare" | "epic" | "legendary";
+  secret?: boolean;
 }
 
-const RARITY_COLORS = {
-  common: "from-gray-400 to-gray-500",
-  rare: "from-blue-400 to-blue-600",
-  epic: "from-purple-400 to-purple-600",
-  legendary: "from-yellow-400 via-orange-500 to-red-500",
-};
-
-const RARITY_BG = {
-  common: "bg-gray-500/10 border-gray-500/20",
-  rare: "bg-blue-500/10 border-blue-500/20",
-  epic: "bg-purple-500/10 border-purple-500/20",
-  legendary: "bg-yellow-500/10 border-yellow-500/20",
-};
-
-const ACHIEVEMENTS: Achievement[] = [
-  // Explorer Achievements
+const initialAchievements: Achievement[] = [
   {
-    id: "first_visit",
-    title: "First Steps",
-    description: "Visit the portfolio for the first time",
-    icon: Star,
-    rarity: "common",
-    points: 10,
-    unlocked: true,
-    unlockedAt: new Date(),
-    progress: 1,
-    maxProgress: 1,
-    category: "explorer",
-  },
-  {
-    id: "page_explorer",
-    title: "Page Explorer",
-    description: "Visit 5 different pages",
-    icon: Zap,
-    rarity: "common",
-    points: 25,
-    unlocked: false,
-    progress: 2,
-    maxProgress: 5,
-    category: "explorer",
-  },
-  {
-    id: "deep_diver",
-    title: "Deep Diver",
-    description: "Spend 10 minutes exploring",
+    id: "explorer",
+    title: "Explorer",
+    description: "Visit 5 different pages on the site",
     icon: Target,
-    rarity: "rare",
-    points: 50,
     unlocked: false,
-    progress: 4,
-    maxProgress: 10,
-    category: "explorer",
+    progress: 0,
+    maxProgress: 5,
+    rarity: "common",
   },
   {
-    id: "night_owl",
+    id: "night-owl",
     title: "Night Owl",
-    description: "Visit between 12am and 5am",
-    icon: Flame,
-    rarity: "rare",
-    points: 75,
+    description: "Toggle dark mode",
+    icon: Eye,
     unlocked: false,
     progress: 0,
     maxProgress: 1,
-    category: "explorer",
-  },
-  {
-    id: "world_traveler",
-    title: "World Traveler",
-    description: "Visit from 3 different countries",
-    icon: Crown,
-    rarity: "epic",
-    points: 150,
-    unlocked: false,
-    progress: 1,
-    maxProgress: 3,
-    category: "explorer",
-  },
-
-  // Social Achievements
-  {
-    id: "sharer",
-    title: "Social Butterfly",
-    description: "Share the portfolio on social media",
-    icon: Share2,
     rarity: "common",
-    points: 25,
-    unlocked: false,
-    progress: 0,
-    maxProgress: 1,
-    category: "social",
   },
   {
-    id: "connector",
-    title: "Connector",
-    description: "Click on 3 social links",
-    icon: Medal,
-    rarity: "rare",
-    points: 50,
-    unlocked: false,
-    progress: 1,
-    maxProgress: 3,
-    category: "social",
-  },
-  {
-    id: "referrer",
-    title: "Referrer",
-    description: "Refer 5 friends to the site",
-    icon: Award,
-    rarity: "epic",
-    points: 100,
-    unlocked: false,
-    progress: 0,
-    maxProgress: 5,
-    category: "social",
-  },
-
-  // Mastery Achievements
-  {
-    id: "terminal_master",
-    title: "Terminal Master",
-    description: "Use 10 different terminal commands",
+    id: "speed-demon",
+    title: "Speed Demon",
+    description: "Complete the typing game with 80+ WPM",
     icon: Zap,
+    unlocked: false,
+    progress: 0,
+    maxProgress: 80,
     rarity: "rare",
-    points: 75,
-    unlocked: false,
-    progress: 3,
-    maxProgress: 10,
-    category: "mastery",
   },
   {
-    id: "easter_hunter",
-    title: "Easter Egg Hunter",
-    description: "Find 5 easter eggs",
-    icon: Gem,
-    rarity: "epic",
-    points: 150,
+    id: "code-master",
+    title: "Code Master",
+    description: "Copy code from the live demo 3 times",
+    icon: Code2,
     unlocked: false,
-    progress: 2,
+    progress: 0,
+    maxProgress: 3,
+    rarity: "rare",
+  },
+  {
+    id: "artist",
+    title: "Digital Artist",
+    description: "Generate 5 art pieces in the Art Studio",
+    icon: Palette,
+    unlocked: false,
+    progress: 0,
     maxProgress: 5,
-    category: "mastery",
+    rarity: "rare",
   },
   {
-    id: "konami_code",
+    id: "konami",
     title: "Konami Code",
-    description: "Enter the Konami code",
-    icon: Trophy,
-    rarity: "legendary",
-    points: 300,
+    description: "Enter the secret Konami code",
+    icon: Gamepad2,
     unlocked: false,
     progress: 0,
     maxProgress: 1,
-    category: "mastery",
+    rarity: "epic",
+    secret: true,
   },
   {
-    id: "speed_reader",
-    title: "Speed Reader",
-    description: "Read 3 blog posts",
-    icon: Target,
-    rarity: "common",
-    points: 30,
+    id: "terminal",
+    title: "Hacker",
+    description: "Access the secret terminal",
+    icon: Terminal,
     unlocked: false,
-    progress: 1,
-    maxProgress: 3,
-    category: "mastery",
-  },
-
-  // Special Achievements
-  {
-    id: "coffee_lover",
-    title: "Coffee Lover",
-    description: "Check the coffee counter 5 times",
-    icon: Flame,
-    rarity: "rare",
-    points: 50,
-    unlocked: false,
-    progress: 2,
-    maxProgress: 5,
-    category: "special",
-  },
-  {
-    id: "music_enthusiast",
-    title: "Music Enthusiast",
-    description: "Check what's playing 3 times",
-    icon: Sparkles,
-    rarity: "common",
-    points: 25,
-    unlocked: false,
-    progress: 1,
-    maxProgress: 3,
-    category: "special",
+    progress: 0,
+    maxProgress: 1,
+    rarity: "epic",
+    secret: true,
   },
   {
     id: "completionist",
     title: "Completionist",
     description: "Unlock all other achievements",
     icon: Crown,
-    rarity: "legendary",
-    points: 500,
     unlocked: false,
-    progress: 3,
-    maxProgress: 14,
-    category: "special",
+    progress: 0,
+    maxProgress: 7,
+    rarity: "legendary",
   },
 ];
 
-function AchievementCard({ achievement, onClick }: { achievement: Achievement; onClick?: () => void }) {
-  const Icon = achievement.icon;
-  const isLocked = !achievement.unlocked;
-  
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={!isLocked ? { scale: 1.02 } : {}}
-      onClick={onClick}
-      className={`relative p-4 rounded-xl border-2 transition-all ${
-        isLocked 
-          ? "border-muted bg-muted/30 opacity-60" 
-          : `${RARITY_BG[achievement.rarity]} cursor-pointer`
-      }`}
-    >
-      <div className="flex items-start gap-4">
-        <div className={`p-3 rounded-xl ${
-          isLocked 
-            ? "bg-muted" 
-            : `bg-gradient-to-br ${RARITY_COLORS[achievement.rarity]}`
-        }`}>
-          {isLocked ? (
-            <Lock className="h-6 w-6 text-muted-foreground" />
-          ) : (
-            <Icon className="h-6 w-6 text-white" />
-          )}
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className={`font-semibold ${isLocked ? "text-muted-foreground" : ""}`}>
-              {achievement.title}
-            </h3>
-            {!isLocked && (
-              <Badge variant="secondary" className="text-xs">
-                +{achievement.points} XP
-              </Badge>
-            )}
-          </div>
-          
-          <p className="text-sm text-muted-foreground mt-1">{achievement.description}</p>
-          
-          <div className="mt-3">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-muted-foreground">Progress</span>
-              <span>{achievement.progress}/{achievement.maxProgress}</span>
-            </div>
-            <Progress 
-              value={(achievement.progress / achievement.maxProgress) * 100} 
-              className="h-1.5"
-            />
-          </div>
-          
-          {achievement.unlockedAt && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Unlocked {achievement.unlockedAt.toLocaleDateString()}
-            </p>
-          )}
-        </div>
-      </div>
-      
-      <div className="absolute top-2 right-2">
-        <Badge 
-          variant="outline" 
-          className={`text-xs capitalize ${
-            achievement.rarity === "legendary" && "border-yellow-500 text-yellow-600"
-          }`}
-        >
-          {achievement.rarity}
-        </Badge>
-      </div>
-    </motion.div>
-  );
-}
+const rarityColors = {
+  common: "from-gray-400 to-gray-500",
+  rare: "from-blue-400 to-blue-600",
+  epic: "from-purple-400 to-pink-500",
+  legendary: "from-yellow-400 via-orange-400 to-red-500",
+};
 
-function StatsOverview({ achievements }: { achievements: Achievement[] }) {
-  const unlockedCount = achievements.filter((a) => a.unlocked).length;
-  const totalPoints = achievements
-    .filter((a) => a.unlocked)
-    .reduce((sum, a) => sum + a.points, 0);
-  const completionRate = (unlockedCount / achievements.length) * 100;
-  
-  // Calculate level based on points
-  const level = Math.floor(totalPoints / 100) + 1;
-  const nextLevelPoints = level * 100;
-  const currentLevelProgress = totalPoints % 100;
-  
-  return (
-    <Card className="bg-gradient-to-br from-primary/5 to-orange-500/5">
-      <CardContent className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold">{unlockedCount}/{achievements.length}</div>
-            <div className="text-sm text-muted-foreground">Achievements</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary">{totalPoints}</div>
-            <div className="text-sm text-muted-foreground">Total XP</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-3xl font-bold">{Math.round(completionRate)}%</div>
-            <div className="text-sm text-muted-foreground">Completion</div>
-          </div>
-          
-          <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-500">Lv. {level}</div>
-            <div className="text-sm text-muted-foreground">Level</div>
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span>Level {level} Progress</span>
-            <span>{currentLevelProgress}/{nextLevelPoints} XP</span>
-          </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${(currentLevelProgress / 100) * 100}%` }}
-              transition={{ duration: 1 }}
-              className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full"
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+const rarityBadges = {
+  common: "bg-gray-500",
+  rare: "bg-blue-500",
+  epic: "bg-purple-500",
+  legendary: "bg-gradient-to-r from-yellow-500 to-orange-500",
+};
 
 export function AchievementShowcase() {
-  const [achievements, setAchievements] = useState(ACHIEVEMENTS);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showUnlockAnimation, setShowUnlockAnimation] = useState(false);
-  const [lastUnlocked, setLastUnlocked] = useState<Achievement | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements);
+  const [showSecret, setShowSecret] = useState(false);
+  const [recentlyUnlocked, setRecentlyUnlocked] = useState<string | null>(null);
 
-  const filteredAchievements = selectedCategory === "all" 
+  // Simulate progress updates (in real app, this would come from actual user actions)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAchievements(prev => prev.map(a => {
+        if (a.id === "explorer" && a.progress < a.maxProgress) {
+          return { ...a, progress: Math.min(a.progress + 1, a.maxProgress) };
+        }
+        return a;
+      }));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Check for unlocks
+  useEffect(() => {
+    achievements.forEach(achievement => {
+      if (!achievement.unlocked && achievement.progress >= achievement.maxProgress) {
+        setAchievements(prev => prev.map(a => 
+          a.id === achievement.id ? { ...a, unlocked: true } : a
+        ));
+        setRecentlyUnlocked(achievement.id);
+        setTimeout(() => setRecentlyUnlocked(null), 3000);
+      }
+    });
+  }, [achievements]);
+
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const totalPoints = achievements.reduce((sum, a) => {
+    if (!a.unlocked) return sum;
+    const points = { common: 10, rare: 25, epic: 50, legendary: 100 };
+    return sum + points[a.rarity];
+  }, 0);
+
+  const filteredAchievements = showSecret 
     ? achievements 
-    : achievements.filter((a) => a.category === selectedCategory);
-
-  const categories = [
-    { id: "all", label: "All", count: achievements.length },
-    { id: "explorer", label: "Explorer", count: achievements.filter((a) => a.category === "explorer").length },
-    { id: "social", label: "Social", count: achievements.filter((a) => a.category === "social").length },
-    { id: "mastery", label: "Mastery", count: achievements.filter((a) => a.category === "mastery").length },
-    { id: "special", label: "Special", count: achievements.filter((a) => a.category === "special").length },
-  ];
-
-  const simulateUnlock = () => {
-    const locked = achievements.filter((a) => !a.unlocked);
-    if (locked.length === 0) {
-      toast.info("All achievements unlocked! You're a legend! 🎉");
-      return;
-    }
-    
-    const random = locked[Math.floor(Math.random() * locked.length)];
-    setLastUnlocked(random);
-    setShowUnlockAnimation(true);
-    
-    setTimeout(() => {
-      setAchievements((prev) =>
-        prev.map((a) =
-          a.id === random.id 
-            ? { ...a, unlocked: true, unlockedAt: new Date(), progress: a.maxProgress }
-            : a
-        )
-      );
-      toast.success(`Achievement Unlocked: ${random.title}! +${random.points} XP`);
-    }, 1500);
-    
-    setTimeout(() => setShowUnlockAnimation(false), 3000);
-  };
+    : achievements.filter(a => !a.secret);
 
   return (
-    <div className="space-y-8">
-      {/* Unlock Animation Overlay */}
-      <AnimatePresence>
-        {showUnlockAnimation && lastUnlocked && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="text-center"
-            >
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 10, -10, 0]
-                }}
-                transition={{ duration: 0.5, repeat: 2 }}
-                className={`w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br ${RARITY_COLORS[lastUnlocked.rarity]} flex items-center justify-center shadow-2xl`}
-              >
-                <lastUnlocked.icon className="h-16 w-16 text-white" />
-              </motion.div>
-              
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-4xl font-bold text-white mb-2"
-              >
-                Achievement Unlocked!
-              </motion.h2>
-              
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-2xl text-white/90 mb-4"
-              >
-                {lastUnlocked.title}
-              </motion.p>
-              
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500 text-black font-bold"
-              >
-                <Trophy className="h-5 w-5" />
-                +{lastUnlocked.points} XP
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Stats Overview */}
-      <StatsOverview achievements={achievements} />
-
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2">
-        {categories.map((cat) => (
-          <Button
-            key={cat.id}
-            variant={selectedCategory === cat.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(cat.id)}
-          >
-            {cat.label}
-            <Badge variant="secondary" className="ml-2">{cat.count}</Badge>
-          </Button>
-        ))}
-      </div>
-
-      {/* Achievements Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AnimatePresence mode="popLayout">
-          {filteredAchievements.map((achievement) => (
-            <AchievementCard 
-              key={achievement.id} 
-              achievement={achievement}
-              onClick={() => {
-                if (achievement.unlocked) {
-                  toast.info(`${achievement.title}: ${achievement.description}`);
-                }
-              }}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Debug/Simulation Controls */}
-      <Card className="bg-muted/30">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">Developer Tools</h3>
-              <p className="text-sm text-muted-foreground">Simulate achievement unlocks for testing</p>
-            </div>
-            <Button onClick={simulateUnlock} variant="outline">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Simulate Unlock
-            </Button>
+    <section className="py-24 border-y border-border/50 bg-muted/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+            <Trophy className="w-4 h-4" />
+            <span className="text-sm font-medium">Gamification</span>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            Achievement{" "}
+            <span className="text-gradient-animated">Gallery</span>
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
+            Explore the site to unlock hidden achievements. Some are secret and require special actions to discover!
+          </p>
+
+          {/* Stats */}
+          <div className="flex justify-center gap-8 mb-8">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-primary">{unlockedCount}/{achievements.length}</p>
+              <p className="text-sm text-muted-foreground">Unlocked</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-primary">{totalPoints}</p>
+              <p className="text-sm text-muted-foreground">Total Points</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-primary">
+                {Math.round((unlockedCount / achievements.length) * 100)}%
+              </p>
+              <p className="text-sm text-muted-foreground">Complete</p>
+            </div>
+          </div>
+
+          {/* Overall Progress */}
+          <div className="max-w-md mx-auto mb-8">
+            <Progress value={(unlockedCount / achievements.length) * 100} className="h-3" />
+          </div>
+
+          {/* Toggle Secret */}
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowSecret(!showSecret)}
+          >
+            {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showSecret ? "Hide Secret" : "Show Secret"} Achievements
+          </Button>
+        </motion.div>
+
+        {/* Achievement Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredAchievements.map((achievement, index) => {
+            const Icon = achievement.icon;
+            const isRecentlyUnlocked = recentlyUnlocked === achievement.id;
+
+            return (
+              <motion.div
+                key={achievement.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className={`relative group ${achievement.secret && !achievement.unlocked ? "opacity-60" : ""}`}
+              >
+                <motion.div
+                  animate={isRecentlyUnlocked ? {
+                    scale: [1, 1.1, 1],
+                    boxShadow: [
+                      "0 0 0 rgba(220, 38, 38, 0)",
+                      "0 0 30px rgba(220, 38, 38, 0.5)",
+                      "0 0 0 rgba(220, 38, 38, 0)",
+                    ],
+                  } : {}}
+                  transition={{ duration: 0.5 }}
+                  className={`p-6 rounded-2xl border transition-all ${
+                    achievement.unlocked
+                      ? "bg-card border-primary/50"
+                      : "bg-muted/50 border-border"
+                  }`}
+                >
+                  {/* Rarity Badge */}
+                  <div className="absolute top-3 right-3">
+                    <Badge 
+                      className={`text-xs ${rarityBadges[achievement.rarity]} text-white border-0`}
+                    >
+                      {achievement.rarity}
+                    </Badge>
+                  </div>
+
+                  {/* Icon */}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
+                    achievement.unlocked
+                      ? `bg-gradient-to-br ${rarityColors[achievement.rarity]}`
+                      : "bg-muted"
+                  }`}>
+                    {achievement.secret && !achievement.unlocked ? (
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                    ) : (
+                      <Icon className={`w-6 h-6 ${achievement.unlocked ? "text-white" : "text-muted-foreground"}`} />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="font-semibold mb-1">
+                    {achievement.secret && !achievement.unlocked ? "???" : achievement.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {achievement.secret && !achievement.unlocked ? "Secret achievement" : achievement.description}
+                  </p>
+
+                  {/* Progress */}
+                  {!achievement.unlocked && !(achievement.secret && !achievement.unlocked) && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Progress</span>
+                        <span>{achievement.progress}/{achievement.maxProgress}</span>
+                      </div>
+                      <Progress 
+                        value={(achievement.progress / achievement.maxProgress) * 100} 
+                        className="h-1.5"
+                      />
+                    </div>
+                  )}
+
+                  {achievement.unlocked && (
+                    <div className="flex items-center gap-1 text-sm text-green-500">
+                      <Unlock className="w-4 h-4" />
+                      <span>Unlocked!</span>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Shine Effect for Unlocked */}
+                {achievement.unlocked && (
+                  <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      animate={{ x: ["-100%", "100%"] }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-12 flex flex-wrap justify-center gap-4 text-sm"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-gray-500" />
+            <span className="text-muted-foreground">Common (10 pts)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-500" />
+            <span className="text-muted-foreground">Rare (25 pts)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-purple-500" />
+            <span className="text-muted-foreground">Epic (50 pts)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500" />
+            <span className="text-muted-foreground">Legendary (100 pts)</span>
+          </div>
+        </motion.div>
+      </div>
+    </section>
   );
 }

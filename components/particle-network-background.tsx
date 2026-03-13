@@ -1,24 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
 
 interface Particle {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  radius: number;
+  size: number;
   color: string;
 }
 
 export function ParticleNetworkBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
+  const animationRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0 });
-  const animationRef = useRef<number>();
-
-  const colors = ["#dc2626", "#ea580c", "#d97706", "#0891b2", "#7c3aed"];
 
   const initParticles = useCallback((width: number, height: number) => {
     const particleCount = Math.min(Math.floor((width * height) / 15000), 100);
@@ -30,8 +27,8 @@ export function ParticleNetworkBackground() {
         y: Math.random() * height,
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
-        radius: Math.random() * 2 + 1,
-        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 2 + 1,
+        color: `rgba(220, 38, 38, ${Math.random() * 0.5 + 0.2})`,
       });
     }
 
@@ -51,16 +48,17 @@ export function ParticleNetworkBackground() {
       initParticles(canvas.width, canvas.height);
     };
 
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
     window.addEventListener("mousemove", handleMouseMove);
 
     const animate = () => {
+      if (!ctx || !canvas) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
@@ -76,24 +74,19 @@ export function ParticleNetworkBackground() {
         if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
         if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
 
-        // Mouse attraction
-        const dx = mouse.x - particle.x;
-        const dy = mouse.y - particle.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 200) {
-          particle.vx += dx * 0.0001;
-          particle.vy += dy * 0.0001;
-        }
+        // Keep within bounds
+        particle.x = Math.max(0, Math.min(canvas.width, particle.x));
+        particle.y = Math.max(0, Math.min(canvas.height, particle.y));
 
         // Draw particle
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = particle.color;
         ctx.fill();
 
-        // Draw connections
-        particles.slice(i + 1).forEach((other) => {
+        // Connect nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const other = particles[j];
           const dx = particle.x - other.x;
           const dy = particle.y - other.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
@@ -102,22 +95,22 @@ export function ParticleNetworkBackground() {
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(220, 38, 38, ${0.2 * (1 - distance / 150)})`;
+            ctx.strokeStyle = `rgba(220, 38, 38, ${0.1 * (1 - distance / 150)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
-        });
+        }
 
-        // Draw mouse connections
-        const mouseDist = Math.sqrt(
-          Math.pow(mouse.x - particle.x, 2) + Math.pow(mouse.y - particle.y, 2)
-        );
+        // Connect to mouse
+        const dx = particle.x - mouse.x;
+        const dy = particle.y - mouse.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (mouseDist < 200) {
+        if (distance < 200) {
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
           ctx.lineTo(mouse.x, mouse.y);
-          ctx.strokeStyle = `rgba(220, 38, 38, ${0.3 * (1 - mouseDist / 200)})`;
+          ctx.strokeStyle = `rgba(220, 38, 38, ${0.2 * (1 - distance / 200)})`;
           ctx.lineWidth = 0.8;
           ctx.stroke();
         }
@@ -131,19 +124,15 @@ export function ParticleNetworkBackground() {
     return () => {
       window.removeEventListener("resize", resizeCanvas);
       window.removeEventListener("mousemove", handleMouseMove);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      cancelAnimationFrame(animationRef.current);
     };
   }, [initParticles]);
 
   return (
-    <motion.canvas
+    <canvas
       ref={canvasRef}
       className="fixed inset-0 -z-10 pointer-events-none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 0.6 }}
-      transition={{ duration: 1 }}
+      style={{ opacity: 0.6 }}
     />
   );
 }

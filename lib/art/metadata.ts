@@ -620,6 +620,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "3d", "atmospheric", "volumetric", "natural"],
     created: "2026-03-04",
   },
+  "chromatic-aberration": {
+    category: "abstract",
+    complexity: "moderate",
+    tags: ["animated", "chaotic", "abstract"],
+    created: "2026-03-13",
+  },
 };
 
 // Helper function to get metadata for a generator

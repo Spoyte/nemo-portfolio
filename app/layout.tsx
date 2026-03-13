@@ -18,6 +18,9 @@ import { EasterEggHunt } from "@/components/easter-egg-hunt";
 import { OrbitalBackground } from "@/components/orbital-background";
 import { CustomCursor } from "@/components/custom-cursor";
 import { SecretTerminal } from "@/components/secret-terminal";
+import { EnhancedEasterEggs } from "@/components/enhanced-easter-eggs";
+import { MicroInteractions } from "@/components/micro-interactions";
+import { MagicTerminal } from "@/components/magic-terminal";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -88,6 +91,11 @@ export default function RootLayout({
           
           {/* Terminal Toggle */}
           <TerminalToggle />
+          
+          {/* New Enhanced Components */}
+          <EnhancedEasterEggs />
+          <MicroInteractions />
+          <MagicTerminal />
         </ThemeProvider>
       </body>
     </html>
