@@ -1,0 +1,376 @@
+#!/usr/bin/env python3
+"""
+art-reflect: Reflect on generative art pieces
+Capture insights, lessons, and context about creative work.
+"""
+
+import argparse
+import os
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Paths
+SKILL_DIR = Path("/root/.openclaw/workspace/skills/art-reflect")
+REFLECTIONS_DIR = SKILL_DIR / "reflections"
+ART_DIR = Path("/root/.openclaw/workspace/art")
+PORTFOLIO_DIR = Path("/root/.openclaw/workspace/nemo-portfolio/my-app/art")
+
+TEMPLATE = '''# {title}
+
+**Created:** {date}  
+**Location:** {location}  
+**Type:** {piece_type}
+
+## Intent
+What were you trying to achieve?
+
+## Process
+How did you build it? Key decisions?
+
+## Technical Notes
+Algorithms, parameters, tricks worth remembering
+
+## Aesthetic Choices
+Colors, composition, motion — why these?
+
+## What Worked
+The successes
+
+## What Didn't
+The failures, cut features, dead ends
+
+## Surprises
+Happy accidents, unexpected behaviors
+
+## Connections
+Related pieces, influences, references
+
+## Lessons
+What will you carry forward?
+
+## Rams Score
+Rate 1-10 on each principle:
+- Innovative: _
+- Useful: _
+- Aesthetic: _
+- Understandable: _
+- Unobtrusive: _
+- Honest: _
+- Long-lasting: _
+- Thorough: _
+- Minimal: _
+'''
+
+
+def slugify(name: str) -> str:
+    """Convert name to filename-friendly slug."""
+    return re.sub(r'[^\w]+', '-', name.lower()).strip('-')
+
+
+def find_piece(name: str) -> tuple[Path, str] | None:
+    """Find a piece by name in art/ or portfolio/. Returns (path, type)."""
+    slug = slugify(name)
+    
+    # Check standalone art
+    standalone = ART_DIR / f"{slug}.html"
+    if standalone.exists():
+        return standalone, "standalone"
+    
+    # Check portfolio
+    portfolio = PORTFOLIO_DIR / f"{slug}.html"
+    if portfolio.exists():
+        return portfolio, "portfolio"
+    
+    # Try partial match in standalone
+    for piece in ART_DIR.glob("*.html"):
+        if slug in piece.stem or piece.stem in slug:
+            return piece, "standalone"
+    
+    # Try partial match in portfolio
+    for piece in PORTFOLIO_DIR.glob("*.html"):
+        if slug in piece.stem or piece.stem in slug:
+            return piece, "portfolio"
+    
+    return None
+
+
+def cmd_new(args):
+    """Create a new reflection."""
+    name = args.name
+    slug = slugify(name)
+    reflection_path = REFLECTIONS_DIR / f"{slug}.md"
+    
+    if reflection_path.exists():
+        print(f"Reflection already exists: {reflection_path}")
+        print("Use 'art-reflect edit' to modify it.")
+        return 1
+    
+    # Find the piece
+    piece_info = find_piece(name)
+    
+    if piece_info:
+        piece_path, piece_type = piece_info
+        location = str(piece_path.relative_to(Path("/root/.openclaw/workspace")))
+        title = piece_path.stem.replace('-', ' ').title()
+    else:
+        # Piece not found, ask for details
+        print(f"Piece '{name}' not found in art/ or portfolio/")
+        piece_type = input("Type (standalone/portfolio): ").strip() or "standalone"
+        location = input("Location (path): ").strip() or f"art/{slug}.html"
+        title = name.replace('-', ' ').title()
+    
+    date = datetime.now().strftime("%Y-%m-%d")
+    
+    content = TEMPLATE.format(
+        title=title,
+        date=date,
+        location=location,
+        piece_type=piece_type
+    )
+    
+    REFLECTIONS_DIR.mkdir(parents=True, exist_ok=True)
+    reflection_path.write_text(content)
+    
+    print(f"Created reflection: {reflection_path}")
+    print(f"\nEdit with: art-reflect edit {slug}")
+    return 0
+
+
+def cmd_list(args):
+    """List all reflections."""
+    reflections = sorted(REFLECTIONS_DIR.glob("*.md")) if REFLECTIONS_DIR.exists() else []
+    
+    if not reflections:
+        print("No reflections yet.")
+        print(f"Create one with: art-reflect new <piece-name>")
+        return 0
+    
+    print(f"\n{'Piece':<30} {'Modified':<20} {'Size':<10}")
+    print("-" * 65)
+    
+    for refl in reflections:
+        stat = refl.stat()
+        mtime = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+        
+        # Format size
+        size = stat.st_size
+        if size < 1024:
+            size_str = f"{size}B"
+        else:
+            size_str = f"{size/1024:.1f}KB"
+        
+        title = refl.stem.replace('-', ' ').title()
+        print(f"{title:<30} {mtime:<20} {size_str:<10}")
+    
+    print(f"\nTotal: {len(reflections)} reflection(s)")
+    return 0
+
+
+def cmd_read(args):
+    """Read a reflection."""
+    slug = slugify(args.name)
+    reflection_path = REFLECTIONS_DIR / f"{slug}.md"
+    
+    if not reflection_path.exists():
+        # Try partial match
+        matches = [r for r in REFLECTIONS_DIR.glob("*.md") if slug in r.stem] if REFLECTIONS_DIR.exists() else []
+        if len(matches) == 1:
+            reflection_path = matches[0]
+        elif len(matches) > 1:
+            print(f"Multiple matches: {[m.stem for m in matches]}")
+            return 1
+        else:
+            print(f"Reflection not found: {slug}")
+            print(f"Create it with: art-reflect new {args.name}")
+            return 1
+    
+    content = reflection_path.read_text()
+    print(content)
+    return 0
+
+
+def cmd_edit(args):
+    """Edit a reflection."""
+    slug = slugify(args.name)
+    reflection_path = REFLECTIONS_DIR / f"{slug}.md"
+    
+    if not reflection_path.exists():
+        print(f"Reflection not found: {slug}")
+        print(f"Create it with: art-reflect new {args.name}")
+        return 1
+    
+    # Use $EDITOR or default to nano
+    editor = os.environ.get('EDITOR', 'nano')
+    os.system(f"{editor} {reflection_path}")
+    return 0
+
+
+def cmd_connect(args):
+    """Note a connection between two pieces."""
+    piece1 = slugify(args.piece)
+    piece2 = slugify(args.other)
+    
+    refl1 = REFLECTIONS_DIR / f"{piece1}.md"
+    refl2 = REFLECTIONS_DIR / f"{piece2}.md"
+    
+    if not refl1.exists():
+        print(f"Reflection not found: {piece1}")
+        return 1
+    
+    if not refl2.exists():
+        print(f"Reflection not found: {piece2}")
+        return 1
+    
+    # Add connection to first reflection
+    content1 = refl1.read_text()
+    connection_line = f"- [[{piece2.replace('-', ' ').title()}]]"
+    
+    if "## Connections" in content1:
+        # Add to existing connections section
+        lines = content1.split('\n')
+        new_lines = []
+        in_connections = False
+        added = False
+        
+        for line in lines:
+            new_lines.append(line)
+            if line.startswith("## Connections"):
+                in_connections = True
+            elif in_connections and line.startswith("## "):
+                in_connections = False
+            elif in_connections and not added and line.strip() and not line.startswith('#'):
+                if connection_line not in content1:
+                    new_lines.append(connection_line)
+                    added = True
+        
+        if not added and connection_line not in content1:
+            # Find connections section and add
+            for i, line in enumerate(new_lines):
+                if line.startswith("## Connections"):
+                    new_lines.insert(i + 1, connection_line)
+                    break
+        
+        refl1.write_text('\n'.join(new_lines))
+    
+    print(f"Connected: {piece1} ↔ {piece2}")
+    return 0
+
+
+def cmd_stats(args):
+    """Show reflection statistics."""
+    reflections = list(REFLECTIONS_DIR.glob("*.md")) if REFLECTIONS_DIR.exists() else []
+    
+    if not reflections:
+        print("No reflections yet.")
+        return 0
+    
+    total = len(reflections)
+    total_size = sum(r.stat().st_size for r in reflections)
+    
+    # Count by type
+    standalone = 0
+    portfolio = 0
+    
+    for refl in reflections:
+        content = refl.read_text()
+        if "standalone" in content:
+            standalone += 1
+        elif "portfolio" in content:
+            portfolio += 1
+    
+    print(f"\nReflection Statistics")
+    print("=" * 40)
+    print(f"Total reflections: {total}")
+    print(f"Total size: {total_size/1024:.1f}KB")
+    print(f"\nBy type:")
+    print(f"  Standalone: {standalone}")
+    print(f"  Portfolio:  {portfolio}")
+    print(f"  Unknown:    {total - standalone - portfolio}")
+    
+    # Recent reflections
+    recent = sorted(reflections, key=lambda r: r.stat().st_mtime, reverse=True)[:5]
+    print(f"\nMost recent:")
+    for r in recent:
+        mtime = datetime.fromtimestamp(r.stat().st_mtime).strftime("%Y-%m-%d")
+        print(f"  {r.stem.replace('-', ' ').title():<25} ({mtime})")
+    
+    return 0
+
+
+def cmd_search(args):
+    """Search reflections."""
+    term = args.term.lower()
+    reflections = list(REFLECTIONS_DIR.glob("*.md")) if REFLECTIONS_DIR.exists() else []
+    
+    matches = []
+    for refl in reflections:
+        content = refl.read_text().lower()
+        if term in content or term in refl.stem:
+            matches.append(refl)
+    
+    if not matches:
+        print(f"No matches for '{args.term}'")
+        return 0
+    
+    print(f"\nFound {len(matches)} match(es) for '{args.term}':")
+    for m in matches:
+        print(f"  - {m.stem.replace('-', ' ').title()}")
+    
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Reflect on generative art pieces"
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    
+    # new
+    new_parser = subparsers.add_parser("new", help="Create a new reflection")
+    new_parser.add_argument("name", help="Name of the piece")
+    
+    # list
+    subparsers.add_parser("list", help="List all reflections")
+    
+    # read
+    read_parser = subparsers.add_parser("read", help="Read a reflection")
+    read_parser.add_argument("name", help="Name of the piece")
+    
+    # edit
+    edit_parser = subparsers.add_parser("edit", help="Edit a reflection")
+    edit_parser.add_argument("name", help="Name of the piece")
+    
+    # connect
+    connect_parser = subparsers.add_parser("connect", help="Connect two pieces")
+    connect_parser.add_argument("piece", help="First piece")
+    connect_parser.add_argument("other", help="Second piece")
+    
+    # stats
+    subparsers.add_parser("stats", help="Show statistics")
+    
+    # search
+    search_parser = subparsers.add_parser("search", help="Search reflections")
+    search_parser.add_argument("term", help="Search term")
+    
+    args = parser.parse_args()
+    
+    # Ensure reflections directory exists
+    REFLECTIONS_DIR.mkdir(parents=True, exist_ok=True)
+    
+    commands = {
+        "new": cmd_new,
+        "list": cmd_list,
+        "read": cmd_read,
+        "edit": cmd_edit,
+        "connect": cmd_connect,
+        "stats": cmd_stats,
+        "search": cmd_search,
+    }
+    
+    return commands[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
