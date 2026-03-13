@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+#
+# workspace-intel — Unified workspace intelligence
+# Provides a dashboard view of projects, skills, git status, and activity
+#
+
+set -e
+
+WORKSPACE_ROOT="/root/.openclaw/workspace"
+SKILLS_DIR="$WORKSPACE_ROOT/skills"
+PROJECTS_DIR="$WORKSPACE_ROOT/projects"
+MEMORY_DIR="$WORKSPACE_ROOT/memory"
+
+# Colors
+RESET="\033[0m"
+BOLD="\033[1m"
+DIM="\033[2m"
+CYAN="\033[36m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+RED="\033[31m"
+BLUE="\033[34m"
+MAGENTA="\033[35m"
+
+# Helper functions
+print_header() {
+    echo -e "\n${BOLD}${CYAN}$1${RESET}"
+    echo -e "${DIM}$(printf '%*s' "${#1}" '' | tr ' ' '-')${RESET}"
+}
+
+print_stat() {
+    local label="$1"
+    local value="$2"
+    local color="${3:-$RESET}"
+    printf "  ${DIM}%-20s${RESET} ${color}%s${RESET}\n" "$label" "$value"
+}
+
+# Count skills
+count_skills() {
+    find "$SKILLS_DIR" -maxdepth 1 -type d ! -name "skills" | wc -l
+}
+
+# Count projects  
+count_projects() {
+    find "$PROJECTS_DIR" -maxdepth 1 -type d ! -name "projects" | wc -l
+}
+
+# Get recent memory files
+get_recent_memories() {
+    ls -1 "$MEMORY_DIR"/*.md 2>/dev/null | sort -r | head -5 | while read f; do
+        basename "$f" .md
+    done
+}
+
+# Check git status for a directory
+check_git_status() {
+    local dir="$1"
+    if [ -d "$dir/.git" ]; then
+        cd "$dir"
+        local status="clean"
+        local branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+        
+        if ! git diff --quiet HEAD 2>/dev/null; then
+            status="dirty"
+        fi
+        
+        local ahead=$(git rev-list --count @{upstream}..HEAD 2>/dev/null || echo "0")
+        local behind=$(git rev-list --count HEAD..@{upstream} 2>/dev/null || echo "0")
+        
+        echo "$branch|$status|$ahead|$behind"
+    else
+        echo "no-git|-|-|-"
+    fi
+}
+
+# Format git status for display
+format_git_status() {
+    local status="$1"
+    local ahead="$2"
+    local behind="$3"
+    
+    case "$status" in
+        clean)
+            if [ "$ahead" -gt 0 ]; then
+                echo -e "${YELLOW}↑$ahead${RESET}"
+            elif [ "$behind" -gt 0 ]; then
+                echo -e "${YELLOW}↓$behind${RESET}"
+            else
+                echo -e "${GREEN}✓${RESET}"
+            fi
+            ;;
+        dirty)
+            echo -e "${RED}✗${RESET}"
+            ;;
+        *)
+            echo -e "${DIM}-${RESET}"
+            ;;
+    esac
+}
+
+# Show overview dashboard
+show_overview() {
+    print_header "📊 Workspace Overview"
+    
+    local total_skills=$(count_skills)
+    local total_projects=$(count_projects)
+    local total_memory=$(ls -1 "$MEMORY_DIR"/*.md 2>/dev/null | wc -l)
+    
+    print_stat "Skills" "$total_skills" "$CYAN"
+    print_stat "Projects" "$total_projects" "$BLUE"
+    print_stat "Memory entries" "$total_memory" "$MAGENTA"
+    
+    # Recent activity
+    echo -e "\n  ${BOLD}Recent Activity${RESET}"
+    for mem in $(get_recent_memories); do
+        echo -e "    ${DIM}•${RESET} $mem"
+    done
+}
+
+# Show skills summary
+show_skills() {
+    print_header "🛠️  Skills ($(count_skills))"
+    
+    find "$SKILLS_DIR" -maxdepth 1 -type d ! -name "skills" | sort | while read skill_dir; do
+        local name=$(basename "$skill_dir")
+        local skill_file="$skill_dir/$name"
+        local desc=""
+        
+        # Extract description from SKILL.md frontmatter
+        if [ -f "$skill_dir/SKILL.md" ]; then
+            desc=$(grep "^description:" "$skill_dir/SKILL.md" | sed 's/description: *"\?\(.*\)"\?$/\1/' | sed 's/"$//' | cut -c1-40)
+        fi
+        
+        if [ -n "$desc" ]; then
+            printf "  ${CYAN}%-20s${RESET} %s\n" "$name" "$desc"
+        else
+            echo -e "  ${CYAN}$name${RESET}"
+        fi
+    done
+}
+
+# Show projects with git status
+show_projects() {
+    print_header "📁 Projects ($(count_projects))"
+    
+    find "$PROJECTS_DIR" -maxdepth 1 -type d ! -name "projects" | sort | while read proj_dir; do
+        local name=$(basename "$proj_dir")
+        local git_info=$(check_git_status "$proj_dir")
+        local branch=$(echo "$git_info" | cut -d'|' -f1)
+        local status=$(echo "$git_info" | cut -d'|' -f2)
+        local ahead=$(echo "$git_info" | cut -d'|' -f3)
+        local behind=$(echo "$git_info" | cut -d'|' -f4)
+        
+        local status_display=$(format_git_status "$status" "$ahead" "$behind")
+        
+        if [ "$branch" != "no-git" ]; then
+            printf "  ${BLUE}%-24s${RESET} %s ${DIM}(%s)${RESET}\n" "$name" "$status_display" "$branch"
+        else
+            printf "  ${DIM}%-24s${RESET} -\n" "$name"
+        fi
+    done
+}
+
+# Show git summary
+show_git_summary() {
+    print_header "🌿 Git Status Summary"
+    
+    local dirty_count=0
+    local clean_count=0
+    local no_git_count=0
+    local pushable_count=0
+    
+    find "$PROJECTS_DIR" -maxdepth 1 -type d ! -name "projects" | while read proj_dir; do
+        local git_info=$(check_git_status "$proj_dir")
+        local status=$(echo "$git_info" | cut -d'|' -f2)
+        local ahead=$(echo "$git_info" | cut -d'|' -f3)
+        
+        case "$status" in
+            clean) 
+                if [ "$ahead" -gt 0 ]; then
+                    echo "pushable"
+                else
+                    echo "clean"
+                fi
+                ;;
+            dirty) echo "dirty" ;;
+            *) echo "no-git" ;;
+        esac
+    done | sort | uniq -c | while read count state; do
+        case "$state" in
+            clean) print_stat "Clean repos" "$count" "$GREEN" ;;
+            dirty) print_stat "Uncommitted changes" "$count" "$RED" ;;
+            pushable) print_stat "Ready to push" "$count" "$YELLOW" ;;
+            no-git) print_stat "No git" "$count" "$DIM" ;;
+        esac
+    done
+}
+
+# Show quick actions
+show_actions() {
+    print_header "⚡ Quick Actions"
+    echo -e "  ${DIM}Run these commands:${RESET}"
+    echo -e "    workspace-intel --skills    # View all skills"
+    echo -e "    workspace-intel --projects  # View all projects"
+    echo -e "    workspace-intel --git       # Git status summary"
+    echo -e "    skill list                  # List skills (detailed)"
+    echo -e "    nemo-status                 # Nemo system status"
+}
+
+# Main command handler
+case "${1:-}" in
+    --skills|-s)
+        show_skills
+        ;;
+    --projects|-p)
+        show_projects
+        ;;
+    --git|-g)
+        show_git_summary
+        ;;
+    --help|-h)
+        echo "workspace-intel — Workspace intelligence dashboard"
+        echo ""
+        echo "Usage:"
+        echo "  workspace-intel           # Show full dashboard"
+        echo "  workspace-intel --skills  # Skills overview"
+        echo "  workspace-intel --projects # Projects with git status"
+        echo "  workspace-intel --git     # Git summary only"
+        echo "  workspace-intel --help    # This help"
+        ;;
+    *)
+        # Full dashboard
+        show_overview
+        show_git_summary
+        show_actions
+        echo ""
+        ;;
+esac
