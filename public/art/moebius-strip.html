@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Möbius Strip</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #0a0a0a;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 20px;
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    button {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    button.active {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 12px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="info">
+    Möbius Strip — A surface with only one side and one boundary
+  </div>
+  
+  <canvas id="canvas"></canvas>
+  
+  <div class="controls">
+    <button id="toggleAnim" class="active">Pause</button>
+    <button id="scheme-neon">Neon</button>
+    <button id="scheme-pastel">Pastel</button>
+    <button id="scheme-fire">Fire</button>
+    <button id="scheme-ocean">Ocean</button>
+    <button id="toggleWireframe">Wireframe</button>
+    <button id="toggleStripes">Stripes</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let animationId;
+    let isAnimating = true;
+    let time = 0;
+    
+    // Configuration
+    let colorScheme = 'neon';
+    let wireframeMode = false;
+    let showStripes = true;
+    
+    // Color palettes
+    const palettes = {
+      neon: ['#FF006E', '#FB5607', '#FFBE0B', '#8338EC', '#3A86FF'],
+      pastel: ['#FFB5BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF'],
+      fire: ['#FF0000', '#FF4500', '#FF8C00', '#FFD700', '#FF6347'],
+      ocean: ['#006994', '#0096C7', '#48CAE4', '#90E0EF', '#CAF0F8']
+    };
+    
+    // 3D Point class
+    class Point3D {
+      constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+      }
+    }
+    
+    // Resize handler
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // 3D rotation functions
+    function rotateX(point, angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      return new Point3D(
+        point.x,
+        point.y * cos - point.z * sin,
+        point.y * sin + point.z * cos
+      );
+    }
+    
+    function rotateY(point, angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      return new Point3D(
+        point.x * cos + point.z * sin,
+        point.y,
+        -point.x * sin + point.z * cos
+      );
+    }
+    
+    function rotateZ(point, angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      return new Point3D(
+        point.x * cos - point.y * sin,
+        point.x * sin + point.y * cos,
+        point.z
+      );
+    }
+    
+    // Project 3D point to 2D
+    function project(point, distance = 4) {
+      const scale = distance / (distance + point.z * 0.3);
+      return {
+        x: width / 2 + point.x * scale * Math.min(width, height) * 0.25,
+        y: height / 2 + point.y * scale * Math.min(width, height) * 0.25,
+        scale: scale
+      };
+    }
+    
+    // Generate Möbius strip points
+    function generateMobiusStrip(u, v, radius = 2, width = 0.8) {
+      // u goes around the strip (0 to 2π)
+      // v goes across the width (-1 to 1)
+      
+      const halfWidth = width * v * 0.5;
+      
+      // The twist: as we go around (u), we rotate by u/2
+      const twist = u / 2;
+      
+      // Base circle in XY plane
+      const baseX = Math.cos(u) * radius;
+      const baseY = Math.sin(u) * radius;
+      const baseZ = 0;
+      
+      // The strip extends perpendicular to the circle, with the twist
+      // At angle u, the local "up" direction is rotated by u/2
+      const perpX = Math.cos(u) * Math.cos(twist) * halfWidth;
+      const perpY = Math.sin(u) * Math.cos(twist) * halfWidth;
+      const perpZ = Math.sin(twist) * halfWidth;
+      
+      return new Point3D(
+        baseX + perpX,
+        baseY + perpY,
+        baseZ + perpZ
+      );
+    }
+    
+    // Get color based on position
+    function getColor(u, v, palette) {
+      const colors = palettes[palette];
+      // Create gradient around the strip
+      const colorIndex = Math.floor((u / (Math.PI * 2)) * colors.length) % colors.length;
+      return colors[colorIndex];
+    }
+    
+    // Draw the Möbius strip
+    function draw() {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+      
+      const rotationY = time * 0.0005;
+      const rotationX = Math.sin(time * 0.0003) * 0.3;
+      
+      // Generate mesh
+      const uSteps = 120; // Around the strip
+      const vSteps = 20;  // Across the width
+      
+      const points = [];
+      const projected = [];
+      
+      for (let i = 0; i <= uSteps; i++) {
+        const u = (i / uSteps) * Math.PI * 2;
+        points[i] = [];
+        projected[i] = [];
+        
+        for (let j = 0; j <= vSteps; j++) {
+          const v = (j / vSteps) * 2 - 1; // -1 to 1
+          
+          let point = generateMobiusStrip(u, v);
+          
+          // Apply rotations
+          point = rotateX(point, rotationX);
+          point = rotateY(point, rotationY);
+          
+          points[i][j] = point;
+          projected[i][j] = project(point);
+        }
+      }
+      
+      // Draw faces (quads)
+      const faces = [];
+      
+      for (let i = 0; i < uSteps; i++) {
+        for (let j = 0; j < vSteps; j++) {
+          const p1 = projected[i][j];
+          const p2 = projected[i + 1][j];
+          const p3 = projected[i + 1][j + 1];
+          const p4 = projected[i][j + 1];
+          
+          // Calculate average depth for sorting
+          const avgZ = (points[i][j].z + points[i + 1][j].z + 
+                       points[i + 1][j + 1].z + points[i][j + 1].z) / 4;
+          
+          // Calculate normal for lighting
+          const u1 = points[i + 1][j].x - points[i][j].x;
+          const v1 = points[i + 1][j].y - points[i][j].y;
+          const w1 = points[i + 1][j].z - points[i][j].z;
+          const u2 = points[i][j + 1].x - points[i][j].x;
+          const v2 = points[i][j + 1].y - points[i][j].y;
+          const w2 = points[i][j + 1].z - points[i][j].z;
+          
+          const nx = v1 * w2 - w1 * v2;
+          const ny = w1 * u2 - u1 * w2;
+          const nz = u1 * v2 - v1 * u2;
+          
+          // Simple lighting from front-top
+          const light = Math.max(0.3, (nz + 0.5) / 1.5);
+          
+          faces.push({
+            p1, p2, p3, p4,
+            z: avgZ,
+            light,
+            u: (i / uSteps) * Math.PI * 2,
+            v: (j / vSteps) * 2 - 1
+          });
+        }
+      }
+      
+      // Sort faces by depth (painter's algorithm)
+      faces.sort((a, b) => b.z - a.z);
+      
+      // Draw faces
+      faces.forEach(face => {
+        const colors = palettes[colorScheme];
+        
+        // Determine color based on position around the strip
+        let baseColor;
+        if (showStripes) {
+          // Create stripe pattern showing the single-sided nature
+          const stripePhase = Math.sin(face.u * 3 + time * 0.002);
+          const colorIndex = Math.floor(((stripePhase + 1) / 2) * colors.length) % colors.length;
+          baseColor = colors[colorIndex];
+        } else {
+          const colorIndex = Math.floor((face.u / (Math.PI * 2)) * colors.length) % colors.length;
+          baseColor = colors[colorIndex];
+        }
+        
+        // Apply lighting
+        const r = parseInt(baseColor.slice(1, 3), 16);
+        const g = parseInt(baseColor.slice(3, 5), 16);
+        const b = parseInt(baseColor.slice(5, 7), 16);
+        
+        const litR = Math.floor(r * face.light);
+        const litG = Math.floor(g * face.light);
+        const litB = Math.floor(b * face.light);
+        
+        const color = `rgb(${litR}, ${litG}, ${litB})`;
+        
+        ctx.beginPath();
+        ctx.moveTo(face.p1.x, face.p1.y);
+        ctx.lineTo(face.p2.x, face.p2.y);
+        ctx.lineTo(face.p3.x, face.p3.y);
+        ctx.lineTo(face.p4.x, face.p4.y);
+        ctx.closePath();
+        
+        if (wireframeMode) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = color;
+          ctx.fill();
+          
+          // Subtle edge highlighting
+          ctx.strokeStyle = `rgba(${litR}, ${litG}, ${litB}, 0.3)`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      });
+      
+      // Draw center line to emphasize the single edge
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      
+      for (let i = 0; i <= uSteps; i++) {
+        const u = (i / uSteps) * Math.PI * 2;
+        let point = generateMobiusStrip(u, 0); // Center line (v = 0)
+        point = rotateX(point, rotationX);
+        point = rotateY(point, rotationY);
+        const proj = project(point);
+        
+        if (i === 0) {
+          ctx.moveTo(proj.x, proj.y);
+        } else {
+          ctx.lineTo(proj.x, proj.y);
+        }
+      }
+      ctx.stroke();
+    }
+    
+    // Animation loop
+    function animate() {
+      if (isAnimating) {
+        time += 16;
+      }
+      draw();
+      animationId = requestAnimationFrame(animate);
+    }
+    
+    // Controls
+    document.getElementById('toggleAnim').addEventListener('click', function() {
+      isAnimating = !isAnimating;
+      this.textContent = isAnimating ? 'Pause' : 'Play';
+      this.classList.toggle('active', isAnimating);
+    });
+    
+    document.getElementById('scheme-neon').addEventListener('click', function() {
+      colorScheme = 'neon';
+      updateSchemeButtons(this);
+    });
+    
+    document.getElementById('scheme-pastel').addEventListener('click', function() {
+      colorScheme = 'pastel';
+      updateSchemeButtons(this);
+    });
+    
+    document.getElementById('scheme-fire').addEventListener('click', function() {
+      colorScheme = 'fire';
+      updateSchemeButtons(this);
+    });
+    
+    document.getElementById('scheme-ocean').addEventListener('click', function() {
+      colorScheme = 'ocean';
+      updateSchemeButtons(this);
+    });
+    
+    document.getElementById('toggleWireframe').addEventListener('click', function() {
+      wireframeMode = !wireframeMode;
+      this.classList.toggle('active', wireframeMode);
+    });
+    
+    document.getElementById('toggleStripes').addEventListener('click', function() {
+      showStripes = !showStripes;
+      this.classList.toggle('active', showStripes);
+    });
+    
+    function updateSchemeButtons(activeBtn) {
+      document.querySelectorAll('[id^="scheme-"]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      activeBtn.classList.add('active');
+    }
+    
+    // Set initial active state
+    document.getElementById('scheme-neon').classList.add('active');
+    document.getElementById('toggleStripes').classList.add('active');
+    
+    // Start
+    animate();
+  </script>
+</body>
+</html>
