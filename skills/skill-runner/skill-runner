@@ -8,6 +8,8 @@ Commands:
     nemo ci [log|stats|visualize]   — Continuous improvement cycles
     nemo diary [entry]              — Quick diary entry
     nemo work [on|add|rm|log|here]  — Project context management
+    nemo list                       — List all available skills
+    nemo <skill> [args...]          — Run any skill from skills/
 
 Principles:
     - Less, but better (Dieter Rams)
@@ -21,7 +23,7 @@ import json
 import time
 import signal
 import hashlib
-import argparse
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
@@ -39,6 +41,99 @@ CI_LOG = NEMO_DIR / "ci-cycles.jsonl"
 TASKS_FILE = NEMO_DIR / "tasks.json"
 DIARY_DIR = NEMO_DIR / "diary"
 DIARY_DIR.mkdir(exist_ok=True)
+
+# Skill discovery paths
+SKILL_PATHS = [
+    Path("/root/.openclaw/workspace/skills"),
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SKILL DISCOVERY & EXECUTION
+# ─────────────────────────────────────────────────────────────────────────────
+
+def discover_skills() -> Dict[str, Path]:
+    """Discover all available skills from skill directories."""
+    skills = {}
+    
+    for skill_path in SKILL_PATHS:
+        if not skill_path.exists():
+            continue
+        
+        for item in skill_path.iterdir():
+            if item.is_dir() and not item.name.startswith("."):
+                # Look for executable with same name as directory
+                executable = item / item.name
+                if executable.exists() and os.access(executable, os.X_OK):
+                    skills[item.name] = executable
+                else:
+                    # Look for any executable in the directory
+                    for subitem in item.iterdir():
+                        if subitem.is_file() and os.access(subitem, os.X_OK) and not subitem.name.startswith("."):
+                            skills[item.name] = subitem
+                            break
+    
+    return skills
+
+def run_skill(skill_path: Path, args: List[str]) -> int:
+    """Execute a skill with given arguments."""
+    try:
+        result = subprocess.run([str(skill_path)] + args, check=False)
+        return result.returncode
+    except Exception as e:
+        print(f"  ✗ Error running skill: {e}")
+        return 1
+
+def cmd_list(args: List[str]) -> int:
+    """List all available commands and skills."""
+    skills = discover_skills()
+    
+    # Built-in commands
+    builtins = {
+        "focus": "Minimalist focus timer",
+        "track": "Daily task tracker",
+        "ci": "Continuous improvement cycles",
+        "diary": "Quick diary entry",
+        "work": "Project context management",
+        "list": "List all available commands and skills",
+    }
+    
+    print("\n  ╔══════════════════════════════════════════════════╗")
+    print("  ║     NEMO — UNIFIED WORKSPACE CLI                 ║")
+    print("  ╠══════════════════════════════════════════════════╣")
+    print("  ║  Built-in Commands                               ║")
+    print("  ╠══════════════════════════════════════════════════╣")
+    
+    for name, desc in builtins.items():
+        print(f"  ║  {name:<12} {desc:<33} ║")
+    
+    if skills:
+        print("  ╠══════════════════════════════════════════════════╣")
+        print("  ║  Available Skills                                ║")
+        print("  ╠══════════════════════════════════════════════════╣")
+        
+        for name in sorted(skills.keys()):
+            # Try to get description from SKILL.md
+            skill_dir = skills[name].parent
+            skill_md = skill_dir / "SKILL.md"
+            desc = ""
+            if skill_md.exists():
+                try:
+                    with open(skill_md) as f:
+                        for line in f:
+                            if line.startswith("description:"):
+                                desc = line.split(":", 1)[1].strip().strip('"')
+                                break
+                except:
+                    pass
+            
+            desc = (desc[:30] + "...") if len(desc) > 30 else desc
+            print(f"  ║  {name:<12} {desc:<33} ║")
+    
+    print("  ╚══════════════════════════════════════════════════╝")
+    print(f"\n  {len(builtins)} built-in, {len(skills)} skills discovered")
+    print(f"  Skill paths: {', '.join(str(p) for p in SKILL_PATHS)}")
+    
+    return 0
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FOCUS TIMER
@@ -570,6 +665,8 @@ def show_help():
     ci [cmd]             CI cycle tracking (visualize/log/stats)
     diary [text]         Quick diary entry
     work [cmd]           Project context (on/add/rm/log/here/status)
+    list                 List all available commands and skills
+    <skill> [args...]    Run any skill from skills/
 
   Examples:
     nemo focus 45 "deep work"
@@ -578,6 +675,8 @@ def show_help():
     nemo diary "Shipped the feature"
     nemo work here         # Use current dir as project
     nemo work on portfolio # Switch context
+    nemo list              # See all skills
+    nemo art-audit         # Run art-audit skill
     """)
 
 def main():
@@ -594,20 +693,33 @@ def main():
         show_help()
         return 0
     
-    commands = {
+    # Built-in commands
+    builtins = {
         "focus": cmd_focus,
         "track": cmd_track,
         "ci": cmd_ci,
         "diary": cmd_diary,
         "work": cmd_work,
+        "list": cmd_list,
     }
     
-    if command in commands:
-        return commands[command](command_args)
-    else:
-        print(f"Unknown command: {command}")
-        show_help()
-        return 1
+    if command in builtins:
+        return builtins[command](command_args)
+    
+    # Try to run as a skill
+    skills = discover_skills()
+    if command in skills:
+        return run_skill(skills[command], command_args)
+    
+    # Unknown command
+    print(f"Unknown command: {command}")
+    print(f"\nDid you mean one of these?")
+    print(f"  Built-in: {', '.join(builtins.keys())}")
+    if skills:
+        print(f"  Skills: {', '.join(sorted(skills.keys())[:10])}")
+        if len(skills) > 10:
+            print(f"  ... and {len(skills) - 10} more (run 'nemo list' to see all)")
+    return 1
 
 if __name__ == "__main__":
     sys.exit(main())
