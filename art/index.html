@@ -735,6 +735,41 @@
                     const y = Math.random() * h;
                     ctx.fillText(chars[Math.floor(Math.random() * chars.length)], x, y);
                 }
+            },
+
+            lissajous(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                const cx = w/2, cy = h/2;
+                const A = w * 0.35, B = h * 0.35;
+                const a = 3, b = 2;
+                const delta = Math.PI / 4;
+                
+                ctx.beginPath();
+                for (let t = 0; t <= Math.PI * 2; t += 0.01) {
+                    const x = cx + A * Math.sin(a * t + delta);
+                    const y = cy + B * Math.sin(b * t);
+                    if (t === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = '#e7b45c';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Glow
+                ctx.beginPath();
+                for (let t = 0; t <= Math.PI * 2; t += 0.01) {
+                    const x = cx + A * Math.sin(a * t + delta);
+                    const y = cy + B * Math.sin(b * t);
+                    if (t === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = 'rgba(231, 180, 92, 0.3)';
+                ctx.lineWidth = 6;
+                ctx.stroke();
             }
         };
 
