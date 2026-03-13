@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lissajous Curves — Harmonic Motion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0f;
+            color: #e8e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, #12121a 0%, #0a0a0f 100%);
+            border-bottom: 1px solid rgba(107, 92, 231, 0.2);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff 0%, #a0a0c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #606070;
+            font-size: 0.85rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            background: #1a1a25;
+            border: 1px solid rgba(107, 92, 231, 0.3);
+            color: #9090a0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(107, 92, 231, 0.15);
+            color: #e8e8f0;
+            border-color: rgba(107, 92, 231, 0.5);
+        }
+
+        button.active {
+            background: rgba(107, 92, 231, 0.25);
+            color: #fff;
+            border-color: #6b5ce7;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        canvas {
+            flex: 1;
+            cursor: crosshair;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #12121a;
+            border-left: 1px solid rgba(107, 92, 231, 0.2);
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .param-group {
+            margin-bottom: 24px;
+        }
+
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #9090a0;
+            margin-bottom: 8px;
+        }
+
+        .param-value {
+            color: #6b5ce7;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #1a1a25;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #6b5ce7;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(107, 92, 231, 0.5);
+        }
+
+        .presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+
+        .info {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(107, 92, 231, 0.2);
+            font-size: 0.8rem;
+            color: #606070;
+            line-height: 1.6;
+        }
+
+        .info code {
+            background: #1a1a25;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #9090a0;
+        }
+
+        footer {
+            padding: 12px 30px;
+            background: #0a0a0f;
+            border-top: 1px solid rgba(107, 92, 231, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #606070;
+        }
+
+        a {
+            color: #6b5ce7;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .harmony-display {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.75rem;
+            color: #6b5ce7;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Lissajous Curves</h1>
+            <div class="subtitle">Harmonic motion in two dimensions</div>
+        </div>
+        <div class="controls">
+            <button id="animateBtn" class="active">Animate</button>
+            <button id="trailsBtn">Trails</button>
+            <button id="glowBtn" class="active">Glow</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+    </header>
+
+    <main>
+        <canvas id="canvas"></canvas>
+        <aside class="sidebar">
+            <div class="param-group">
+                <div class="param-label">
+                    <span>Frequency X (a)</span>
+                    <span class="param-value" id="freqXVal">3</span>
+                </div>
+                <input type="range" id="freqX" min="1" max="10" value="3" step="0.1">
+            </div>
+
+            <div class="param-group">
+                <div class="param-label">
+                    <span>Frequency Y (b)</span>
+                    <span class="param-value" id="freqYVal">4</span>
+                </div>
+                <input type="range" id="freqY" min="1" max="10" value="4" step="0.1">
+            </div>
+
+            <div class="param-group">
+                <div class="param-label">
+                    <span>Phase Shift (δ)</span>
+                    <span class="param-value" id="phaseVal">π/4</span>
+                </div>
+                <input type="range" id="phase" min="0" max="6.28" value="0.785" step="0.01">
+            </div>
+
+            <div class="param-group">
+                <div class="param-label">
+                    <span>Amplitude X</span>
+                    <span class="param-value" id="ampXVal">200</span>
+                </div>
+                <input type="range" id="ampX" min="50" max="350" value="200" step="10">
+            </div>
+
+            <div class="param-group">
+                <div class="param-label">
+                    <span>Amplitude Y</span>
+                    <span class="param-value" id="ampYVal">200</span>
+                </div>
+                <input type="range" id="ampY" min="50" max="350" value="200" step="10">
+            </div>
+
+            <div class="param-group">
+                <div class="param-label">
+                    <span>Line Width</span>
+                    <span class="param-value" id="widthVal">2</span>
+                </div>
+                <input type="range" id="lineWidth" min="0.5" max="8" value="2" step="0.5">
+            </div>
+
+            <div class="param-group">
+                <div class="param-label">Harmonic Presets</div>
+                <div class="presets">
+                    <button class="preset-btn" data-a="3" data-b="4" data-phase="0.785">3:4</button>
+                    <button class="preset-btn" data-a="5" data-b="4" data-phase="1.57">5:4</button>
+                    <button class="preset-btn" data-a="3" data-b="2" data-phase="0">3:2</button>
+                    <button class="preset-btn" data-a="5" data-b="6" data-phase="0.523">5:6</button>
+                    <button class="preset-btn" data-a="1" data-b="2" data-phase="1.57">1:2</button>
+                    <button class="preset-btn" data-a="7" data-b="8" data-phase="0.392">7:8</button>
+                    <button class="preset-btn" data-a="2" data-b="3" data-phase="2.356">2:3</button>
+                    <button class="preset-btn" data-a="5" data-b="8" data-phase="0">5:8</button>
+                </div>
+            </div>
+
+            <div class="info">
+                <p><strong>Lissajous figures</strong> are patterns formed when two perpendicular harmonic motions combine.</p>
+                <p style="margin-top: 12px;">The parametric equations:</p>
+                <p style="margin-top: 8px;"><code>x = A·sin(a·t + δ)</code><br><code>y = B·sin(b·t)</code></p>
+                <p style="margin-top: 12px;">When the frequency ratio is rational, the curve closes. When irrational, it never repeats.</p>
+            </div>
+        </aside>
+    </main>
+
+    <footer>
+        <div class="harmony-display" id="harmonyDisplay">Ratio: 3:4 (0.750)</div>
+        <div><a href="index.html">← Back to Gallery</a></div>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Parameters
+        let params = {
+            freqX: 3,
+            freqY: 4,
+            phase: Math.PI / 4,
+            ampX: 200,
+            ampY: 200,
+            lineWidth: 2
+        };
+
+        // State
+        let isAnimating = true;
+        let showTrails = false;
+        let glowEnabled = true;
+        let time = 0;
+        let animationId;
+        let points = [];
+        const maxPoints = 2000;
+
+        // Colors
+        const hues = [260, 280, 300, 320, 200, 220]; // Purple to blue range
+        let hueIndex = 0;
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+
+        function updateHarmonyDisplay() {
+            const ratio = params.freqX / params.freqY;
+            const isRational = Math.abs(ratio - Math.round(ratio * 100) / 100) < 0.01;
+            const display = document.getElementById('harmonyDisplay');
+            display.textContent = `Ratio: ${params.freqX.toFixed(1)}:${params.freqY.toFixed(1)} (${ratio.toFixed(3)}) ${isRational ? '• periodic' : '• quasi-periodic'}`;
+        }
+
+        function getLissajousPoint(t) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const x = cx + params.ampX * Math.sin(params.freqX * t + params.phase);
+            const y = cy + params.ampY * Math.sin(params.freqY * t);
+            return { x, y };
+        }
+
+        function draw() {
+            if (!showTrails) {
+                ctx.fillStyle = '#0a0a0f';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = 'rgba(10, 10, 15, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(107, 92, 231, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx, 0);
+            ctx.lineTo(cx, canvas.height);
+            ctx.moveTo(0, cy);
+            ctx.lineTo(canvas.width, cy);
+            ctx.stroke();
+
+            // Draw Lissajous curve
+            ctx.beginPath();
+            
+            const steps = 1000;
+            const tMax = isAnimating ? time : Math.PI * 20;
+            
+            for (let i = 0; i <= steps; i++) {
+                const t = (i / steps) * tMax;
+                const point = getLissajousPoint(t);
+                
+                if (i === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            }
+
+            // Gradient stroke based on frequency ratio
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            const baseHue = hues[hueIndex];
+            gradient.addColorStop(0, `hsla(${baseHue}, 80%, 60%, 1)`);
+            gradient.addColorStop(0.5, `hsla(${(baseHue + 40) % 360}, 80%, 70%, 1)`);
+            gradient.addColorStop(1, `hsla(${(baseHue + 80) % 360}, 80%, 60%, 1)`);
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = params.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (glowEnabled) {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = `hsla(${baseHue}, 80%, 60%, 0.5)`;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw current point
+            if (isAnimating) {
+                const current = getLissajousPoint(time);
+                ctx.beginPath();
+                ctx.arc(current.x, current.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${baseHue}, 80%, 70%, 1)`;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = `hsla(${baseHue}, 80%, 60%, 0.8)`;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw parameter indicators
+            ctx.fillStyle = 'rgba(144, 144, 160, 0.5)';
+            ctx.font = '12px monospace';
+            
+            // X amplitude indicator
+            ctx.beginPath();
+            ctx.moveTo(cx - params.ampX, cy - 10);
+            ctx.lineTo(cx - params.ampX, cy + 10);
+            ctx.moveTo(cx + params.ampX, cy - 10);
+            ctx.lineTo(cx + params.ampX, cy + 10);
+            ctx.strokeStyle = 'rgba(107, 92, 231, 0.3)';
+            ctx.stroke();
+
+            // Y amplitude indicator
+            ctx.beginPath();
+            ctx.moveTo(cx - 10, cy - params.ampY);
+            ctx.lineTo(cx + 10, cy - params.ampY);
+            ctx.moveTo(cx - 10, cy + params.ampY);
+            ctx.lineTo(cx + 10, cy + params.ampY);
+            ctx.stroke();
+        }
+
+        function animate() {
+            if (isAnimating) {
+                time += 0.02;
+                // Reset after completing a full cycle (approximate for rational ratios)
+                const period = (2 * Math.PI) / gcd(params.freqX, params.freqY);
+                if (time > period * 10) {
+                    time = 0;
+                    if (!showTrails) {
+                        hueIndex = (hueIndex + 1) % hues.length;
+                    }
+                }
+            }
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function gcd(a, b) {
+            a = Math.round(a * 10);
+            b = Math.round(b * 10);
+            while (b) {
+                [a, b] = [b, a % b];
+            }
+            return a / 10;
+        }
+
+        // Event listeners
+        document.getElementById('freqX').addEventListener('input', (e) => {
+            params.freqX = parseFloat(e.target.value);
+            document.getElementById('freqXVal').textContent = params.freqX.toFixed(1);
+            time = 0;
+            updateHarmonyDisplay();
+        });
+
+        document.getElementById('freqY').addEventListener('input', (e) => {
+            params.freqY = parseFloat(e.target.value);
+            document.getElementById('freqYVal').textContent = params.freqY.toFixed(1);
+            time = 0;
+            updateHarmonyDisplay();
+        });
+
+        document.getElementById('phase').addEventListener('input', (e) => {
+            params.phase = parseFloat(e.target.value);
+            const piMultiple = params.phase / Math.PI;
+            document.getElementById('phaseVal').textContent = 
+                piMultiple === 0 ? '0' : 
+                piMultiple === 0.5 ? 'π/2' :
+                piMultiple === 1 ? 'π' :
+                piMultiple === 1.5 ? '3π/2' :
+                piMultiple === 2 ? '2π' :
+                `${piMultiple.toFixed(2)}π`;
+            time = 0;
+        });
+
+        document.getElementById('ampX').addEventListener('input', (e) => {
+            params.ampX = parseInt(e.target.value);
+            document.getElementById('ampXVal').textContent = params.ampX;
+        });
+
+        document.getElementById('ampY').addEventListener('input', (e) => {
+            params.ampY = parseInt(e.target.value);
+            document.getElementById('ampYVal').textContent = params.ampY;
+        });
+
+        document.getElementById('lineWidth').addEventListener('input', (e) => {
+            params.lineWidth = parseFloat(e.target.value);
+            document.getElementById('widthVal').textContent = params.lineWidth;
+        });
+
+        document.getElementById('animateBtn').addEventListener('click', (e) => {
+            isAnimating = !isAnimating;
+            e.target.classList.toggle('active');
+            if (isAnimating) time = 0;
+        });
+
+        document.getElementById('trailsBtn').addEventListener('click', (e) => {
+            showTrails = !showTrails;
+            e.target.classList.toggle('active');
+        });
+
+        document.getElementById('glowBtn').addEventListener('click', (e) => {
+            glowEnabled = !glowEnabled;
+            e.target.classList.toggle('active');
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            params = { freqX: 3, freqY: 4, phase: Math.PI / 4, ampX: 200, ampY: 200, lineWidth: 2 };
+            document.getElementById('freqX').value = 3;
+            document.getElementById('freqY').value = 4;
+            document.getElementById('phase').value = 0.785;
+            document.getElementById('ampX').value = 200;
+            document.getElementById('ampY').value = 200;
+            document.getElementById('lineWidth').value = 2;
+            
+            document.getElementById('freqXVal').textContent = '3';
+            document.getElementById('freqYVal').textContent = '4';
+            document.getElementById('phaseVal').textContent = 'π/4';
+            document.getElementById('ampXVal').textContent = '200';
+            document.getElementById('ampYVal').textContent = '200';
+            document.getElementById('widthVal').textContent = '2';
+            
+            time = 0;
+            hueIndex = 0;
+            updateHarmonyDisplay();
+        });
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                params.freqX = parseFloat(btn.dataset.a);
+                params.freqY = parseFloat(btn.dataset.b);
+                params.phase = parseFloat(btn.dataset.phase);
+                
+                document.getElementById('freqX').value = params.freqX;
+                document.getElementById('freqY').value = params.freqY;
+                document.getElementById('phase').value = params.phase;
+                
+                document.getElementById('freqXVal').textContent = params.freqX;
+                document.getElementById('freqYVal').textContent = params.freqY;
+                
+                const piMultiple = params.phase / Math.PI;
+                document.getElementById('phaseVal').textContent = 
+                    piMultiple === 0 ? '0' : 
+                    piMultiple === 0.5 ? 'π/2' :
+                    piMultiple === 1 ? 'π' :
+                    piMultiple === 1.5 ? '3π/2' :
+                    piMultiple === 2 ? '2π' :
+                    `${piMultiple.toFixed(2)}π`;
+                
+                time = 0;
+                updateHarmonyDisplay();
+            });
+        });
+
+        window.addEventListener('resize', resize);
+
+        // Initialize
+        resize();
+        updateHarmonyDisplay();
+        animate();
+    </script>
+</body>
+</html>

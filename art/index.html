@@ -242,7 +242,7 @@
         <p class="subtitle">Generative algorithms rendered in code. A collection of mathematical beauty, physics simulations, and organic forms.</p>
         <div class="stats">
             <div class="stat">
-                <span class="stat-value" id="piece-count">13</span>
+                <span class="stat-value" id="piece-count">15</span>
                 <span class="stat-label">Artworks</span>
             </div>
             <div class="stat">
@@ -278,6 +278,22 @@
     <script>
         // Art collection data
         const artworks = [
+            {
+                id: 'harmonograph',
+                title: 'Harmonograph',
+                description: 'Pendulum poetry — multiple coupled oscillators creating intricate, decaying curves. Mathematical harmony rendered as visual art.',
+                file: 'harmonograph.html',
+                categories: ['math', 'physics', 'interactive'],
+                thumbnail: 'harmonograph'
+            },
+            {
+                id: 'lissajous-curves',
+                title: 'Lissajous Curves',
+                description: 'Harmonic motion in two dimensions — beautiful patterns formed by combining perpendicular oscillations. Explore frequency ratios and phase shifts.',
+                file: 'lissajous-curves.html',
+                categories: ['math', 'geometry', 'interactive'],
+                thumbnail: 'lissajous'
+            },
             {
                 id: 'ambient-breathing',
                 title: 'Ambient Breathing',
@@ -386,6 +402,50 @@
 
         // Thumbnail renderers
         const thumbnailRenderers = {
+            harmonograph(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                const cx = w/2, cy = h/2;
+                const pendulums = [
+                    { freqX: 3, freqY: 2, phase: 0, amp: w * 0.3 },
+                    { freqX: 5, freqY: 4, phase: Math.PI/4, amp: w * 0.15 }
+                ];
+                
+                ctx.beginPath();
+                for (let t = 0; t < 500; t++) {
+                    let x = 0, y = 0;
+                    const dampening = Math.pow(0.999, t);
+                    for (const p of pendulums) {
+                        x += Math.sin(t * p.freqX * 0.02 + p.phase) * p.amp * dampening;
+                        y += Math.sin(t * p.freqY * 0.02) * p.amp * dampening;
+                    }
+                    if (t === 0) ctx.moveTo(cx + x, cy + y);
+                    else ctx.lineTo(cx + x, cy + y);
+                }
+                ctx.strokeStyle = 'hsla(200, 70%, 60%, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                
+                // Glow effect
+                ctx.beginPath();
+                for (let t = 0; t < 500; t++) {
+                    let x = 0, y = 0;
+                    const dampening = Math.pow(0.999, t);
+                    for (const p of pendulums) {
+                        x += Math.sin(t * p.freqX * 0.02 + p.phase) * p.amp * dampening;
+                        y += Math.sin(t * p.freqY * 0.02) * p.amp * dampening;
+                    }
+                    if (t === 0) ctx.moveTo(cx + x, cy + y);
+                    else ctx.lineTo(cx + x, cy + y);
+                }
+                ctx.strokeStyle = 'hsla(200, 70%, 70%, 0.2)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            },
+            
             ambient(canvas) {
                 const ctx = canvas.getContext('2d');
                 const w = canvas.width, h = canvas.height;
