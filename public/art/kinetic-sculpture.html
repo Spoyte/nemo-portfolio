@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinetic Sculpture — 3D Text Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a14;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.1);
+        }
+        
+        #controls {
+            padding: 20px;
+            background: rgba(10, 10, 20, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+        }
+        
+        select, input[type="range"] {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            min-width: 120px;
+        }
+        
+        select:hover, input[type="range"]:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #0ff;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            padding: 0;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #0ff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .value-display {
+            font-size: 11px;
+            color: #0ff;
+            text-align: center;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+        
+        #title {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        
+        #title h1 {
+            font-size: 14px;
+            font-weight: normal;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+        
+        #title p {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="art" width="800" height="600"></canvas>
+        <div id="info">Move mouse to interact • Particles respond to proximity</div>
+        <div id="title">
+            <h1>KINETIC SCULPTURE</h1>
+            <p>3D Text Particle System</p>
+        </div>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <label>Text Source</label>
+            <select id="text">
+                <option value="haiku" selected>Haiku</option>
+                <option value="code">Code</option>
+                <option value="chaos">Chaos</option>
+                <option value="dreams">Dreams</option>
+                <option value="cosmos">Cosmos</option>
+                <option value="silence">Silence</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Formation</label>
+            <select id="formation">
+                <option value="sphere">Sphere</option>
+                <option value="helix" selected>Helix</option>
+                <option value="cloud">Cloud</option>
+                <option value="wave">Wave</option>
+                <option value="spiral">Spiral</option>
+                <option value="random">Random</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Color Scheme</label>
+            <select id="colorScheme">
+                <option value="neon" selected>Neon</option>
+                <option value="gold">Gold</option>
+                <option value="ocean">Ocean</option>
+                <option value="fire">Fire</option>
+                <option value="monochrome">Monochrome</option>
+                <option value="rainbow">Rainbow</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>Particle Count: <span class="value-display" id="particleCountVal">200</span></label>
+            <input type="range" id="particleCount" min="50" max="400" step="50" value="200">
+        </div>
+        
+        <div class="control-group">
+            <label>Rotation Speed: <span class="value-display" id="rotationSpeedVal">0.5</span></label>
+            <input type="range" id="rotationSpeed" min="0" max="2" step="0.1" value="0.5">
+        </div>
+        
+        <div class="control-group">
+            <label>Turbulence: <span class="value-display" id="turbulenceVal">0.3</span></label>
+            <input type="range" id="turbulence" min="0" max="1" step="0.1" value="0.3">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('art');
+        const ctx = canvas.getContext('2d');
+        
+        // Mouse tracking
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        let isMouseOver = false;
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            isMouseOver = true;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isMouseOver = false;
+        });
+        
+        // Parameters
+        const params = {
+            text: 'haiku',
+            formation: 'helix',
+            particleCount: 200,
+            rotationSpeed: 0.5,
+            colorScheme: 'neon',
+            interactionRadius: 150,
+            turbulence: 0.3
+        };
+        
+        // UI bindings
+        document.getElementById('text').addEventListener('change', (e) => {
+            params.text = e.target.value;
+            resetParticles();
+        });
+        
+        document.getElementById('formation').addEventListener('change', (e) => {
+            params.formation = e.target.value;
+            resetParticles();
+        });
+        
+        document.getElementById('colorScheme').addEventListener('change', (e) => {
+            params.colorScheme = e.target.value;
+            resetParticles();
+        });
+        
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            params.particleCount = parseInt(e.target.value);
+            document.getElementById('particleCountVal').textContent = params.particleCount;
+            resetParticles();
+        });
+        
+        document.getElementById('rotationSpeed').addEventListener('input', (e) => {
+            params.rotationSpeed = parseFloat(e.target.value);
+            document.getElementById('rotationSpeedVal').textContent = params.rotationSpeed;
+        });
+        
+        document.getElementById('turbulence').addEventListener('input', (e) => {
+            params.turbulence = parseFloat(e.target.value);
+            document.getElementById('turbulenceVal').textContent = params.turbulence;
+        });
+        
+        // Text banks
+        const textBanks = {
+            haiku: "old silent pond frog jumps into water splash silence again autumn moonlight worm digs silently into the chestnut",
+            code: "function dream() { return infinity; } const soul = await universe.listen(); if (beauty) { create(art); }",
+            chaos: "entropy butterfly storm edge fractal spiral turbulence cascade dissolve emerge transform",
+            dreams: "sleep drift float wander imagine create remember forget whisper shadow light",
+            cosmos: "star nebula galaxy void lightyear gravity orbit stellar cosmic infinite eternal",
+            silence: "... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ..."
+        };
+        
+        // Color schemes
+        const colorSchemes = {
+            neon: ["#ff00ff", "#00ffff", "#ffff00", "#ff0080", "#80ff00"],
+            gold: ["#ffd700", "#ffb700", "#ff8c00", "#daa520", "#b8860b"],
+            ocean: ["#0066cc", "#0099ff", "#00ccff", "#66e0ff", "#004080"],
+            fire: ["#ff4500", "#ff6b35", "#ff8c00", "#ffd700", "#ff1493"],
+            monochrome: ["#ffffff", "#cccccc", "#999999", "#666666", "#333333"],
+            rainbow: ["#ff0000", "#ff7f00", "#ffff00", "#00ff00", "#0000ff", "#8b00ff"]
+        };
+        
+        // Particle system
+        let particles = [];
+        let camera = { x: 0, y: 0, z: 400, rotX: 0.3, rotY: 0 };
+        let time = 0;
+        
+        function resetParticles() {
+            particles = [];
+            const text = textBanks[params.text];
+            const chars = text.split("").filter(c => c !== " ");
+            const colors = colorSchemes[params.colorScheme];
+            
+            for (let i = 0; i < params.particleCount; i++) {
+                const char = chars[i % chars.length];
+                const color = colors[i % colors.length];
+                
+                let x = 0, y = 0, z = 0;
+                const t = (i / params.particleCount) * Math.PI * 2;
+                const r = 100 + Math.random() * 100;
+                
+                switch (params.formation) {
+                    case "sphere":
+                        const phi = Math.acos(-1 + (2 * i) / params.particleCount);
+                        const theta = Math.sqrt(params.particleCount * Math.PI) * phi;
+                        x = r * Math.cos(theta) * Math.sin(phi);
+                        y = r * Math.sin(theta) * Math.sin(phi);
+                        z = r * Math.cos(phi);
+                        break;
+                    case "helix":
+                        x = r * Math.cos(t * 3);
+                        y = (i - params.particleCount / 2) * 0.8;
+                        z = r * Math.sin(t * 3);
+                        break;
+                    case "cloud":
+                        x = (Math.random() - 0.5) * 300;
+                        y = (Math.random() - 0.5) * 300;
+                        z = (Math.random() - 0.5) * 300;
+                        break;
+                    case "wave":
+                        x = (i - params.particleCount / 2) * 1.5;
+                        y = Math.sin(t * 4) * 80;
+                        z = Math.cos(t * 2) * 50;
+                        break;
+                    case "spiral":
+                        const spiralR = (i / params.particleCount) * 200;
+                        x = spiralR * Math.cos(t * 8);
+                        y = (i - params.particleCount / 2) * 0.5;
+                        z = spiralR * Math.sin(t * 8);
+                        break;
+                    default:
+                        x = (Math.random() - 0.5) * 250;
+                        y = (Math.random() - 0.5) * 250;
+                        z = (Math.random() - 0.5) * 250;
+                }
+                
+                particles.push({
+                    x, y, z,
+                    vx: 0, vy: 0, vz: 0,
+                    char,
+                    color,
+                    size: 12 + Math.random() * 16,
+                    targetX: x,
+                    targetY: y,
+                    targetZ: z,
+                    life: Math.random() * 100,
+                    maxLife: 100 + Math.random() * 100
+                });
+            }
+        }
+        
+        function project3D(x, y, z, cam, centerX, centerY) {
+            const cosY = Math.cos(cam.rotY);
+            const sinY = Math.sin(cam.rotY);
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            
+            const cosX = Math.cos(cam.rotX);
+            const sinX = Math.sin(cam.rotX);
+            const y2 = y * cosX - z1 * sinX;
+            const z2 = y * sinX + z1 * cosX;
+            
+            const x3 = x1 - cam.x;
+            const y3 = y2 - cam.y;
+            const z3 = z2 - cam.z;
+            
+            const distance = 400;
+            const scale = distance / (distance + z3);
+            
+            return {
+                x: centerX + x3 * scale,
+                y: centerY + y3 * scale,
+                z: z3,
+                scale
+            };
+        }
+        
+        function animate() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            time += 16;
+            
+            // Update camera
+            camera.rotY += params.rotationSpeed * 0.01;
+            
+            // Clear with fade
+            ctx.fillStyle = "rgba(10, 10, 20, 0.3)";
+            ctx.fillRect(0, 0, width, height);
+            
+            // Virtual mouse when not hovering
+            const virtualMouseX = isMouseOver ? mouseX : centerX + Math.sin(time * 0.001) * 200;
+            const virtualMouseY = isMouseOver ? mouseY : centerY + Math.cos(time * 0.0013) * 150;
+            
+            const text = textBanks[params.text];
+            const chars = text.split("").filter(c => c !== " ");
+            const colors = colorSchemes[params.colorScheme];
+            
+            // Update particles
+            particles.forEach((p, i) => {
+                p.life++;
+                if (p.life > p.maxLife) {
+                    p.life = 0;
+                    p.char = chars[Math.floor(Math.random() * chars.length)];
+                    p.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+                
+                // Turbulence
+                p.vx += (Math.random() - 0.5) * params.turbulence;
+                p.vy += (Math.random() - 0.5) * params.turbulence;
+                p.vz += (Math.random() - 0.5) * params.turbulence;
+                
+                // Return to formation
+                const dx = p.targetX - p.x;
+                const dy = p.targetY - p.y;
+                const dz = p.targetZ - p.z;
+                p.vx += dx * 0.001;
+                p.vy += dy * 0.001;
+                p.vz += dz * 0.001;
+                
+                // Mouse interaction
+                const screenPos = project3D(p.x, p.y, p.z, camera, centerX, centerY);
+                const distMouse = Math.hypot(screenPos.x - virtualMouseX, screenPos.y - virtualMouseY);
+                if (distMouse < params.interactionRadius) {
+                    const force = (1 - distMouse / params.interactionRadius) * 2;
+                    p.vx += (screenPos.x - virtualMouseX) * force * 0.01;
+                    p.vy += (screenPos.y - virtualMouseY) * force * 0.01;
+                    p.vz += force * 10;
+                }
+                
+                p.x += p.vx;
+                p.y += p.vy;
+                p.z += p.vz;
+                p.vx *= 0.95;
+                p.vy *= 0.95;
+                p.vz *= 0.95;
+            });
+            
+            // Sort by Z
+            const sortedParticles = [...particles].sort((a, b) => {
+                const projA = project3D(a.x, a.y, a.z, camera, centerX, centerY);
+                const projB = project3D(b.x, b.y, b.z, camera, centerX, centerY);
+                return projB.z - projA.z;
+            });
+            
+            // Render particles
+            sortedParticles.forEach(p => {
+                const proj = project3D(p.x, p.y, p.z, camera, centerX, centerY);
+                if (proj.z <= 0) return;
+                
+                const size = p.size * proj.scale;
+                const alpha = Math.max(0.1, Math.min(1, proj.scale));
+                
+                ctx.shadowBlur = 15 * proj.scale;
+                ctx.shadowColor = p.color;
+                ctx.font = `${Math.floor(size)}px monospace`;
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = alpha * (0.5 + 0.5 * Math.sin((p.life / p.maxLife) * Math.PI));
+                ctx.fillText(p.char, proj.x, proj.y);
+            });
+            
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            
+            // Connection lines
+            ctx.strokeStyle = colors[0];
+            ctx.lineWidth = 0.5;
+            
+            for (let i = 0; i < Math.min(particles.length, 50); i++) {
+                const p1 = particles[i];
+                const proj1 = project3D(p1.x, p1.y, p1.z, camera, centerX, centerY);
+                if (proj1.z <= 0) continue;
+                
+                for (let j = i + 1; j < Math.min(particles.length, 50); j++) {
+                    const p2 = particles[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dz = p1.z - p2.z;
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    
+                    if (dist < 80) {
+                        const proj2 = project3D(p2.x, p2.y, p2.z, camera, centerX, centerY);
+                        if (proj2.z <= 0) continue;
+                        
+                        const alpha = (1 - dist / 80) * 0.3 * Math.min(proj1.scale, proj2.scale);
+                        ctx.globalAlpha = alpha;
+                        ctx.beginPath();
+                        ctx.moveTo(proj1.x, proj1.y);
+                        ctx.lineTo(proj2.x, proj2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            ctx.globalAlpha = 1;
+            
+            // Interaction cursor
+            ctx.beginPath();
+            ctx.arc(virtualMouseX, virtualMouseY, params.interactionRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = colors[0];
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.2;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Initialize
+        resetParticles();
+        animate();
+    </script>
+</body>
+</html>
