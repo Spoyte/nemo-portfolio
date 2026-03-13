@@ -211,6 +211,7 @@
         .tag.category-geometry { background: rgba(92, 180, 231, 0.15); color: #5cb4e7; }
         .tag.category-math { background: rgba(231, 180, 92, 0.15); color: #e7b45c; }
         .tag.category-interactive { background: rgba(180, 92, 231, 0.15); color: #b45ce7; }
+        .tag.category-ambient { background: rgba(92, 150, 231, 0.15); color: #5c96e7; }
 
         /* Footer */
         footer {
@@ -241,7 +242,7 @@
         <p class="subtitle">Generative algorithms rendered in code. A collection of mathematical beauty, physics simulations, and organic forms.</p>
         <div class="stats">
             <div class="stat">
-                <span class="stat-value" id="piece-count">12</span>
+                <span class="stat-value" id="piece-count">13</span>
                 <span class="stat-label">Artworks</span>
             </div>
             <div class="stat">
@@ -262,6 +263,7 @@
         <button class="filter-btn" data-filter="geometry">Geometry</button>
         <button class="filter-btn" data-filter="math">Mathematics</button>
         <button class="filter-btn" data-filter="interactive">Interactive</button>
+        <button class="filter-btn" data-filter="ambient">Ambient</button>
     </div>
 
     <main class="gallery" id="gallery">
@@ -276,6 +278,14 @@
     <script>
         // Art collection data
         const artworks = [
+            {
+                id: 'ambient-breathing',
+                title: 'Ambient Breathing',
+                description: 'Softly pulsing orbs that drift and breathe. A passive visualizer for background atmosphere — no interaction required.',
+                file: 'ambient-breathing.html',
+                categories: ['ambient', 'nature'],
+                thumbnail: 'ambient'
+            },
             {
                 id: 'fractal-tree',
                 title: 'Fractal Tree',
@@ -376,6 +386,36 @@
 
         // Thumbnail renderers
         const thumbnailRenderers = {
+            ambient(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                
+                // Gradient background
+                const gradient = ctx.createLinearGradient(0, 0, 0, h);
+                gradient.addColorStop(0, '#0a0a1a');
+                gradient.addColorStop(1, '#1a1a3a');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, w, h);
+                
+                // Soft orbs
+                const orbs = [
+                    { x: w*0.3, y: h*0.4, r: 60, color: '#4a90d9' },
+                    { x: w*0.7, y: h*0.6, r: 80, color: '#5fa8e8' },
+                    { x: w*0.5, y: h*0.3, r: 50, color: '#7ec8f0' }
+                ];
+                
+                orbs.forEach(orb => {
+                    const g = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, orb.r);
+                    g.addColorStop(0, orb.color + '66');
+                    g.addColorStop(0.5, orb.color + '33');
+                    g.addColorStop(1, orb.color + '00');
+                    ctx.fillStyle = g;
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, orb.r, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            },
+            
             tree(canvas) {
                 const ctx = canvas.getContext('2d');
                 const w = canvas.width, h = canvas.height;
