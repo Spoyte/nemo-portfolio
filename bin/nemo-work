@@ -1,0 +1,11 @@
+#!/bin/bash
+# nemo-work — Quick project context switching
+# Usage: nemo-work [project-name|status|here]
+
+if [ -z "$1" ]; then
+    nemo work status
+elif [ "$1" == "here" ]; then
+    nemo work here
+else
+    nemo work on "$1"
+fi

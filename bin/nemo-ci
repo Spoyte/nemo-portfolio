@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""nemo-ci — Convenience wrapper for CI cycle logging + visualization"""
+import subprocess
+import sys
+
+def main():
+    if len(sys.argv) > 1:
+        # Log mode: nemo-ci <activity> [note]
+        subprocess.run(["python3", "-m", "nemo", "ci", "log"] + sys.argv[1:])
+    else:
+        # Visualize mode
+        subprocess.run(["python3", "-m", "nemo", "ci", "visualize"])
+
+if __name__ == "__main__":
+    main()

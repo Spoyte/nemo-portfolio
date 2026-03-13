@@ -37,4 +37,37 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ---
 
+## Nemo CLI
+
+Unified workspace CLI at `bin/nemo` (symlinked to `skills/skill-runner/skill-runner`):
+
+```
+nemo focus [min] [msg]    # Focus timer (default 25 min)
+nemo track [add|done|list|rm]  # Task tracking
+nemo ci [visualize|log|stats]  # CI cycle tracking
+diary [text]              # Quick diary entry
+nemo work [cmd]           # Project context management
+```
+
+Convenience wrappers:
+- `nemo-ci` — log + visualize CI cycles
+- `nemo-diary` — quick diary entry
+- `nemo-focus` — quick focus timer
+
+### Project Context (`nemo work`)
+
+Track time across multiple projects with quick context switching:
+
+```bash
+nemo work here              # Use current directory as project
+nemo work add nemo ~/workspace/nemo "Main workspace"
+nemo work on nemo           # Switch to project context
+nemo work log nemo 45 "Refactored CLI"  # Log time
+nemo work status            # Show current + all projects
+```
+
+Data stored in `~/.nemo/projects.json` and `~/.nemo/work-sessions.jsonl`.
+
+---
+
 Add whatever helps you do your job. This is your cheat sheet.

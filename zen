@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""
+zen — A Dieter Rams-inspired focus timer
+
+Ten Design Principles:
+1. Innovative: Silent operation, no beeps
+2. Useful: Just focuses on time remaining
+3. Aesthetic: Clean progress display
+4. Understandable: No manual needed
+5. Unobtrusive: Runs quietly in background
+6. Honest: Shows actual time left
+7. Long-lasting: Pure stdlib, no deps
+8. Thorough: Handles edge cases
+9. Environmental: Minimal resources
+10. Minimal: Less, but better
+
+Usage: zen [minutes] [label]
+       zen 25 "Deep work"
+       zen 5
+       zen          # defaults to 25 minutes
+"""
+
+import sys
+import time
+import shutil
+from datetime import datetime, timedelta
+
+def zen(minutes: int = 25, label: str = "") -> None:
+    """Minimalist focus timer with calm progress indication."""
+    
+    total_seconds = minutes * 60
+    start = datetime.now()
+    end = start + timedelta(minutes=minutes)
+    
+    # Clean, honest representation
+    label_text = f" ─ {label}" if label else ""
+    print(f"⊙{label_text}")
+    print(f"  started {start.strftime('%H:%M')}")
+    print(f"  ends    {end.strftime('%H:%M')}")
+    
+    try:
+        for remaining in range(total_seconds, -1, -1):
+            # Calculate progress
+            elapsed = total_seconds - remaining
+            pct = elapsed / total_seconds if total_seconds > 0 else 1
+            
+            # Thorough: Get terminal width for clean display
+            cols = shutil.get_terminal_size().columns
+            bar_width = min(40, cols - 20)
+            
+            # Elegant progress bar using simple characters
+            filled = int(bar_width * pct)
+            empty = bar_width - filled
+            bar = "█" * filled + "░" * empty
+            
+            # Minimal status: just what you need
+            mins, secs = divmod(remaining, 60)
+            time_str = f"{mins}:{secs:02d}"
+            
+            # Honest, unobtrusive output
+            sys.stdout.write(f"\r  {bar} {time_str}")
+            sys.stdout.flush()
+            
+            if remaining > 0:
+                time.sleep(1)
+        
+        # Complete - aesthetic finish
+        print(f"\n  ✓ done at {datetime.now().strftime('%H:%M')}")
+        
+    except KeyboardInterrupt:
+        # Honest handling of interruption
+        mins, secs = divmod(remaining, 60)
+        print(f"\n  ○ paused at {mins}:{secs:02d} remaining")
+        sys.exit(0)
+
+if __name__ == "__main__":
+    # Simple argument parsing - no dependencies
+    minutes = 25
+    label = ""
+    
+    if len(sys.argv) > 1:
+        try:
+            minutes = int(sys.argv[1])
+        except ValueError:
+            label = sys.argv[1]
+    
+    if len(sys.argv) > 2:
+        label = sys.argv[2]
+    
+    zen(minutes, label)
