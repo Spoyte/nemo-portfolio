@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Garden — Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        #canvas {
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+        }
+        
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="info">Click to regenerate</div>
+    
+    <script>
+        /*
+         * Zen Garden — Generative Rock Garden
+         * 
+         * Dieter Rams Principles:
+         * - Innovative: Procedural rock placement with zen aesthetics
+         * - Useful: Meditative visual for focus/relaxation
+         * - Aesthetic: Minimal, balanced, harmonious
+         * - Understandable: Clear visual hierarchy (rocks, sand, patterns)
+         * - Unobtrusive: Calm, non-distracting
+         * - Honest: Digital representation of physical zen gardens
+         * - Long-lasting: Timeless aesthetic
+         * - Thorough: Multiple raking patterns, rock types, lighting
+         * - Minimal: Only essential elements
+         */
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // High resolution for crisp details
+        const displaySize = 800;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = displaySize * dpr;
+        canvas.height = displaySize * dpr;
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Random seed for reproducibility
+        let seed = Math.random() * 10000;
+        
+        function random() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        
+        function randomRange(min, max) {
+            return min + random() * (max - min);
+        }
+        
+        // Color palettes
+        const palettes = [
+            { // Classic sand
+                sand: ['#e8dcc8', '#dccbb0', '#d4c4a8'],
+                rock: ['#4a4a4a', '#5a5a5a', '#6a6a6a'],
+                shadow: 'rgba(0, 0, 0, 0.15)',
+                highlight: 'rgba(255, 255, 255, 0.1)'
+            },
+            { // Moonlight
+                sand: ['#c8d4e8', '#b0c4dc', '#a8bcd4'],
+                rock: ['#2a2a3a', '#3a3a4a', '#4a4a5a'],
+                shadow: 'rgba(0, 0, 10, 0.2)',
+                highlight: 'rgba(200, 210, 255, 0.15)'
+            },
+            { // Twilight
+                sand: ['#d4c8d8', '#c8b8d0', '#c0b0c8'],
+                rock: ['#3a2a3a', '#4a3a4a', '#5a4a5a'],
+                shadow: 'rgba(20, 0, 20, 0.18)',
+                highlight: 'rgba(255, 220, 255, 0.12)'
+            }
+        ];
+        
+        // Raking pattern types
+        const patterns = ['concentric', 'parallel', 'wave', 'ripple', 'cross'];
+        
+        function drawSandBase(palette) {
+            // Base sand gradient
+            const gradient = ctx.createRadialGradient(
+                displaySize / 2, displaySize / 2, 0,
+                displaySize / 2, displaySize / 2, displaySize * 0.7
+            );
+            gradient.addColorStop(0, palette.sand[0]);
+            gradient.addColorStop(0.6, palette.sand[1]);
+            gradient.addColorStop(1, palette.sand[2]);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, displaySize, displaySize);
+            
+            // Subtle noise texture
+            ctx.save();
+            ctx.globalAlpha = 0.03;
+            for (let i = 0; i < 5000; i++) {
+                const x = random() * displaySize;
+                const y = random() * displaySize;
+                const size = random() * 2;
+                ctx.fillStyle = random() > 0.5 ? '#000' : '#fff';
+                ctx.fillRect(x, y, size, size);
+            }
+            ctx.restore();
+        }
+        
+        function drawRakingPattern(pattern, palette) {
+            ctx.save();
+            ctx.globalAlpha = 0.08;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 0.5;
+            
+            const cx = displaySize / 2;
+            const cy = displaySize / 2;
+            
+            switch (pattern) {
+                case 'concentric':
+                    for (let r = 20; r < displaySize; r += 12) {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'parallel':
+                    const angle = random() * Math.PI;
+                    const spacing = 15;
+                    const diag = displaySize * Math.sqrt(2);
+                    for (let i = -diag; i < diag; i += spacing) {
+                        ctx.beginPath();
+                        ctx.moveTo(
+                            cx + Math.cos(angle) * i - Math.sin(angle) * diag,
+                            cy + Math.sin(angle) * i + Math.cos(angle) * diag
+                        );
+                        ctx.lineTo(
+                            cx + Math.cos(angle) * i + Math.sin(angle) * diag,
+                            cy + Math.sin(angle) * i - Math.cos(angle) * diag
+                        );
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'wave':
+                    for (let y = 30; y < displaySize; y += 20) {
+                        ctx.beginPath();
+                        for (let x = 0; x <= displaySize; x += 5) {
+                            const waveY = y + Math.sin(x * 0.02 + y * 0.05) * 15;
+                            if (x === 0) ctx.moveTo(x, waveY);
+                            else ctx.lineTo(x, waveY);
+                        }
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'ripple':
+                    for (let r = 30; r < displaySize * 0.8; r += 25) {
+                        // Irregular circles
+                        ctx.beginPath();
+                        for (let a = 0; a < Math.PI * 2; a += 0.1) {
+                            const noise = Math.sin(a * 3) * 5 + Math.cos(a * 7) * 3;
+                            const x = cx + Math.cos(a) * (r + noise);
+                            const y = cy + Math.sin(a) * (r + noise);
+                            if (a === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'cross':
+                    // Horizontal lines
+                    for (let y = 30; y < displaySize; y += 18) {
+                        ctx.beginPath();
+                        ctx.moveTo(30, y);
+                        ctx.lineTo(displaySize - 30, y);
+                        ctx.stroke();
+                    }
+                    // Vertical lines
+                    for (let x = 30; x < displaySize; x += 18) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 30);
+                        ctx.lineTo(x, displaySize - 30);
+                        ctx.stroke();
+                    }
+                    break;
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawRock(x, y, size, palette, isMossy = false) {
+            ctx.save();
+            
+            // Rock shadow
+            ctx.fillStyle = palette.shadow;
+            ctx.beginPath();
+            ctx.ellipse(x + size * 0.15, y + size * 0.2, size * 0.9, size * 0.7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Rock body with irregular shape
+            const points = [];
+            const numPoints = 12;
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i / numPoints) * Math.PI * 2;
+                const variance = 0.7 + random() * 0.6;
+                const px = x + Math.cos(angle) * size * variance;
+                const py = y + Math.sin(angle) * size * variance * 0.7;
+                points.push({ x: px, y: py });
+            }
+            
+            // Rock gradient
+            const rockGradient = ctx.createRadialGradient(
+                x - size * 0.3, y - size * 0.3, 0,
+                x, y, size
+            );
+            rockGradient.addColorStop(0, palette.rock[1]);
+            rockGradient.addColorStop(0.5, palette.rock[0]);
+            rockGradient.addColorStop(1, palette.rock[2]);
+            
+            ctx.fillStyle = rockGradient;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                const cp = points[(i - 1 + points.length) % points.length];
+                const p = points[i];
+                const midX = (cp.x + p.x) / 2;
+                const midY = (cp.y + p.y) / 2;
+                ctx.quadraticCurveTo(cp.x, cp.y, midX, midY);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // Surface texture lines
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 5; i++) {
+                const lx = x + (random() - 0.5) * size;
+                const ly = y + (random() - 0.5) * size * 0.5;
+                ctx.beginPath();
+                ctx.moveTo(lx, ly);
+                ctx.lineTo(lx + (random() - 0.5) * size * 0.5, ly + (random() - 0.5) * size * 0.3);
+                ctx.stroke();
+            }
+            ctx.restore();
+            
+            // Highlight
+            ctx.fillStyle = palette.highlight;
+            ctx.beginPath();
+            ctx.ellipse(x - size * 0.2, y - size * 0.15, size * 0.3, size * 0.15, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Moss patches
+            if (isMossy) {
+                ctx.save();
+                ctx.globalAlpha = 0.4;
+                for (let i = 0; i < 3; i++) {
+                    const mx = x + (random() - 0.5) * size * 0.8;
+                    const my = y + (random() - 0.5) * size * 0.5;
+                    const msize = size * (0.15 + random() * 0.1);
+                    
+                    const mossGradient = ctx.createRadialGradient(mx, my, 0, mx, my, msize);
+                    mossGradient.addColorStop(0, '#5a6a4a');
+                    mossGradient.addColorStop(1, 'transparent');
+                    
+                    ctx.fillStyle = mossGradient;
+                    ctx.beginPath();
+                    ctx.arc(mx, my, msize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawMossIsland(x, y, width, height, palette) {
+            ctx.save();
+            ctx.globalAlpha = 0.6;
+            
+            // Moss base
+            const mossGradient = ctx.createRadialGradient(x, y, 0, x, y, Math.max(width, height));
+            mossGradient.addColorStop(0, '#6a7a5a');
+            mossGradient.addColorStop(0.7, '#5a6a4a');
+            mossGradient.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = mossGradient;
+            ctx.beginPath();
+            ctx.ellipse(x, y, width, height, random() * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Moss texture
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = '#4a5a3a';
+            for (let i = 0; i < 50; i++) {
+                const mx = x + (random() - 0.5) * width * 1.5;
+                const my = y + (random() - 0.5) * height * 1.5;
+                if ((mx - x) ** 2 / (width ** 2) + (my - y) ** 2 / (height ** 2) < 1) {
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 1 + random() * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        function generate() {
+            // Reset seed for this generation
+            seed = Math.random() * 10000;
+            
+            // Choose palette and pattern
+            const palette = palettes[Math.floor(random() * palettes.length)];
+            const pattern = patterns[Math.floor(random() * patterns.length)];
+            
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, displaySize, displaySize);
+            
+            // Draw sand base
+            drawSandBase(palette);
+            
+            // Draw raking pattern
+            drawRakingPattern(pattern, palette);
+            
+            // Determine composition type
+            const compositionTypes = ['single', 'pair', 'group', 'island'];
+            const composition = compositionTypes[Math.floor(random() * compositionTypes.length)];
+            
+            switch (composition) {
+                case 'single':
+                    // One prominent rock, slightly off-center
+                    const sx = displaySize * (0.4 + random() * 0.2);
+                    const sy = displaySize * (0.4 + random() * 0.2);
+                    drawRock(sx, sy, 80 + random() * 40, palette, random() > 0.5);
+                    break;
+                    
+                case 'pair':
+                    // Two rocks, triad composition with invisible third point
+                    const p1x = displaySize * 0.35;
+                    const p1y = displaySize * 0.45;
+                    const p2x = displaySize * 0.65;
+                    const p2y = displaySize * 0.55;
+                    drawRock(p1x, p1y, 60 + random() * 20, palette, false);
+                    drawRock(p2x, p2y, 50 + random() * 15, palette, true);
+                    break;
+                    
+                case 'group':
+                    // Three rocks, varied sizes
+                    const positions = [
+                        { x: 0.3, y: 0.4, size: 70 },
+                        { x: 0.55, y: 0.55, size: 50 },
+                        { x: 0.7, y: 0.35, size: 35 }
+                    ];
+                    for (const pos of positions) {
+                        drawRock(
+                            displaySize * pos.x + (random() - 0.5) * 30,
+                            displaySize * pos.y + (random() - 0.5) * 30,
+                            pos.size + random() * 15,
+                            palette,
+                            random() > 0.6
+                        );
+                    }
+                    break;
+                    
+                case 'island':
+                    // Moss island with rocks
+                    const ix = displaySize * (0.4 + random() * 0.2);
+                    const iy = displaySize * (0.4 + random() * 0.2);
+                    drawMossIsland(ix, iy, 120 + random() * 40, 80 + random() * 30, palette);
+                    drawRock(ix - 20, iy - 10, 45 + random() * 15, palette, false);
+                    drawRock(ix + 30, iy + 15, 35 + random() * 10, palette, true);
+                    break;
+            }
+            
+            // Vignette
+            const vignette = ctx.createRadialGradient(
+                displaySize / 2, displaySize / 2, displaySize * 0.5,
+                displaySize / 2, displaySize / 2, displaySize * 0.8
+            );
+            vignette.addColorStop(0, 'transparent');
+            vignette.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+            
+            ctx.fillStyle = vignette;
+            ctx.fillRect(0, 0, displaySize, displaySize);
+        }
+        
+        // Initial generation
+        generate();
+        
+        // Click to regenerate
+        canvas.addEventListener('click', generate);
+        
+        // Auto-regenerate on spacebar
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                generate();
+            }
+        });
+    </script>
+</body>
+</html>
