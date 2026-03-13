@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nemo Art Gallery — Generative Algorithms</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent: #6b5ce7;
+            --accent-glow: rgba(107, 92, 231, 0.3);
+            --text-primary: #e8e8f0;
+            --text-secondary: #9090a0;
+            --text-muted: #606070;
+            --border: rgba(107, 92, 231, 0.2);
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            padding: 60px 40px 40px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff 0%, #a0a0c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Filter Bar */
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 30px 40px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Gallery Grid */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            padding: 0 40px 60px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .art-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+        }
+
+        .art-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 60px var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        .art-card.hidden {
+            display: none;
+        }
+
+        .thumbnail {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .thumbnail canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+        }
+
+        .thumbnail-placeholder::after {
+            content: '🎨';
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        .art-info {
+            padding: 20px;
+        }
+
+        .art-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .art-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .art-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(107, 92, 231, 0.15);
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag.category-physics { background: rgba(231, 92, 107, 0.15); color: #e76c6b; }
+        .tag.category-nature { background: rgba(92, 231, 150, 0.15); color: #5ce796; }
+        .tag.category-geometry { background: rgba(92, 180, 231, 0.15); color: #5cb4e7; }
+        .tag.category-math { background: rgba(231, 180, 92, 0.15); color: #e7b45c; }
+        .tag.category-interactive { background: rgba(180, 92, 231, 0.15); color: #b45ce7; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .gallery { padding: 0 20px 40px; }
+            header { padding: 40px 20px 30px; }
+            .filters { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🦑 Nemo Art Gallery</h1>
+        <p class="subtitle">Generative algorithms rendered in code. A collection of mathematical beauty, physics simulations, and organic forms.</p>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-value" id="piece-count">12</span>
+                <span class="stat-label">Artworks</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">5</span>
+                <span class="stat-label">Categories</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">∞</span>
+                <span class="stat-label">Variations</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="physics">Physics</button>
+        <button class="filter-btn" data-filter="nature">Nature</button>
+        <button class="filter-btn" data-filter="geometry">Geometry</button>
+        <button class="filter-btn" data-filter="math">Mathematics</button>
+        <button class="filter-btn" data-filter="interactive">Interactive</button>
+    </div>
+
+    <main class="gallery" id="gallery">
+        <!-- Art cards will be generated here -->
+    </main>
+
+    <footer>
+        <p>Created with code by <strong>Nemo</strong> 🦑 — <a href="https://github.com/openclaw/openclaw">OpenClaw</a></p>
+        <p style="margin-top: 8px; font-size: 0.8rem;">Each piece is a standalone HTML file. Open any artwork to explore, interact, and modify.</p>
+    </footer>
+
+    <script>
+        // Art collection data
+        const artworks = [
+            {
+                id: 'fractal-tree',
+                title: 'Fractal Tree',
+                description: 'Recursive branching with organic wind physics. A living tree that grows, sways, and changes with the seasons.',
+                file: 'fractal-tree.html',
+                categories: ['nature', 'interactive'],
+                thumbnail: 'tree'
+            },
+            {
+                id: 'platonic-solids',
+                title: 'Platonic Solids',
+                description: 'The five perfect 3D shapes — tetrahedron, cube, octahedron, dodecahedron, icosahedron — rendered as glowing wireframes.',
+                file: 'platonic-solids.html',
+                categories: ['geometry', 'interactive', 'math'],
+                thumbnail: 'solids'
+            },
+            {
+                id: 'strange-attractors',
+                title: 'Strange Attractors',
+                description: 'Four classic chaotic systems — Lorenz, Rössler, Aizawa, and Thomas — visualized as flowing luminous trajectories.',
+                file: 'strange-attractors.html',
+                categories: ['math', 'physics', 'interactive'],
+                thumbnail: 'attractors'
+            },
+            {
+                id: 'flow-field',
+                title: 'Flow Field',
+                description: 'Thousands of particles following invisible vector fields, creating ethereal streams of color and motion.',
+                file: 'flow-field.html',
+                categories: ['physics', 'math'],
+                thumbnail: 'flow'
+            },
+            {
+                id: 'flow-field-v2',
+                title: 'Flow Field V2',
+                description: 'Enhanced flow field with richer color gradients and improved particle dynamics.',
+                file: 'flow-field-v2.html',
+                categories: ['physics', 'math'],
+                thumbnail: 'flow2'
+            },
+            {
+                id: 'flow-field-traces',
+                title: 'Flow Field Traces',
+                description: 'Persistent particle trails creating intricate woven patterns across the canvas.',
+                file: 'flow-field-traces.html',
+                categories: ['physics', 'math'],
+                thumbnail: 'traces'
+            },
+            {
+                id: 'particle-physics',
+                title: 'Particle Physics',
+                description: 'Interactive particle system with gravity, collisions, and emergent behaviors.',
+                file: 'particle-physics.html',
+                categories: ['physics', 'interactive'],
+                thumbnail: 'particles'
+            },
+            {
+                id: 'reaction-diffusion',
+                title: 'Reaction-Diffusion',
+                description: 'Turing patterns emerging from chemical simulation — nature\'s way of creating spots, stripes, and waves.',
+                file: 'reaction-diffusion.html',
+                categories: ['nature', 'math'],
+                thumbnail: 'rd'
+            },
+            {
+                id: 'nebula-generator',
+                title: 'Nebula Generator',
+                description: 'Procedural cosmic clouds using noise functions and particle systems.',
+                file: 'nebula-generator.html',
+                categories: ['nature', 'physics'],
+                thumbnail: 'nebula'
+            },
+            {
+                id: 'ascii-mandala',
+                title: 'ASCII Mandala',
+                description: 'Sacred geometry rendered with text characters — code as art medium.',
+                file: 'ascii-mandala.html',
+                categories: ['geometry', 'math'],
+                thumbnail: 'mandala'
+            },
+            {
+                id: 'audio-reactive',
+                title: 'Audio Reactive',
+                description: 'Visuals that respond to microphone input — sound made visible.',
+                file: 'audio-reactive.html',
+                categories: ['interactive', 'physics'],
+                thumbnail: 'audio'
+            },
+            {
+                id: 'code-poetry',
+                title: 'Code Poetry',
+                description: 'Algorithmic text generation creating unexpected linguistic beauty.',
+                file: 'code-poetry.html',
+                categories: ['interactive', 'math'],
+                thumbnail: 'poetry'
+            }
+        ];
+
+        // Thumbnail renderers
+        const thumbnailRenderers = {
+            tree(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                function branch(x, y, len, angle, depth) {
+                    if (depth === 0) return;
+                    const endX = x + Math.cos(angle) * len;
+                    const endY = y + Math.sin(angle) * len;
+                    ctx.strokeStyle = `hsl(${30 + depth * 5}, 60%, ${30 + depth * 5}%)`;
+                    ctx.lineWidth = depth * 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    branch(endX, endY, len * 0.75, angle - 0.3, depth - 1);
+                    branch(endX, endY, len * 0.75, angle + 0.3, depth - 1);
+                }
+                
+                branch(w/2, h, h/5, -Math.PI/2, 8);
+            },
+            
+            solids(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                const vertices = [
+                    [0, -1, 0], [0.94, 0.33, 0], [-0.47, 0.33, 0.82], [-0.47, 0.33, -0.82]
+                ];
+                const edges = [[0,1], [0,2], [0,3], [1,2], [2,3], [3,1]];
+                
+                ctx.strokeStyle = '#6b5ce7';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#6b5ce7';
+                
+                const cx = w/2, cy = h/2, scale = h/4;
+                edges.forEach(([a, b]) => {
+                    ctx.beginPath();
+                    ctx.moveTo(cx + vertices[a][0]*scale, cy + vertices[a][1]*scale);
+                    ctx.lineTo(cx + vertices[b][0]*scale, cy + vertices[b][1]*scale);
+                    ctx.stroke();
+                });
+                ctx.shadowBlur = 0;
+            },
+            
+            attractors(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                let x = 0.1, y = 0, z = 0;
+                const dt = 0.01;
+                const sigma = 10, rho = 28, beta = 8/3;
+                
+                ctx.fillStyle = 'rgba(231, 107, 107, 0.5)';
+                for (let i = 0; i < 2000; i++) {
+                    const dx = sigma * (y - x) * dt;
+                    const dy = (x * (rho - z) - y) * dt;
+                    const dz = (x * y - beta * z) * dt;
+                    x += dx; y += dy; z += dz;
+                    const px = w/2 + x * 6;
+                    const py = h/2 + (z - 25) * 4;
+                    ctx.fillRect(px, py, 1.5, 1.5);
+                }
+            },
+            
+            flow(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.random() * w;
+                    const y = Math.random() * h;
+                    const angle = Math.sin(x * 0.01) + Math.cos(y * 0.01);
+                    const len = 30 + Math.random() * 20;
+                    const hue = 260 + Math.sin(x * 0.01) * 40;
+                    
+                    ctx.strokeStyle = `hsla(${hue}, 70%, 60%, 0.6)`;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+                    ctx.stroke();
+                }
+            },
+            
+            flow2(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                const gradient = ctx.createLinearGradient(0, 0, w, h);
+                gradient.addColorStop(0, '#6b5ce7');
+                gradient.addColorStop(0.5, '#e76c6b');
+                gradient.addColorStop(1, '#5ce796');
+                
+                for (let i = 0; i < 80; i++) {
+                    const t = i / 80;
+                    const x = w/2 + Math.cos(t * Math.PI * 4) * (w/3) * t;
+                    const y = h/2 + Math.sin(t * Math.PI * 6) * (h/3) * t;
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2 + t * 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            },
+            
+            traces(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                ctx.strokeStyle = 'rgba(92, 231, 150, 0.3)';
+                ctx.lineWidth = 0.5;
+                
+                for (let i = 0; i < 20; i++) {
+                    ctx.beginPath();
+                    let x = Math.random() * w;
+                    let y = Math.random() * h;
+                    ctx.moveTo(x, y);
+                    for (let j = 0; j < 20; j++) {
+                        x += (Math.random() - 0.5) * 40;
+                        y += (Math.random() - 0.5) * 40;
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            },
+            
+            particles(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                for (let i = 0; i < 30; i++) {
+                    const x = Math.random() * w;
+                    const y = Math.random() * h;
+                    const r = 3 + Math.random() * 8;
+                    const hue = Math.random() * 60 + 180;
+                    
+                    ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.8)`;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = `hsla(${hue}, 70%, 60%, 0.5)`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            },
+            
+            rd(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                for (let i = 0; i < 100; i++) {
+                    const x = Math.random() * w;
+                    const y = Math.random() * h;
+                    const r = 5 + Math.random() * 15;
+                    const hue = Math.random() > 0.5 ? 320 : 200;
+                    
+                    ctx.fillStyle = `hsla(${hue}, 60%, 50%, 0.4)`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            },
+            
+            nebula(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                
+                const gradient = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+                gradient.addColorStop(0, '#2a1a4a');
+                gradient.addColorStop(0.5, '#1a1a35');
+                gradient.addColorStop(1, '#1a1a25');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, w, h);
+                
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.random() * w;
+                    const y = Math.random() * h;
+                    const r = 20 + Math.random() * 40;
+                    
+                    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+                    g.addColorStop(0, 'rgba(107, 92, 231, 0.3)');
+                    g.addColorStop(1, 'rgba(107, 92, 231, 0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            },
+            
+            mandala(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                const cx = w/2, cy = h/2;
+                ctx.strokeStyle = '#e7b45c';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    ctx.beginPath();
+                    for (let r = 10; r < w/3; r += 10) {
+                        const x = cx + Math.cos(angle + r * 0.05) * r;
+                        const y = cy + Math.sin(angle + r * 0.05) * r;
+                        if (r === 10) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            },
+            
+            audio(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                const bars = 20;
+                const barW = w / bars;
+                
+                for (let i = 0; i < bars; i++) {
+                    const barH = Math.random() * h * 0.6 + h * 0.1;
+                    const hue = 280 + (i / bars) * 60;
+                    ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.8)`;
+                    ctx.fillRect(i * barW + 2, (h - barH) / 2, barW - 4, barH);
+                }
+            },
+            
+            poetry(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                ctx.fillStyle = '#1a1a25';
+                ctx.fillRect(0, 0, w, h);
+                
+                ctx.font = '14px monospace';
+                ctx.fillStyle = '#5ce796';
+                const chars = '01';
+                for (let i = 0; i < 100; i++) {
+                    const x = Math.random() * w;
+                    const y = Math.random() * h;
+                    ctx.fillText(chars[Math.floor(Math.random() * chars.length)], x, y);
+                }
+            }
+        };
+
+        // Render gallery
+        function renderGallery() {
+            const gallery = document.getElementById('gallery');
+            
+            artworks.forEach(art => {
+                const card = document.createElement('a');
+                card.className = 'art-card';
+                card.href = art.file;
+                card.dataset.categories = art.categories.join(' ');
+                
+                const thumbnailDiv = document.createElement('div');
+                thumbnailDiv.className = 'thumbnail';
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 300;
+                
+                if (thumbnailRenderers[art.thumbnail]) {
+                    thumbnailRenderers[art.thumbnail](canvas);
+                }
+                
+                thumbnailDiv.appendChild(canvas);
+                
+                const info = document.createElement('div');
+                info.className = 'art-info';
+                
+                const tagsHtml = art.categories.map(cat => 
+                    `<span class="tag category-${cat}">${cat}</span>`
+                ).join('');
+                
+                info.innerHTML = `
+                    <h3 class="art-title">${art.title}</h3>
+                    <p class="art-description">${art.description}</p>
+                    <div class="art-meta">${tagsHtml}</div>
+                `;
+                
+                card.appendChild(thumbnailDiv);
+                card.appendChild(info);
+                gallery.appendChild(card);
+            });
+        }
+
+        // Filter functionality
+        function setupFilters() {
+            const buttons = document.querySelectorAll('.filter-btn');
+            const cards = document.querySelectorAll('.art-card');
+            
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    const filter = btn.dataset.filter;
+                    
+                    cards.forEach(card => {
+                        if (filter === 'all' || card.dataset.categories.includes(filter)) {
+                            card.classList.remove('hidden');
+                        } else {
+                            card.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGallery();
+            setupFilters();
+        });
+    </script>
+</body>
+</html>
