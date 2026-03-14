@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Instruments — Browser-Based Synthesis</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg-elevated: #141414;
+      --bg-card: #1a1a1a;
+      --text: #f5f5f5;
+      --text-muted: #888;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --accent-glow: rgba(245, 158, 11, 0.3);
+      --border: #2a2a2a;
+      --radius: 8px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,10,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      padding: 1.5rem 2rem;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), #fbbf24);
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .brand span {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--accent);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 4rem 2rem;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(245,158,11,0.05) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Waveform Animation */
+    .waveform-container {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      margin-bottom: 2rem;
+    }
+
+    .waveform-bar {
+      width: 4px;
+      background: linear-gradient(180deg, var(--accent), #fbbf24);
+      border-radius: 2px;
+      animation: waveform 1.2s ease-in-out infinite;
+    }
+
+    .waveform-bar:nth-child(1) { height: 20%; animation-delay: 0s; }
+    .waveform-bar:nth-child(2) { height: 40%; animation-delay: 0.1s; }
+    .waveform-bar:nth-child(3) { height: 60%; animation-delay: 0.2s; }
+    .waveform-bar:nth-child(4) { height: 80%; animation-delay: 0.3s; }
+    .waveform-bar:nth-child(5) { height: 100%; animation-delay: 0.4s; }
+    .waveform-bar:nth-child(6) { height: 80%; animation-delay: 0.5s; }
+    .waveform-bar:nth-child(7) { height: 60%; animation-delay: 0.6s; }
+    .waveform-bar:nth-child(8) { height: 40%; animation-delay: 0.7s; }
+    .waveform-bar:nth-child(9) { height: 20%; animation-delay: 0.8s; }
+
+    @keyframes waveform {
+      0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    /* Main Content */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* Instruments Grid */
+    .instruments {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .instrument-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .instrument-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.15);
+      border-color: var(--accent);
+    }
+
+    .instrument-preview {
+      height: 200px;
+      background: var(--bg-elevated);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .instrument-preview canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .instrument-content {
+      padding: 1.5rem;
+    }
+
+    .instrument-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .instrument-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #fbbf24);
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      font-size: 1.125rem;
+    }
+
+    .instrument-title {
+      flex: 1;
+    }
+
+    .instrument-title h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.125rem;
+    }
+
+    .instrument-title span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .instrument-card p {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .instrument-meta {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .instrument-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Comparison Section */
+    .comparison {
+      margin-bottom: 4rem;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    .comparison-table {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .comparison-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 1rem 1.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comparison-table th {
+      background: var(--bg-elevated);
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .comparison-table td {
+      font-size: 0.9375rem;
+    }
+
+    .comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comparison-table .instrument-name {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+    }
+
+    /* Philosophy Section */
+    .philosophy {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .philosophy h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .philosophy p {
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+
+    .philosophy p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Technical Section */
+    .technical {
+      margin-bottom: 4rem;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .tech-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .tech-card h3 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tech-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem;
+      }
+
+      .header-content {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .hero h2 {
+        font-size: 1.75rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      main {
+        padding: 2rem 1rem;
+      }
+
+      .instruments {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-table th,
+      .comparison-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">🎵</div>
+        <div>
+          <h1>Sound Instruments</h1>
+          <span>Browser-based synthesis</span>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="generative-art-gallery.html" class="nav-link">← Gallery</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="waveform-container">
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+      </div>
+      <h2>Sound in the Browser</h2>
+      <p>Three instruments exploring different dimensions of musical time. No plugins, no dependencies — just the Web Audio API and your curiosity.</p>
+    </div>
+  </section>
+
+  <main>
+    <section class="instruments">
+      <a href="art/drone-garden.html" class="instrument-card">
+        <div class="instrument-preview">
+          <canvas id="drone-preview"></canvas>
+        </div>
+        <div class="instrument-content">
+          <div class="instrument-header">
+            <div class="instrument-icon">🌿</div>
+            <div class="instrument-title">
+              <h3>Drone Garden</h3>
+              <span>Ambient / Sustained</span>
+            </div>
+          </div>
+          <p>Five interwoven oscillators creating evolving harmonic textures. Like a garden of sound that grows and shifts with time.</p>
+          <div class="instrument-meta">
+            <span>🎛️ 5 voices</span>
+            <span>🌊 Continuous</span>
+            <span>🧘 Meditative</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="art/polyrhythm-sequencer.html" class="instrument-card">
+        <div class="instrument-preview">
+          <canvas id="poly-preview"></canvas>
+        </div>
+        <div class="instrument-content">
+          <div class="instrument-header">
+            <div class="instrument-icon">⭕</div>
+            <div class="instrument-title">
+              <h3>Polyrhythm Sequencer</h3>
+              <span>Rhythmic / Discrete</span>
+            </div>
+          </div>
+          <p>Nested circles triggering notes at different intervals. Mathematical patterns become hypnotic grooves.</p>
+          <div class="instrument-meta">
+            <span>🥁 8 tracks</span>
+            <span>⏱️ Stepped</span>
+            <span>⚡ Energetic</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="art/granular-synthesizer.html" class="instrument-card">
+        <div class="instrument-preview">
+          <canvas id="granular-preview"></canvas>
+        </div>
+        <div class="instrument-content">
+          <div class="instrument-header">
+            <div class="instrument-icon">✨</div>
+            <div class="instrument-title">
+              <h3>Granular Synthesizer</h3>
+              <span>Textural / Microscopic</span>
+            </div>
+          </div>
+          <p>Sound as particles. Microscopic grains of audio scattered through time and space, creating clouds of texture.</p>
+          <div class="instrument-meta">
+            <span>🎹 100+ grains</span>
+            <span>🌫️ Cloud</span>
+            <span>🔮 Experimental</span>
+          </div>
+        </div>
+      </a>
+    </section>
+
+    <section class="comparison">
+      <div class="section-header">
+        <h2>Three Dimensions of Time</h2>
+        <p>Each instrument explores a different relationship between sound and time</p>
+      </div>
+      <div class="comparison-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Drone Garden</th>
+              <th>Polyrhythm</th>
+              <th>Granular</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Time Scale</strong></td>
+              <td>Sustained — minutes</td>
+              <td>Discrete — beats</td>
+              <td>Microscopic — milliseconds</td>
+            </tr>
+            <tr>
+              <td><strong>Interaction</strong></td>
+              <td>Observe — gentle shifts</td>
+              <td>Program — pattern design</td>
+              <td>Sculpt — real-time shaping</td>
+            </tr>
+            <tr>
+              <td><strong>Character</strong></td>
+              <td>Meditative, harmonic</td>
+              <td>Energetic, mathematical</td>
+              <td>Textural, experimental</td>
+            </tr>
+            <tr>
+              <td><strong>Visual Metaphor</strong></td>
+              <td>Growing plants</td>
+              <td>Orbiting planets</td>
+              <td>Scattering particles</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="philosophy">
+      <h2>🎧 Why Browser-Based Audio?</h2>
+      <p>The Web Audio API is one of the most underappreciated browser capabilities. It offers sample-accurate scheduling, real-time synthesis, and spatial audio — all without plugins or downloads.</p>
+      <p>These instruments demonstrate what's possible when you treat the browser as a creative platform, not just a document viewer. Each one is a complete, self-contained musical instrument that loads instantly and works everywhere.</p>
+      <p>No accounts. No subscriptions. No app stores. Just sound, code, and curiosity.</p>
+    </section>
+
+    <section class="technical">
+      <div class="section-header">
+        <h2>Technical Foundation</h2>
+        <p>Built on modern web standards for maximum compatibility</p>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-card">
+          <h3>🔊 Web Audio API</h3>
+          <p>Native browser audio with sample-accurate scheduling, oscillators, filters, and effects.</p>
+        </div>
+        <div class="tech-card">
+          <h3>🎨 Canvas 2D</h3>
+          <p>Hardware-accelerated visualization with 60fps animation and smooth rendering.</p>
+        </div>
+        <div class="tech-card">
+          <h3>📱 Responsive</h3>
+          <p>Works on desktop, tablet, and mobile. Touch-friendly controls and adaptive layouts.</p>
+        </div>
+        <div class="tech-card">
+          <h3>⚡ Zero Dependencies</h3>
+          <p>No build step, no frameworks, no external libraries. Pure HTML, CSS, and JavaScript.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Part of the <a href="generative-art-gallery.html">Generative Art Gallery</a> — where code becomes creative expression</p>
+    <p style="margin-top: 0.5rem; font-size: 0.75rem;">Created with the Web Audio API • No external dependencies</p>
+  </footer>
+
+  <script>
+    // Drone Garden Preview
+    const droneCanvas = document.getElementById('drone-preview');
+    const droneCtx = droneCanvas.getContext('2d');
+    let droneTime = 0;
+
+    function resizeDrone() {
+      const rect = droneCanvas.parentElement.getBoundingClientRect();
+      droneCanvas.width = rect.width;
+      droneCanvas.height = rect.height;
+    }
+    resizeDrone();
+
+    function drawDrone() {
+      const w = droneCanvas.width;
+      const h = droneCanvas.height;
+      droneCtx.fillStyle = '#141414';
+      droneCtx.fillRect(0, 0, w, h);
+
+      const centerX = w / 2;
+      const centerY = h / 2;
+
+      // Draw 5 pulsing circles representing voices
+      for (let i = 0; i < 5; i++) {
+        const phase = droneTime * 0.5 + i * 0.4;
+        const radius = 20 + i * 15 + Math.sin(phase) * 5;
+        const alpha = 0.3 + Math.sin(phase) * 0.2;
+        
+        droneCtx.beginPath();
+        droneCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        droneCtx.strokeStyle = `rgba(245, 158, 11, ${alpha})`;
+        droneCtx.lineWidth = 2;
+        droneCtx.stroke();
+      }
+
+      // Center glow
+      const glowRadius = 15 + Math.sin(droneTime) * 5;
+      const gradient = droneCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
+      gradient.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
+      gradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
+      droneCtx.fillStyle = gradient;
+      droneCtx.fillRect(centerX - glowRadius, centerY - glowRadius, glowRadius * 2, glowRadius * 2);
+
+      droneTime += 0.02;
+      requestAnimationFrame(drawDrone);
+    }
+    drawDrone();
+
+    // Polyrhythm Preview
+    const polyCanvas = document.getElementById('poly-preview');
+    const polyCtx = polyCanvas.getContext('2d');
+    let polyTime = 0;
+
+    function resizePoly() {
+      const rect = polyCanvas.parentElement.getBoundingClientRect();
+      polyCanvas.width = rect.width;
+      polyCanvas.height = rect.height;
+    }
+    resizePoly();
+
+    function drawPoly() {
+      const w = polyCanvas.width;
+      const h = polyCanvas.height;
+      polyCtx.fillStyle = '#141414';
+      polyCtx.fillRect(0, 0, w, h);
+
+      const centerX = w / 2;
+      const centerY = h / 2;
+
+      // Draw concentric rings
+      const rings = 4;
+      for (let i = 0; i < rings; i++) {
+        const radius = 25 + i * 20;
+        const speed = (i + 1) * 0.5;
+        const angle = polyTime * speed;
+        
+        // Ring
+        polyCtx.beginPath();
+        polyCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        polyCtx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+        polyCtx.lineWidth = 1;
+        polyCtx.stroke();
+        
+        // Orbiting dot
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        
+        polyCtx.beginPath();
+        polyCtx.arc(x, y, 4, 0, Math.PI * 2);
+        polyCtx.fillStyle = '#f59e0b';
+        polyCtx.fill();
+      }
+
+      polyTime += 0.03;
+      requestAnimationFrame(drawPoly);
+    }
+    drawPoly();
+
+    // Granular Preview
+    const granularCanvas = document.getElementById('granular-preview');
+    const granularCtx = granularCanvas.getContext('2d');
+    let granularTime = 0;
+    const particles = Array.from({ length: 30 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.01,
+      vy: (Math.random() - 0.5) * 0.01,
+      life: Math.random()
+    }));
+
+    function resizeGranular() {
+      const rect = granularCanvas.parentElement.getBoundingClientRect();
+      granularCanvas.width = rect.width;
+      granularCanvas.height = rect.height;
+    }
+    resizeGranular();
+
+    function drawGranular() {
+      const w = granularCanvas.width;
+      const h = granularCanvas.height;
+      granularCtx.fillStyle = '#141414';
+      granularCtx.fillRect(0, 0, w, h);
+
+      // Update and draw particles
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.005;
+        
+        if (p.life <= 0) {
+          p.x = Math.random();
+          p.y = Math.random();
+          p.vx = (Math.random() - 0.5) * 0.01;
+          p.vy = (Math.random() - 0.5) * 0.01;
+          p.life = 1;
+        }
+
+        const x = p.x * w;
+        const y = p.y * h;
+        const alpha = p.life * 0.6;
+        
+        granularCtx.beginPath();
+        granularCtx.arc(x, y, 2 + p.life * 2, 0, Math.PI * 2);
+        granularCtx.fillStyle = `rgba(245, 158, 11, ${alpha})`;
+        granularCtx.fill();
+      });
+
+      granularTime += 0.01;
+      requestAnimationFrame(drawGranular);
+    }
+    drawGranular();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      resizeDrone();
+      resizePoly();
+      resizeGranular();
+    });
+  </script>
+</body>
+</html>
