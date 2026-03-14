@@ -1,370 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fluid Smoke - Generative Art</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0a0a;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        h1 {
-            margin-bottom: 10px;
-            font-size: 1.5rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-        }
-        .subtitle {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-        }
-        canvas {
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            image-rendering: crisp-edges;
-        }
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            max-width: 600px;
-        }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-        label {
-            font-size: 0.8rem;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        input[type="range"] {
-            width: 120px;
-        }
-        select {
-            padding: 5px 10px;
-            background: #1a1a1a;
-            color: #fff;
-            border: 1px solid #333;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .value {
-            font-size: 0.75rem;
-            color: #666;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluid Smoke — Nemo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #05050a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border: 1px solid #1a1a2e;
+      image-rendering: crisp-edges;
+    }
+    .header {
+      margin-top: 20px;
+      color: #888;
+      font-size: 14px;
+      text-align: center;
+    }
+    .header .title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .header .subtitle {
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .param-controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f0f1a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #1a1a2e;
+    }
+    .param-controls input[type="range"] {
+      width: 80px;
+      accent-color: #c084fc;
+    }
+    .param-controls select {
+      background: #1a1a2a;
+      color: #888;
+      border: 1px solid #333;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .buttons {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #0f0f1a;
+      color: #888;
+      border: 1px solid #1a1a2e;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #1a1a2a;
+      color: #aaa;
+      border-color: #c084fc;
+    }
+    button.primary {
+      background: #c084fc20;
+      color: #c084fc;
+      border-color: #c084fc40;
+    }
+    button.primary:hover {
+      background: #c084fc30;
+    }
+    .value-display {
+      min-width: 30px;
+      color: #888;
+      text-align: right;
+    }
+  </style>
 </head>
 <body>
-    <h1>FLUID SMOKE</h1>
-    <p class="subtitle">Navier-Stokes fluid dynamics simulation</p>
-    <canvas id="canvas" width="400" height="400"></canvas>
-    <div class="controls">
-        <div class="control-group">
-            <label>Viscosity</label>
-            <input type="range" id="viscosity" min="1" max="100" value="30">
-            <span class="value" id="viscosityValue">30</span>
-        </div>
-        <div class="control-group">
-            <label>Diffusion</label>
-            <input type="range" id="diffusion" min="1" max="100" value="20">
-            <span class="value" id="diffusionValue">20</span>
-        </div>
-        <div class="control-group">
-            <label>Source</label>
-            <input type="range" id="source" min="10" max="200" value="80">
-            <span class="value" id="sourceValue">80</span>
-        </div>
-        <div class="control-group">
-            <label>Scheme</label>
-            <select id="scheme">
-                <option value="fire">Fire</option>
-                <option value="ink">Ink</option>
-                <option value="neon">Neon</option>
-                <option value="steam">Steam</option>
-            </select>
-        </div>
-    </div>
+  <canvas id="art" width="600" height="600"></canvas>
+  <div class="header">
+    <div class="title">Fluid Smoke</div>
+    <div class="subtitle">Navier-Stokes fluid dynamics simulation</div>
+  </div>
+  <div class="param-controls">
+    <label>
+      Viscosity
+      <input type="range" id="viscosity" min="1" max="100" value="30">
+      <span class="value-display" id="viscosityVal">30</span>
+    </label>
+    <label>
+      Diffusion
+      <input type="range" id="diffusion" min="1" max="100" value="20">
+      <span class="value-display" id="diffusionVal">20</span>
+    </label>
+    <label>
+      Source
+      <input type="range" id="source" min="10" max="200" value="80">
+      <span class="value-display" id="sourceVal">80</span>
+    </label>
+    <label>
+      Scheme
+      <select id="scheme">
+        <option value="fire">Fire</option>
+        <option value="ink">Ink</option>
+        <option value="neon">Neon</option>
+        <option value="steam">Steam</option>
+      </select>
+    </label>
+  </div>
+  <div class="buttons">
+    <button id="clear">Clear</button>
+    <button id="export" class="primary">Export PNG</button>
+  </div>
 
-    <script>
-        // Fluid simulation parameters
-        const N = 64;
-        const SIZE = (N + 2) * (N + 2);
-        
-        // State arrays
-        let density = new Float32Array(SIZE);
-        let densityPrev = new Float32Array(SIZE);
-        let u = new Float32Array(SIZE);
-        let uPrev = new Float32Array(SIZE);
-        let v = new Float32Array(SIZE);
-        let vPrev = new Float32Array(SIZE);
-        
-        // Sources
-        const sources = [
-            { x: 0.3, y: 0.85, vx: 0, vy: -2 },
-            { x: 0.7, y: 0.85, vx: 0, vy: -2 },
-        ];
-        
-        // Parameters
-        let params = {
-            viscosity: 30,
-            diffusion: 20,
-            densitySource: 80,
-            colorScheme: 'fire'
-        };
-        
-        // Color schemes
-        const colorSchemes = {
-            fire: [
-                { r: 0, g: 0, b: 0, t: 0 },
-                { r: 60, g: 0, b: 0, t: 0.1 },
-                { r: 120, g: 20, b: 0, t: 0.2 },
-                { r: 200, g: 60, b: 0, t: 0.4 },
-                { r: 255, g: 120, b: 0, t: 0.6 },
-                { r: 255, g: 200, b: 50, t: 0.8 },
-                { r: 255, g: 255, b: 200, t: 1 },
-            ],
-            ink: [
-                { r: 255, g: 255, b: 255, t: 0 },
-                { r: 200, g: 220, b: 240, t: 0.1 },
-                { r: 150, g: 170, b: 200, t: 0.2 },
-                { r: 80, g: 100, b: 140, t: 0.4 },
-                { r: 40, g: 50, b: 80, t: 0.6 },
-                { r: 20, g: 25, b: 40, t: 0.8 },
-                { r: 10, g: 10, b: 20, t: 1 },
-            ],
-            neon: [
-                { r: 0, g: 0, b: 0, t: 0 },
-                { r: 20, g: 0, b: 40, t: 0.1 },
-                { r: 60, g: 0, b: 80, t: 0.2 },
-                { r: 120, g: 0, b: 150, t: 0.4 },
-                { r: 200, g: 0, b: 255, t: 0.6 },
-                { r: 100, g: 200, b: 255, t: 0.8 },
-                { r: 200, g: 255, b: 255, t: 1 },
-            ],
-            steam: [
-                { r: 0, g: 0, b: 0, t: 0 },
-                { r: 30, g: 35, b: 40, t: 0.1 },
-                { r: 60, g: 65, b: 70, t: 0.2 },
-                { r: 100, g: 105, b: 110, t: 0.4 },
-                { r: 150, g: 155, b: 160, t: 0.6 },
-                { r: 200, g: 205, b: 210, t: 0.8 },
-                { r: 240, g: 245, b: 250, t: 1 },
-            ],
-        };
-        
-        function IX(x, y) {
-            return x + (N + 2) * y;
+  <script>
+    // ============================================
+    // FLUID SIMULATION (Navier-Stokes)
+    // ============================================
+    
+    const N = 64;
+    const SIZE = (N + 2) * (N + 2);
+    
+    let density = new Float32Array(SIZE);
+    let densityPrev = new Float32Array(SIZE);
+    let u = new Float32Array(SIZE);
+    let uPrev = new Float32Array(SIZE);
+    let v = new Float32Array(SIZE);
+    let vPrev = new Float32Array(SIZE);
+    
+    const sources = [
+      { x: 0.3, y: 0.85, vx: 0, vy: -2 },
+      { x: 0.7, y: 0.85, vx: 0, vy: -2 },
+    ];
+    
+    const params = {
+      viscosity: 30,
+      diffusion: 20,
+      densitySource: 80,
+      colorScheme: 'fire'
+    };
+    
+    const colorSchemes = {
+      fire: [
+        { r: 0, g: 0, b: 0, t: 0 },
+        { r: 60, g: 0, b: 0, t: 0.1 },
+        { r: 120, g: 20, b: 0, t: 0.2 },
+        { r: 200, g: 60, b: 0, t: 0.4 },
+        { r: 255, g: 120, b: 0, t: 0.6 },
+        { r: 255, g: 200, b: 50, t: 0.8 },
+        { r: 255, g: 255, b: 200, t: 1 },
+      ],
+      ink: [
+        { r: 255, g: 255, b: 255, t: 0 },
+        { r: 200, g: 220, b: 240, t: 0.1 },
+        { r: 150, g: 170, b: 200, t: 0.2 },
+        { r: 80, g: 100, b: 140, t: 0.4 },
+        { r: 40, g: 50, b: 80, t: 0.6 },
+        { r: 20, g: 25, b: 40, t: 0.8 },
+        { r: 10, g: 10, b: 20, t: 1 },
+      ],
+      neon: [
+        { r: 0, g: 0, b: 0, t: 0 },
+        { r: 20, g: 0, b: 40, t: 0.1 },
+        { r: 60, g: 0, b: 80, t: 0.2 },
+        { r: 120, g: 0, b: 150, t: 0.4 },
+        { r: 200, g: 0, b: 255, t: 0.6 },
+        { r: 100, g: 200, b: 255, t: 0.8 },
+        { r: 200, g: 255, b: 255, t: 1 },
+      ],
+      steam: [
+        { r: 0, g: 0, b: 0, t: 0 },
+        { r: 30, g: 35, b: 40, t: 0.1 },
+        { r: 60, g: 65, b: 70, t: 0.2 },
+        { r: 100, g: 105, b: 110, t: 0.4 },
+        { r: 150, g: 155, b: 160, t: 0.6 },
+        { r: 200, g: 205, b: 210, t: 0.8 },
+        { r: 240, g: 245, b: 250, t: 1 },
+      ],
+    };
+    
+    function IX(x, y) { return x + (N + 2) * y; }
+    
+    function addSource(x, y, amount, arr) {
+      const i = Math.floor(x * N) + 1;
+      const j = Math.floor(y * N) + 1;
+      if (i >= 1 && i <= N && j >= 1 && j <= N) {
+        arr[IX(i, j)] += amount;
+        arr[IX(i - 1, j)] += amount * 0.5;
+        arr[IX(i + 1, j)] += amount * 0.5;
+        arr[IX(i, j - 1)] += amount * 0.5;
+        arr[IX(i, j + 1)] += amount * 0.5;
+      }
+    }
+    
+    function setBoundary(b, x) {
+      for (let i = 1; i <= N; i++) {
+        x[IX(0, i)] = b === 1 ? -x[IX(1, i)] : x[IX(1, i)];
+        x[IX(N + 1, i)] = b === 1 ? -x[IX(N, i)] : x[IX(N, i)];
+        x[IX(i, 0)] = b === 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
+        x[IX(i, N + 1)] = b === 2 ? -x[IX(i, N)] : x[IX(i, N)];
+      }
+      x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+      x[IX(0, N + 1)] = 0.5 * (x[IX(1, N + 1)] + x[IX(0, N)]);
+      x[IX(N + 1, 0)] = 0.5 * (x[IX(N, 0)] + x[IX(N + 1, 1)]);
+      x[IX(N + 1, N + 1)] = 0.5 * (x[IX(N, N + 1)] + x[IX(N + 1, N)]);
+    }
+    
+    function diffuse(b, x, x0, diff, dt) {
+      const a = dt * diff * N * N;
+      for (let k = 0; k < 10; k++) {
+        for (let i = 1; i <= N; i++) {
+          for (let j = 1; j <= N; j++) {
+            x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / (1 + 4 * a);
+          }
         }
-        
-        function addSource(x, y, amount, arr) {
-            const i = Math.floor(x * N) + 1;
-            const j = Math.floor(y * N) + 1;
-            if (i >= 1 && i <= N && j >= 1 && j <= N) {
-                arr[IX(i, j)] += amount;
-                arr[IX(i - 1, j)] += amount * 0.5;
-                arr[IX(i + 1, j)] += amount * 0.5;
-                arr[IX(i, j - 1)] += amount * 0.5;
-                arr[IX(i, j + 1)] += amount * 0.5;
-            }
+        setBoundary(b, x);
+      }
+    }
+    
+    function advect(b, d, d0, u, v, dt) {
+      const dt0 = dt * N;
+      for (let i = 1; i <= N; i++) {
+        for (let j = 1; j <= N; j++) {
+          let x = i - dt0 * u[IX(i, j)];
+          let y = j - dt0 * v[IX(i, j)];
+          if (x < 0.5) x = 0.5;
+          if (x > N + 0.5) x = N + 0.5;
+          if (y < 0.5) y = 0.5;
+          if (y > N + 0.5) y = N + 0.5;
+          const i0 = Math.floor(x), i1 = i0 + 1;
+          const j0 = Math.floor(y), j1 = j0 + 1;
+          const s1 = x - i0, s0 = 1 - s1;
+          const t1 = y - j0, t0 = 1 - t1;
+          d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
+                        s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
         }
-        
-        function setBoundary(b, x) {
-            for (let i = 1; i <= N; i++) {
-                x[IX(0, i)] = b === 1 ? -x[IX(1, i)] : x[IX(1, i)];
-                x[IX(N + 1, i)] = b === 1 ? -x[IX(N, i)] : x[IX(N, i)];
-                x[IX(i, 0)] = b === 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
-                x[IX(i, N + 1)] = b === 2 ? -x[IX(i, N)] : x[IX(i, N)];
-            }
-            x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
-            x[IX(0, N + 1)] = 0.5 * (x[IX(1, N + 1)] + x[IX(0, N)]);
-            x[IX(N + 1, 0)] = 0.5 * (x[IX(N, 0)] + x[IX(N + 1, 1)]);
-            x[IX(N + 1, N + 1)] = 0.5 * (x[IX(N, N + 1)] + x[IX(N + 1, N)]);
+      }
+      setBoundary(b, d);
+    }
+    
+    function project(u, v, p, div) {
+      for (let i = 1; i <= N; i++) {
+        for (let j = 1; j <= N; j++) {
+          div[IX(i, j)] = -0.5 * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]) / N;
+          p[IX(i, j)] = 0;
         }
-        
-        function diffuse(b, x, x0, diff, dt) {
-            const a = dt * diff * N * N;
-            for (let k = 0; k < 10; k++) {
-                for (let i = 1; i <= N; i++) {
-                    for (let j = 1; j <= N; j++) {
-                        x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / (1 + 4 * a);
-                    }
-                }
-                setBoundary(b, x);
-            }
+      }
+      setBoundary(0, div);
+      setBoundary(0, p);
+      
+      for (let k = 0; k < 10; k++) {
+        for (let i = 1; i <= N; i++) {
+          for (let j = 1; j <= N; j++) {
+            p[IX(i, j)] = (div[IX(i, j)] + p[IX(i - 1, j)] + p[IX(i + 1, j)] + p[IX(i, j - 1)] + p[IX(i, j + 1)]) / 4;
+          }
         }
-        
-        function advect(b, d, d0, u, v, dt) {
-            const dt0 = dt * N;
-            for (let i = 1; i <= N; i++) {
-                for (let j = 1; j <= N; j++) {
-                    let x = i - dt0 * u[IX(i, j)];
-                    let y = j - dt0 * v[IX(i, j)];
-                    if (x < 0.5) x = 0.5;
-                    if (x > N + 0.5) x = N + 0.5;
-                    if (y < 0.5) y = 0.5;
-                    if (y > N + 0.5) y = N + 0.5;
-                    const i0 = Math.floor(x);
-                    const i1 = i0 + 1;
-                    const j0 = Math.floor(y);
-                    const j1 = j0 + 1;
-                    const s1 = x - i0;
-                    const s0 = 1 - s1;
-                    const t1 = y - j0;
-                    const t0 = 1 - t1;
-                    d[IX(i, j)] = s0 * (t0 * d0[IX(i0, j0)] + t1 * d0[IX(i0, j1)]) +
-                                  s1 * (t0 * d0[IX(i1, j0)] + t1 * d0[IX(i1, j1)]);
-                }
-            }
-            setBoundary(b, d);
+        setBoundary(0, p);
+      }
+      
+      for (let i = 1; i <= N; i++) {
+        for (let j = 1; j <= N; j++) {
+          u[IX(i, j)] -= 0.5 * N * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
+          v[IX(i, j)] -= 0.5 * N * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
         }
-        
-        function project(u, v, p, div) {
-            for (let i = 1; i <= N; i++) {
-                for (let j = 1; j <= N; j++) {
-                    div[IX(i, j)] = -0.5 * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]) / N;
-                    p[IX(i, j)] = 0;
-                }
-            }
-            setBoundary(0, div);
-            setBoundary(0, p);
-            
-            for (let k = 0; k < 10; k++) {
-                for (let i = 1; i <= N; i++) {
-                    for (let j = 1; j <= N; j++) {
-                        p[IX(i, j)] = (div[IX(i, j)] + p[IX(i - 1, j)] + p[IX(i + 1, j)] + p[IX(i, j - 1)] + p[IX(i, j + 1)]) / 4;
-                    }
-                }
-                setBoundary(0, p);
-            }
-            
-            for (let i = 1; i <= N; i++) {
-                for (let j = 1; j <= N; j++) {
-                    u[IX(i, j)] -= 0.5 * N * (p[IX(i + 1, j)] - p[IX(i - 1, j)]);
-                    v[IX(i, j)] -= 0.5 * N * (p[IX(i, j + 1)] - p[IX(i, j - 1)]);
-                }
-            }
-            setBoundary(1, u);
-            setBoundary(2, v);
+      }
+      setBoundary(1, u);
+      setBoundary(2, v);
+    }
+    
+    function stepDensity(diff, dt) {
+      diffuse(0, densityPrev, density, diff, dt);
+      advect(0, density, densityPrev, u, v, dt);
+    }
+    
+    function stepVelocity(visc, dt) {
+      diffuse(1, uPrev, u, visc, dt);
+      diffuse(2, vPrev, v, visc, dt);
+      project(uPrev, vPrev, u, v);
+      advect(1, u, uPrev, uPrev, vPrev, dt);
+      advect(2, v, vPrev, uPrev, vPrev, dt);
+      project(u, v, uPrev, vPrev);
+    }
+    
+    function getColor(d, scheme) {
+      const colors = colorSchemes[scheme];
+      for (let i = 0; i < colors.length - 1; i++) {
+        if (d <= colors[i + 1].t) {
+          const t = (d - colors[i].t) / (colors[i + 1].t - colors[i].t);
+          return {
+            r: Math.floor(colors[i].r + t * (colors[i + 1].r - colors[i].r)),
+            g: Math.floor(colors[i].g + t * (colors[i + 1].g - colors[i].g)),
+            b: Math.floor(colors[i].b + t * (colors[i + 1].b - colors[i].b)),
+          };
         }
-        
-        function stepDensity(diff, dt) {
-            diffuse(0, densityPrev, density, diff, dt);
-            advect(0, density, densityPrev, u, v, dt);
+      }
+      return colors[colors.length - 1];
+    }
+    
+    // ============================================
+    // RENDERING
+    // ============================================
+    
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    function render(time) {
+      const dt = 0.1;
+      const viscosity = params.viscosity / 1000;
+      const diffusion = params.diffusion / 1000;
+      const sourceStrength = params.densitySource / 100;
+      
+      for (const source of sources) {
+        const offsetX = Math.sin(time * 0.0005) * 0.1;
+        addSource(source.x + offsetX, source.y, sourceStrength * 5, density);
+        addSource(source.x + offsetX, source.y, source.vx + Math.sin(time * 0.001) * 0.5, u);
+        addSource(source.x + offsetX, source.y, source.vy, v);
+      }
+      
+      stepVelocity(viscosity, dt);
+      stepDensity(diffusion, dt);
+      
+      for (let i = 0; i < SIZE; i++) density[i] *= 0.995;
+      
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+      const scaleX = width / N;
+      const scaleY = height / N;
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const simX = Math.floor(x / scaleX) + 1;
+          const simY = Math.floor(y / scaleY) + 1;
+          const d = Math.min(1, density[IX(simX, simY)] / 3);
+          const color = getColor(d, params.colorScheme);
+          const idx = (y * width + x) * 4;
+          data[idx] = color.r;
+          data[idx + 1] = color.g;
+          data[idx + 2] = color.b;
+          data[idx + 3] = 255;
         }
-        
-        function stepVelocity(visc, dt) {
-            diffuse(1, uPrev, u, visc, dt);
-            diffuse(2, vPrev, v, visc, dt);
-            project(uPrev, vPrev, u, v);
-            advect(1, u, uPrev, uPrev, vPrev, dt);
-            advect(2, v, vPrev, uPrev, vPrev, dt);
-            project(u, v, uPrev, vPrev);
-        }
-        
-        function getColor(d, scheme) {
-            const colors = colorSchemes[scheme];
-            for (let i = 0; i < colors.length - 1; i++) {
-                if (d <= colors[i + 1].t) {
-                    const t = (d - colors[i].t) / (colors[i + 1].t - colors[i].t);
-                    return {
-                        r: Math.floor(colors[i].r + t * (colors[i + 1].r - colors[i].r)),
-                        g: Math.floor(colors[i].g + t * (colors[i + 1].g - colors[i].g)),
-                        b: Math.floor(colors[i].b + t * (colors[i + 1].b - colors[i].b)),
-                    };
-                }
-            }
-            return colors[colors.length - 1];
-        }
-        
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        function render(time) {
-            const dt = 0.1;
-            const viscosity = params.viscosity / 1000;
-            const diffusion = params.diffusion / 1000;
-            const sourceStrength = params.densitySource / 100;
-            
-            // Add sources
-            for (const source of sources) {
-                const offsetX = Math.sin(time * 0.0005) * 0.1;
-                addSource(source.x + offsetX, source.y, sourceStrength * 5, density);
-                addSource(source.x + offsetX, source.y, source.vx + Math.sin(time * 0.001) * 0.5, u);
-                addSource(source.x + offsetX, source.y, source.vy, v);
-            }
-            
-            // Step simulation
-            stepVelocity(viscosity, dt);
-            stepDensity(diffusion, dt);
-            
-            // Fade density
-            for (let i = 0; i < SIZE; i++) {
-                density[i] *= 0.995;
-            }
-            
-            // Render
-            const imageData = ctx.createImageData(width, height);
-            const data = imageData.data;
-            const scaleX = width / N;
-            const scaleY = height / N;
-            
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const simX = Math.floor(x / scaleX) + 1;
-                    const simY = Math.floor(y / scaleY) + 1;
-                    const d = Math.min(1, density[IX(simX, simY)] / 3);
-                    const color = getColor(d, params.colorScheme);
-                    const idx = (y * width + x) * 4;
-                    data[idx] = color.r;
-                    data[idx + 1] = color.g;
-                    data[idx + 2] = color.b;
-                    data[idx + 3] = 255;
-                }
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-            requestAnimationFrame(render);
-        }
-        
-        // Controls
-        document.getElementById('viscosity').addEventListener('input', (e) => {
-            params.viscosity = Number(e.target.value);
-            document.getElementById('viscosityValue').textContent = params.viscosity;
-        });
-        document.getElementById('diffusion').addEventListener('input', (e) => {
-            params.diffusion = Number(e.target.value);
-            document.getElementById('diffusionValue').textContent = params.diffusion;
-        });
-        document.getElementById('source').addEventListener('input', (e) => {
-            params.densitySource = Number(e.target.value);
-            document.getElementById('sourceValue').textContent = params.densitySource;
-        });
-        document.getElementById('scheme').addEventListener('change', (e) => {
-            params.colorScheme = e.target.value;
-        });
-        
-        requestAnimationFrame(render);
-    </script>
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      requestAnimationFrame(render);
+    }
+    
+    // ============================================
+    // UI BINDINGS
+    // ============================================
+    
+    document.getElementById('viscosity').addEventListener('input', (e) => {
+      params.viscosity = Number(e.target.value);
+      document.getElementById('viscosityVal').textContent = params.viscosity;
+    });
+    
+    document.getElementById('diffusion').addEventListener('input', (e) => {
+      params.diffusion = Number(e.target.value);
+      document.getElementById('diffusionVal').textContent = params.diffusion;
+    });
+    
+    document.getElementById('source').addEventListener('input', (e) => {
+      params.densitySource = Number(e.target.value);
+      document.getElementById('sourceVal').textContent = params.densitySource;
+    });
+    
+    document.getElementById('scheme').addEventListener('change', (e) => {
+      params.colorScheme = e.target.value;
+    });
+    
+    document.getElementById('clear').addEventListener('click', () => {
+      density.fill(0);
+      u.fill(0);
+      v.fill(0);
+    });
+    
+    document.getElementById('export').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `fluid-smoke-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+    
+    // Start
+    requestAnimationFrame(render);
+  </script>
 </body>
 </html>
