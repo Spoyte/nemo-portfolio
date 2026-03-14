@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polyrhythm Sequencer — Layered Rhythmic Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            color: #e0e0e8;
+            font-family: 'SF Mono', Monaco, monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            padding: 24px 40px;
+            border-bottom: 1px solid rgba(180, 140, 80, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 18px;
+            font-weight: 400;
+            letter-spacing: 3px;
+            color: #d4b878;
+        }
+        
+        .subtitle {
+            font-size: 11px;
+            color: #606070;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+        
+        .master-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        
+        button {
+            background: rgba(180, 140, 80, 0.1);
+            border: 1px solid rgba(180, 140, 80, 0.3);
+            color: #d4b878;
+            padding: 10px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: rgba(180, 140, 80, 0.2);
+            border-color: rgba(180, 140, 80, 0.5);
+        }
+        
+        button.active {
+            background: rgba(180, 140, 80, 0.3);
+            border-color: #d4b878;
+        }
+        
+        .tempo-display {
+            font-size: 14px;
+            color: #a09070;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .main {
+            flex: 1;
+            display: flex;
+            padding: 30px 40px;
+            gap: 40px;
+        }
+        
+        .sequencer-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .track {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: rgba(15, 15, 25, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(180, 140, 80, 0.1);
+        }
+        
+        .track-info {
+            width: 100px;
+            flex-shrink: 0;
+        }
+        
+        .track-name {
+            font-size: 12px;
+            color: #d4b878;
+            letter-spacing: 1px;
+        }
+        
+        .track-sub {
+            font-size: 10px;
+            color: #505060;
+            margin-top: 2px;
+        }
+        
+        .step-grid {
+            display: flex;
+            gap: 6px;
+            flex: 1;
+        }
+        
+        .step {
+            width: 32px;
+            height: 40px;
+            background: rgba(30, 30, 45, 0.8);
+            border: 1px solid rgba(180, 140, 80, 0.15);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+        
+        .step:hover {
+            border-color: rgba(180, 140, 80, 0.4);
+            background: rgba(40, 40, 60, 0.8);
+        }
+        
+        .step.active {
+            background: rgba(180, 140, 80, 0.25);
+            border-color: rgba(180, 140, 80, 0.5);
+        }
+        
+        .step.current {
+            box-shadow: 0 0 12px rgba(180, 140, 80, 0.4);
+        }
+        
+        .step.playing {
+            background: #d4b878;
+            border-color: #e8c888;
+            box-shadow: 0 0 20px rgba(212, 184, 120, 0.6);
+        }
+        
+        .track-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .mute-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 10px;
+        }
+        
+        .mute-btn.muted {
+            background: rgba(180, 80, 80, 0.2);
+            border-color: rgba(180, 80, 80, 0.4);
+            color: #d08080;
+        }
+        
+        .visualizer-panel {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .viz-container {
+            background: rgba(15, 15, 25, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(180, 140, 80, 0.1);
+            padding: 20px;
+            flex: 1;
+        }
+        
+        .viz-title {
+            font-size: 11px;
+            color: #606070;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+        }
+        
+        #rhythmViz {
+            width: 100%;
+            height: 200px;
+        }
+        
+        .pattern-presets {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .preset-btn {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+        }
+        
+        .preset-btn .desc {
+            display: block;
+            color: #606070;
+            font-size: 10px;
+            margin-top: 2px;
+            text-transform: none;
+        }
+        
+        .help {
+            padding: 20px 40px;
+            border-top: 1px solid rgba(180, 140, 80, 0.1);
+            font-size: 11px;
+            color: #505060;
+            letter-spacing: 0.5px;
+        }
+        
+        .help span {
+            color: #808090;
+            margin-right: 16px;
+        }
+        
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 15, 0.98);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .overlay h2 {
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            color: #d4b878;
+        }
+        
+        .overlay p {
+            color: #606070;
+            font-size: 13px;
+            max-width: 400px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        .start-btn {
+            padding: 16px 48px;
+            font-size: 14px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay">
+        <h2>POLYRHYTHM SEQUENCER</h2>
+        <p>Explore the mathematics of layered rhythms. Each track plays a different subdivision of the beat — when they align, patterns emerge.</p>
+        <button class="start-btn" onclick="startAudio()">Click to Begin</button>
+    </div>
+
+    <header class="header">
+        <div>
+            <h1>POLYRHYTHM SEQUENCER</h1>
+            <div class="subtitle">Layered Rhythmic Explorer — Web Audio API</div>
+        </div>
+        <div class="master-controls">
+            <button id="playBtn" onclick="togglePlay()">Play</button>
+            <div class="tempo-display" id="tempoDisplay">120 BPM</div>
+            <button onclick="changeTempo(-5)">−</button>
+            <button onclick="changeTempo(5)">+</button>
+            <button onclick="clearAll()">Clear</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="sequencer-panel" id="sequencerPanel">
+            <!-- Tracks generated by JS -->
+        </div>
+        
+        <div class="visualizer-panel">
+            <div class="viz-container">
+                <div class="viz-title">Rhythm Visualization</div>
+                <canvas id="rhythmViz"></canvas>
+            </div>
+            
+            <div class="viz-container">
+                <div class="viz-title">Pattern Presets</div>
+                <div class="pattern-presets">
+                    <button class="preset-btn" onclick="loadPreset('afro')">
+                        Afro-Cuban
+                        <span class="desc">3 against 4 — clave foundation</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset('quintuplet')">
+                        Quintuplet Feel
+                        <span class="desc">5 against 4 — floating tension</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset('sextuplet')">
+                        Sextuplet Flow
+                        <span class="desc">6 against 4 — rolling momentum</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset('complex')">
+                        Complex Layer
+                        <span class="desc">7 against 5 against 4 — chaos beauty</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="help">
+        <span>Click steps to toggle</span>
+        <span>M to mute tracks</span>
+        <span>Space to play/pause</span>
+        <span>1-4 to toggle tracks</span>
+    </footer>
+
+    <script>
+        // Audio context and state
+        let audioCtx;
+        let isPlaying = false;
+        let tempo = 120;
+        let nextNoteTime = 0;
+        let scheduleAheadTime = 0.1;
+        let lookahead = 25;
+        let timerID;
+        
+        // Track configuration
+        const tracks = [
+            { name: 'KICK', subdivision: 4, freq: 60, decay: 0.3, color: '#d4b878', steps: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], muted: false },
+            { name: 'SNARE', subdivision: 4, freq: 200, decay: 0.15, color: '#c9a86c', steps: [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0], muted: false },
+            { name: 'HAT', subdivision: 8, freq: 800, decay: 0.05, color: '#b89860', steps: [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1], muted: false },
+            { name: 'RIM', subdivision: 6, freq: 1200, decay: 0.08, color: '#a88858', steps: [1,0,0,1,0,0, 1,0,0,1,0,0, 1,0,0,1,0,0, 1,0,0,1,0,0], muted: true }
+        ];
+        
+        let currentStep = [0, 0, 0, 0];
+        
+        // Initialize audio context
+        function startAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('overlay').classList.add('hidden');
+        }
+        
+        // Sound synthesis
+        function playDrumSound(freq, decay, time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            // Kick-like pitch envelope
+            if (freq < 100) {
+                osc.frequency.setValueAtTime(freq * 2, time);
+                osc.frequency.exponentialRampToValueAtTime(freq, time + 0.05);
+            } else {
+                osc.frequency.setValueAtTime(freq, time);
+            }
+            
+            // Filter for character
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(freq * 8, time);
+            filter.frequency.exponentialRampToValueAtTime(freq * 2, time + decay);
+            
+            // Amplitude envelope
+            gain.gain.setValueAtTime(0.5, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+            
+            osc.start(time);
+            osc.stop(time + decay);
+        }
+        
+        // Scheduler
+        function nextNote() {
+            const secondsPerBeat = 60.0 / tempo;
+            nextNoteTime += secondsPerBeat;
+        }
+        
+        function scheduleNote(stepNumber, time) {
+            tracks.forEach((track, trackIndex) => {
+                const stepInTrack = stepNumber % track.steps.length;
+                if (track.steps[stepInTrack] && !track.muted) {
+                    playDrumSound(track.freq, track.decay, time);
+                }
+                
+                // Update visual
+                setTimeout(() => {
+                    updateStepVisuals(trackIndex, stepInTrack);
+                }, (time - audioCtx.currentTime) * 1000);
+            });
+        }
+        
+        function scheduler() {
+            while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+                scheduleNote(Math.floor(nextNoteTime * tempo / 60), nextNoteTime);
+                nextNote();
+            }
+            timerID = setTimeout(scheduler, lookahead);
+        }
+        
+        // Playback control
+        function togglePlay() {
+            if (!audioCtx) return;
+            
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn');
+            
+            if (isPlaying) {
+                btn.textContent = 'Stop';
+                btn.classList.add('active');
+                nextNoteTime = audioCtx.currentTime;
+                scheduler();
+            } else {
+                btn.textContent = 'Play';
+                btn.classList.remove('active');
+                clearTimeout(timerID);
+            }
+        }
+        
+        function changeTempo(delta) {
+            tempo = Math.max(60, Math.min(200, tempo + delta));
+            document.getElementById('tempoDisplay').textContent = tempo + ' BPM';
+        }
+        
+        // UI Generation
+        function createSequencer() {
+            const panel = document.getElementById('sequencerPanel');
+            panel.innerHTML = '';
+            
+            tracks.forEach((track, trackIndex) => {
+                const trackEl = document.createElement('div');
+                trackEl.className = 'track';
+                
+                trackEl.innerHTML = `
+                    <div class="track-info">
+                        <div class="track-name">${track.name}</div>
+                        <div class="track-sub">1/${track.subdivision} notes</div>
+                    </div>
+                    <div class="step-grid" id="track-${trackIndex}">
+                        ${track.steps.map((active, i) => `
+                            <div class="step ${active ? 'active' : ''}" 
+                                 onclick="toggleStep(${trackIndex}, ${i})"
+                                 data-step="${i}"></div>
+                        `).join('')}
+                    </div>
+                    <div class="track-controls">
+                        <button class="mute-btn ${track.muted ? 'muted' : ''}" 
+                                onclick="toggleMute(${trackIndex})"
+                                id="mute-${trackIndex}">M</button>
+                    </div>
+                `;
+                
+                panel.appendChild(trackEl);
+            });
+        }
+        
+        function toggleStep(trackIndex, stepIndex) {
+            tracks[trackIndex].steps[stepIndex] = !tracks[trackIndex].steps[stepIndex];
+            const stepEl = document.querySelector(`#track-${trackIndex} [data-step="${stepIndex}"]`);
+            stepEl.classList.toggle('active');
+        }
+        
+        function toggleMute(trackIndex) {
+            tracks[trackIndex].muted = !tracks[trackIndex].muted;
+            const btn = document.getElementById(`mute-${trackIndex}`);
+            btn.classList.toggle('muted');
+        }
+        
+        function updateStepVisuals(trackIndex, stepIndex) {
+            // Remove current class from all steps in track
+            document.querySelectorAll(`#track-${trackIndex} .step`).forEach(el => {
+                el.classList.remove('current', 'playing');
+            });
+            
+            // Add current to current step
+            const stepEl = document.querySelector(`#track-${trackIndex} [data-step="${stepIndex}"]`);
+            if (stepEl) {
+                stepEl.classList.add('current');
+                if (tracks[trackIndex].steps[stepIndex]) {
+                    stepEl.classList.add('playing');
+                }
+            }
+        }
+        
+        function clearAll() {
+            tracks.forEach((track, trackIndex) => {
+                track.steps.fill(0);
+                document.querySelectorAll(`#track-${trackIndex} .step`).forEach(el => {
+                    el.classList.remove('active');
+                });
+            });
+        }
+        
+        // Presets
+        function loadPreset(name) {
+            clearAll();
+            
+            const presets = {
+                afro: [
+                    [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0], // kick
+                    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], // snare
+                    [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0], // hat
+                    [1,0,0,1,0,0, 0,1,0,0,1,0, 1,0,0,0]   // rim (3-2 clave)
+                ],
+                quintuplet: [
+                    [1,0,0,0,0, 1,0,0,0,0, 1,0,0,0,0, 1,0,0,0,0],
+                    [0,0,1,0,0, 0,0,1,0,0, 0,0,1,0,0, 0,0,1,0,0],
+                    [1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1],
+                    [1,0,0,0,1, 0,0,1,0,0, 0,1,0,0,0, 1,0,0,1,0]
+                ],
+                sextuplet: [
+                    [1,0,0,0,0,0, 1,0,0,0,0,0, 1,0,0,0,0,0, 1,0,0,0,0,0],
+                    [0,0,0,1,0,0, 0,0,0,1,0,0, 0,0,0,1,0,0, 0,0,0,1,0,0],
+                    [1,0,1,0,1,0, 1,0,1,0,1,0, 1,0,1,0,1,0, 1,0,1,0,1,0],
+                    [1,0,1,0,0,1, 0,1,0,0,1,0, 1,0,0,1,0,1, 0,0,1,0,1,0]
+                ],
+                complex: [
+                    [1,0,0,0,0,0,0, 1,0,0,0,0,0,0, 1,0,0,0,0,0,0, 1,0,0,0,0,0,0, 1,0,0,0,0,0,0, 1,0,0,0,0,0,0, 1,0,0,0,0,0,0],
+                    [0,0,0,0,1,0,0,0,0, 0,0,0,0,1,0,0,0,0, 0,0,0,0,1,0,0,0,0, 0,0,0,0,1,0,0,0,0, 0,0,0,0,1,0,0,0,0],
+                    [1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0],
+                    [1,0,0,1,0,0,0, 0,1,0,0,0,1,0, 0,0,1,0,0,0,1, 0,0,0,1,0,0,0, 1,0,0,0,1,0,0, 0,1,0,0,0,1,0, 0,0,1,0,0,0,1]
+                ]
+            };
+            
+            const preset = presets[name];
+            if (!preset) return;
+            
+            tracks.forEach((track, trackIndex) => {
+                if (preset[trackIndex]) {
+                    // Pad or truncate to match track length
+                    const pattern = preset[trackIndex];
+                    for (let i = 0; i < track.steps.length && i < pattern.length; i++) {
+                        track.steps[i] = pattern[i];
+                    }
+                }
+            });
+            
+            createSequencer();
+        }
+        
+        // Visualization
+        function initVisualizer() {
+            const canvas = document.getElementById('rhythmViz');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            function draw() {
+                ctx.fillStyle = 'rgba(15, 15, 25, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const maxRadius = Math.min(centerX, centerY) - 20;
+                
+                tracks.forEach((track, i) => {
+                    if (track.muted) return;
+                    
+                    const radius = maxRadius * (0.3 + i * 0.2);
+                    const activeSteps = track.steps.filter(s => s).length;
+                    
+                    ctx.strokeStyle = track.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.3 + (activeSteps / track.steps.length) * 0.5;
+                    
+                    ctx.beginPath();
+                    for (let s = 0; s < track.steps.length; s++) {
+                        const angle = (s / track.steps.length) * Math.PI * 2 - Math.PI / 2;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius;
+                        
+                        if (s === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                        
+                        if (track.steps[s]) {
+                            ctx.fillStyle = track.color;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                });
+                
+                ctx.globalAlpha = 1;
+                requestAnimationFrame(draw);
+            }
+            
+            draw();
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            }
+            if (e.key >= '1' && e.key <= '4') {
+                toggleMute(parseInt(e.key) - 1);
+            }
+        });
+        
+        // Initialize
+        createSequencer();
+        initVisualizer();
+    </script>
+</body>
+</html>
