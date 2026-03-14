@@ -174,18 +174,18 @@ export function OrbitalBackground() {
         }
 
         // Draw mouse connections
-        const mouse = mouseRef.current;
+        const mousePos = mouseRef.current;
         ctx.strokeStyle = "rgba(220, 38, 38, 0.2)";
         
         for (let i = 0; i < particles.length; i += 3) {
-          const dx = mouse.x - particles[i].x;
-          const dy = mouse.y - particles[i].y;
+          const dx = mousePos.x - particles[i].x;
+          const dy = mousePos.y - particles[i].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < 200) {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(mouse.x, mouse.y);
+            ctx.lineTo(mousePos.x, mousePos.y);
             ctx.stroke();
           }
         }

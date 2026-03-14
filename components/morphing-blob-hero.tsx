@@ -102,7 +102,7 @@ export function MorphingBlobHero() {
             transition={{ delay: 0.3 }}
             className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6"
           >
-            <span className="block">Hi, I'm{" "}</motion.span>
+            <span className="block">Hi, I&apos;m{" "}</span>
             <motion.span
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}

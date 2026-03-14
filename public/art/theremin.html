@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Theremin — Nemo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e4e4e7;
+      min-height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      background: linear-gradient(180deg, rgba(10,10,15,0.9) 0%, transparent 100%);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #71717a;
+      margin-top: 4px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    button {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e4e4e7;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    button.active {
+      background: #7c3aed;
+      border-color: #7c3aed;
+    }
+
+    .waveform-select {
+      display: flex;
+      gap: 8px;
+    }
+
+    .wave-btn {
+      padding: 8px 16px;
+      font-size: 0.8rem;
+    }
+
+    .wave-btn.active {
+      background: #06b6d4;
+      border-color: #06b6d4;
+    }
+
+    .theremin-area {
+      flex: 1;
+      position: relative;
+      cursor: crosshair;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .instructions {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: #71717a;
+      font-size: 0.9rem;
+      pointer-events: none;
+      background: rgba(10,10,15,0.8);
+      padding: 12px 24px;
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+    }
+
+    .freq-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .freq-display.visible {
+      opacity: 1;
+    }
+
+    .freq-value {
+      font-size: 4rem;
+      font-weight: 200;
+      color: #06b6d4;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .freq-label {
+      font-size: 0.9rem;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    .axis-labels {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+
+    .axis-label {
+      position: absolute;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.2);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .axis-label.pitch-left {
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      transform-origin: left center;
+    }
+
+    .axis-label.pitch-right {
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%) rotate(90deg);
+      transform-origin: right center;
+    }
+
+    .axis-label.vol-top {
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .axis-label.vol-bottom {
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .back-link {
+      position: absolute;
+      top: 24px;
+      left: 32px;
+      color: #71717a;
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.2s ease;
+      z-index: 11;
+    }
+
+    .back-link:hover {
+      color: #e4e4e7;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">← Back to Gallery</a>
+  
+  <div class="container">
+    <header>
+      <div>
+        <h1>Theremin</h1>
+        <div class="subtitle">Touch the space — pitch ↔ horizontal · volume ↔ vertical</div>
+      </div>
+      <div class="controls">
+        <div class="waveform-select">
+          <button class="wave-btn active" data-wave="sine">Sine</button>
+          <button class="wave-btn" data-wave="triangle">Triangle</button>
+          <button class="wave-btn" data-wave="sawtooth">Saw</button>
+          <button class="wave-btn" data-wave="square">Square</button>
+        </div>
+        <button id="toggleBtn">Start</button>
+      </div>
+    </header>
+
+    <div class="theremin-area" id="thereminArea">
+      <div class="grid-overlay"></div>
+      <div class="axis-labels">
+        <span class="axis-label pitch-left">Low Pitch</span>
+        <span class="axis-label pitch-right">High Pitch</span>
+        <span class="axis-label vol-top">Loud</span>
+        <span class="axis-label vol-bottom">Quiet</span>
+      </div>
+      <canvas id="visualizer"></canvas>
+      <div class="freq-display" id="freqDisplay">
+        <div class="freq-value" id="freqValue">440</div>
+        <div class="freq-label">Hz</div>
+      </div>
+      <div class="instructions" id="instructions">
+        Click or touch to begin · Move horizontally for pitch · Move vertically for volume
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Audio context and nodes
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+    let filterNode = null;
+    let analyser = null;
+    let isPlaying = false;
+    let currentWaveform = 'sine';
+    
+    // Interaction state
+    let isDragging = false;
+    let currentX = 0.5;
+    let currentY = 0.5;
+    let targetFreq = 440;
+    let currentFreq = 440;
+    let targetVol = 0;
+    let currentVol = 0;
+    
+    // Smoothing
+    const freqSmoothing = 0.15;
+    const volSmoothing = 0.1;
+    
+    // Frequency range (logarithmic scale)
+    const minFreq = 65.41;  // C2
+    const maxFreq = 1046.5; // C6
+    
+    // DOM elements
+    const thereminArea = document.getElementById('thereminArea');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const freqDisplay = document.getElementById('freqDisplay');
+    const freqValue = document.getElementById('freqValue');
+    const instructions = document.getElementById('instructions');
+    const waveBtns = document.querySelectorAll('.wave-btn');
+    
+    // Initialize canvas size
+    function resizeCanvas() {
+      canvas.width = thereminArea.clientWidth;
+      canvas.height = thereminArea.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Initialize audio
+    function initAudio() {
+      if (audioContext) return;
+      
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Create oscillator
+      oscillator = audioContext.createOscillator();
+      oscillator.type = currentWaveform;
+      oscillator.frequency.value = 440;
+      
+      // Create gain node for volume
+      gainNode = audioContext.createGain();
+      gainNode.gain.value = 0;
+      
+      // Create lowpass filter for warmer sound
+      filterNode = audioContext.createBiquadFilter();
+      filterNode.type = 'lowpass';
+      filterNode.frequency.value = 2000;
+      filterNode.Q.value = 1;
+      
+      // Create analyser for visualization
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      
+      // Connect nodes: osc -> filter -> gain -> analyser -> destination
+      oscillator.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(analyser);
+      analyser.connect(audioContext.destination);
+      
+      oscillator.start();
+    }
+    
+    // Map position to frequency (logarithmic)
+    function xToFreq(x) {
+      const t = Math.max(0, Math.min(1, x));
+      const logMin = Math.log2(minFreq);
+      const logMax = Math.log2(maxFreq);
+      return Math.pow(2, logMin + t * (logMax - logMin));
+    }
+    
+    // Map position to volume
+    function yToVol(y) {
+      // Top of screen (y=0) = loud, bottom (y=1) = quiet
+      const t = Math.max(0, Math.min(1, 1 - y));
+      // Exponential curve for more natural feel
+      return Math.pow(t, 2) * 0.8;
+    }
+    
+    // Update audio parameters
+    function updateAudio() {
+      if (!oscillator || !gainNode) return;
+      
+      // Smooth frequency changes
+      currentFreq += (targetFreq - currentFreq) * freqSmoothing;
+      currentVol += (targetVol - currentVol) * volSmoothing;
+      
+      oscillator.frequency.setValueAtTime(currentFreq, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(currentVol, audioContext.currentTime);
+      
+      // Update filter based on frequency for warmth
+      const filterFreq = Math.min(8000, currentFreq * 4);
+      filterNode.frequency.setValueAtTime(filterFreq, audioContext.currentTime);
+      
+      // Update display
+      freqValue.textContent = Math.round(currentFreq);
+    }
+    
+    // Handle pointer events
+    function handleStart(e) {
+      isDragging = true;
+      instructions.style.opacity = '0';
+      freqDisplay.classList.add('visible');
+      handleMove(e);
+    }
+    
+    function handleMove(e) {
+      if (!isDragging) return;
+      
+      const rect = thereminArea.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      currentX = (clientX - rect.left) / rect.width;
+      currentY = (clientY - rect.top) / rect.height;
+      
+      targetFreq = xToFreq(currentX);
+      targetVol = yToVol(currentY);
+    }
+    
+    function handleEnd() {
+      isDragging = false;
+      targetVol = 0;
+      freqDisplay.classList.remove('visible');
+      instructions.style.opacity = '1';
+    }
+    
+    // Event listeners
+    thereminArea.addEventListener('mousedown', handleStart);
+    thereminArea.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    
+    thereminArea.addEventListener('touchstart', handleStart, { passive: false });
+    thereminArea.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+    
+    // Toggle button
+    toggleBtn.addEventListener('click', () => {
+      if (!audioContext) {
+        initAudio();
+      }
+      
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
+      isPlaying = !isPlaying;
+      toggleBtn.textContent = isPlaying ? 'Stop' : 'Start';
+      toggleBtn.classList.toggle('active', isPlaying);
+      
+      if (!isPlaying) {
+        targetVol = 0;
+        currentVol = 0;
+        if (gainNode) gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      }
+    });
+    
+    // Waveform selection
+    waveBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        waveBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentWaveform = btn.dataset.wave;
+        if (oscillator) {
+          oscillator.type = currentWaveform;
+        }
+      });
+    });
+    
+    // Visualization
+    const bufferLength = 2048;
+    const dataArray = new Uint8Array(bufferLength);
+    let time = 0;
+    
+    function draw() {
+      requestAnimationFrame(draw);
+      updateAudio();
+      
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      ctx.fillStyle = '#0a0a0f';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw interaction cursor
+      if (isDragging || currentVol > 0.01) {
+        const cx = currentX * width;
+        const cy = currentY * height;
+        
+        // Glow
+        const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100);
+        gradient.addColorStop(0, `rgba(6, 182, 212, ${currentVol * 0.5})`);
+        gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(cx - 100, cy - 100, 200, 200);
+        
+        // Cursor
+        ctx.beginPath();
+        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#06b6d4';
+        ctx.fill();
+        
+        // Crosshairs
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, height);
+        ctx.moveTo(0, cy);
+        ctx.lineTo(width, cy);
+        ctx.stroke();
+      }
+      
+      // Draw waveform
+      if (analyser && isPlaying) {
+        analyser.getByteTimeDomainData(dataArray);
+        
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(124, 58, 237, ${0.3 + currentVol * 0.7})`;
+        ctx.beginPath();
+        
+        const sliceWidth = width / bufferLength;
+        let x = 0;
+        
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = height / 2 + (v - 1) * height / 4 * currentVol;
+          
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          
+          x += sliceWidth;
+        }
+        
+        ctx.stroke();
+      }
+      
+      // Draw frequency indicator bar at bottom
+      if (currentVol > 0.01) {
+        const barWidth = width * 0.8;
+        const barX = width * 0.1;
+        const barY = height - 40;
+        
+        // Background
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(barX, barY, barWidth, 4);
+        
+        // Active portion
+        const freqT = (Math.log2(currentFreq) - Math.log2(minFreq)) / (Math.log2(maxFreq) - Math.log2(minFreq));
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(barX, barY, barWidth * freqT, 4);
+        
+        // Glow at current position
+        const glowX = barX + barWidth * freqT;
+        const glowGrad = ctx.createRadialGradient(glowX, barY + 2, 0, glowX, barY + 2, 20);
+        glowGrad.addColorStop(0, 'rgba(6, 182, 212, 0.8)');
+        glowGrad.addColorStop(1, 'rgba(6, 182, 212, 0)');
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(glowX - 20, barY - 18, 40, 40);
+      }
+      
+      time += 0.01;
+    }
+    
+    draw();
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        toggleBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -420,7 +420,7 @@ export default function ColorStudioPage() {
                 <h3 className="font-semibold mb-4">Color Count: {colorCount}</h3>
                 <Slider
                   value={[colorCount]}
-                  onValueChange(([v]) => setColorCount(v)}
+                  onValueChange={(value) => setColorCount(value[0])}
                   min={2}
                   max={8}
                   step={1}

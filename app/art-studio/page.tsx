@@ -552,7 +552,8 @@ export default function GenerativeArtPage() {
               style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center" }}
             >
               {/* Grid */}
-              <{showGrid && (
+              {/* Grid */}
+              {showGrid && (
                 <div className="absolute inset-0 opacity-10">
                   <svg width="100%" height="100%">
                     <defs>
