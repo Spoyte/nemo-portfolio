@@ -1,765 +1,634 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Minimize,
-  Settings,
-  Film,
-  Sparkles,
-  Code2,
-  Palette,
-  Zap,
-  Clock,
-  ChevronRight,
-  Star,
-  Heart,
-  Share2,
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Settings, 
+  Code2, 
+  Terminal,
+  Copy,
+  Check,
   Download,
-  Subtitles,
+  Share2,
+  Maximize2,
+  Minimize2,
+  Type,
+  Zap,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { ScrollReveal } from "@/components/scroll-animations";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface CinemaScene {
+interface CodeScene {
   id: string;
   title: string;
   description: string;
-  code: string;
   language: string;
-  duration: number;
-  tags: string[];
-  color: string;
+  code: string;
+  theme: "dark" | "light" | "cyberpunk" | "matrix";
+  speed: number;
+  cursorStyle: "block" | "line" | "underscore";
 }
 
-const cinemaScenes: CinemaScene[] = [
+const codeScenes: CodeScene[] = [
   {
-    id: "1",
-    title: "The Birth of React",
-    description: "Watch how a simple component comes to life",
+    id: "react-component",
+    title: "React Component Creation",
+    description: "Watch a React component come to life with hooks and TypeScript",
     language: "tsx",
-    duration: 15,
-    tags: ["React", "Components"],
-    color: "#61DAFB",
+    theme: "dark",
+    speed: 50,
+    cursorStyle: "line",
     code: `import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
-export function MagicCounter() {
-  const [count, setCount] = useState(0);
+interface CounterProps {
+  initialValue?: number;
+  step?: number;
+}
+
+export function Counter({ 
+  initialValue = 0, 
+  step = 1 
+}: CounterProps) {
+  const [count, setCount] = useState(initialValue);
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
-    if (count > 0) {
-      setIsAnimating(true);
-      const timer = setTimeout(() => setIsAnimating(false), 300);
-      return () => clearTimeout(timer);
-    }
+    console.log(\`Count changed to: \${count}\`);
   }, [count]);
 
-  return (
-    <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500">
-      <h2 className="text-2xl font-bold text-white mb-4">
-        Magic Counter
-      </h2>
-      
-      <div className={\`
-        text-6xl font-bold text-white text-center
-        transition-transform duration-300
-        \${isAnimating ? 'scale-125' : 'scale-100'}
-      \`}>
-        {count}
-      </div>
-      
-      <div className="flex gap-3 mt-6 justify-center">
-        <button
-          onClick={() => setCount(c => c + 1)}
-          className="px-6 py-3 bg-white/20 hover:bg-white/30 
-                     rounded-xl text-white font-medium
-                     transition-all active:scale-95"
-        >
-          ✨ Add Magic
-        </button>
-        
-        <button
-          onClick={() => setCount(0)}
-          className="px-6 py-3 bg-white/10 hover:bg-white/20 
-                     rounded-xl text-white/80
-                     transition-all active:scale-95"
-        >
-          Reset
-        </button>
-      </div>
-    </div>
-  );
-}`,
-  },
-  {
-    id: "2",
-    title: "The Animation Awakens",
-    description: "Bringing motion to static interfaces",
-    language: "tsx",
-    duration: 20,
-    tags: ["Framer Motion", "Animation"],
-    color: "#FF6B6B",
-    code: `import { motion, AnimatePresence } from 'framer-motion';
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 100,
-      damping: 12
-    }
-  }
-};
-
-export function AnimatedGrid() {
-  const items = ['Design', 'Code', 'Ship', 'Repeat'];
+  const increment = () => {
+    setIsAnimating(true);
+    setCount(prev => prev + step);
+    setTimeout(() => setIsAnimating(false), 300);
+  };
 
   return (
     <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="grid grid-cols-2 gap-4 p-6"
+      className="p-6 rounded-2xl bg-card"
+      whileHover={{ scale: 1.02 }}
     >
-      {items.map((item, index) => (
-        <motion.div
-          key={item}
-          variants={itemVariants}
-          whileHover={{ 
-            scale: 1.05,
-            rotate: index % 2 === 0 ? 2 : -2
-          }}
-          whileTap={{ scale: 0.95 }}
-          className={\`
-            p-8 rounded-2xl font-bold text-xl text-white
-            flex items-center justify-center cursor-pointer
-            \${index === 0 ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
-              : index === 1 ? 'bg-gradient-to-br from-purple-500 to-pink-500'
-              : index === 2 ? 'bg-gradient-to-br from-orange-500 to-red-500'
-              : 'bg-gradient-to-br from-green-500 to-emerald-500'
-            }
-          \`}
-        >
-          {item}
-        </motion.div>
-      ))}
+      <h2 className="text-2xl font-bold mb-4">
+        Count: {count}
+      </h2>
+      <button
+        onClick={increment}
+        className="px-4 py-2 bg-primary rounded-lg"
+      >
+        Increment
+      </button>
     </motion.div>
   );
-}`,
+}`
   },
   {
-    id: "3",
-    title: "The TypeScript Chronicles",
-    description: "Type safety in a dynamic world",
+    id: "api-route",
+    title: "Next.js API Route",
+    description: "Building a type-safe API endpoint with error handling",
     language: "ts",
-    duration: 18,
-    tags: ["TypeScript", "Types"],
-    color: "#3178C6",
-    code: `// Define our universe
-type Status = 'idle' | 'loading' | 'success' | 'error';
+    theme: "cyberpunk",
+    speed: 40,
+    cursorStyle: "block",
+    code: `import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'guest';
-  metadata?: Record<string, unknown>;
-}
+const userSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  age: z.number().min(18).optional(),
+});
 
-interface ApiResponse<T> {
-  data: T;
-  status: Status;
-  timestamp: Date;
-  message?: string;
-}
-
-// The guardian function
-type Result<T, E = Error> = 
-  | { ok: true; value: T }
-  | { ok: false; error: E };
-
-async function fetchUser(id: string): Promise<Result<User>> {
+export async function POST(request: NextRequest) {
   try {
-    const response = await fetch(\`/api/users/\${id}\`);
+    const body = await request.json();
     
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: new Error(\`HTTP \${response.status}\`)
-      };
+    // Validate input
+    const validated = userSchema.parse(body);
+    
+    // Simulate database operation
+    const user = await prisma.user.create({
+      data: validated,
+    });
+    
+    return NextResponse.json(
+      { success: true, data: user },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, errors: error.errors },
+        { status: 400 }
+      );
     }
     
-    const data: ApiResponse<User> = await response.json();
-    
-    return { ok: true, value: data.data };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error : new Error('Unknown error')
-    };
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}`
+  },
+  {
+    id: "css-animation",
+    title: "CSS Keyframe Animation",
+    description: "Creating a mesmerizing loading animation with pure CSS",
+    language: "css",
+    theme: "matrix",
+    speed: 30,
+    cursorStyle: "underscore",
+    code: `@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
   }
 }
 
-// Usage with full type safety
-const result = await fetchUser('123');
+@keyframes rotate-gradient {
+  0% {
+    --angle: 0deg;
+  }
+  100% {
+    --angle: 360deg;
+  }
+}
 
-if (result.ok) {
-  console.log(result.value.name); // ✓ Type-safe access
-} else {
-  console.error(result.error.message); // ✓ Type-safe error handling
-}`,
+.loader {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from var(--angle),
+    #ff006e,
+    #8338ec,
+    #3a86ff,
+    #06ffa5,
+    #ffbe0b,
+    #ff006e
+  );
+  animation: rotate-gradient 3s linear infinite;
+  filter: blur(8px);
+}
+
+.loader::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: #000;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.loader::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #ff006e;
+  animation: pulse-ring 2s ease-in-out infinite;
+}`
   },
   {
-    id: "4",
-    title: "The Hook Heist",
-    description: "Stealing complexity with custom hooks",
-    language: "ts",
-    duration: 22,
-    tags: ["React", "Hooks"],
-    color: "#FFD93D",
-    code: `import { useState, useEffect, useCallback, useRef } from 'react';
+    id: "rust-function",
+    title: "Rust Async Function",
+    description: "Safe concurrent data processing with Rust's type system",
+    language: "rust",
+    theme: "light",
+    speed: 45,
+    cursorStyle: "line",
+    code: `use tokio::sync::mpsc;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-interface UseFetchOptions<T> {
-  url: string;
-  initialData?: T;
-  refreshInterval?: number;
-  onError?: (error: Error) => void;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct User {
+    id: u64,
+    name: String,
+    email: String,
+    created_at: chrono::DateTime<chrono::Utc>,
 }
 
-interface UseFetchReturn<T> {
-  data: T | undefined;
-  loading: boolean;
-  error: Error | null;
-  refetch: () => void;
-  abort: () => void;
+#[derive(Debug)]
+enum ProcessingError {
+    InvalidData(String),
+    DatabaseError(sqlx::Error),
+    Timeout,
 }
 
-export function useFetch<T>({
-  url,
-  initialData,
-  refreshInterval,
-  onError
-}: UseFetchOptions<T>): UseFetchReturn<T> {
-  const [data, setData] = useState<T | undefined>(initialData);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const fetchData = useCallback(async () => {
-    // Cancel previous request
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
+pub async fn process_users_batch(
+    users: Vec<User>,
+    batch_size: usize,
+) -> Result<HashMap<u64, User>, ProcessingError> {
+    let (tx, mut rx) = mpsc::channel(batch_size);
+    let mut handles = vec![];
     
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(url, {
-        signal: abortControllerRef.current.signal
-      });
-      
-      if (!response.ok) {
-        throw new Error(\`HTTP Error: \${response.status}\`);
-      }
-      
-      const result = await response.json();
-      setData(result);
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        setError(err);
-        onError?.(err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [url, onError]);
-
-  useEffect(() => {
-    fetchData();
-    
-    // Auto-refresh setup
-    let intervalId: NodeJS.Timeout;
-    if (refreshInterval && refreshInterval > 0) {
-      intervalId = setInterval(fetchData, refreshInterval);
+    // Spawn worker tasks
+    for chunk in users.chunks(batch_size) {
+        let chunk = chunk.to_vec();
+        let tx = tx.clone();
+        
+        let handle = tokio::spawn(async move {
+            for user in chunk {
+                // Validate user data
+                if user.name.is_empty() || !user.email.contains('@') {
+                    continue;
+                }
+                
+                // Process and send
+                if tx.send(user).await.is_err() {
+                    break;
+                }
+            }
+        });
+        
+        handles.push(handle);
     }
     
-    return () => {
-      abortControllerRef.current?.abort();
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [fetchData, refreshInterval]);
-
-  return {
-    data,
-    loading,
-    error,
-    refetch: fetchData,
-    abort: () => abortControllerRef.current?.abort()
-  };
-}`,
-  },
+    // Collect results
+    drop(tx);
+    let mut results = HashMap::new();
+    
+    while let Some(user) = rx.recv().await {
+        results.insert(user.id, user);
+    }
+    
+    // Wait for all tasks
+    for handle in handles {
+        handle.await.map_err(|_| ProcessingError::Timeout)?;
+    }
+    
+    Ok(results)
+}`
+  }
 ];
 
-// Syntax highlighting colors
-const syntaxColors: Record<string, string> = {
-  keyword: "#ff79c6",
-  string: "#f1fa8c",
-  comment: "#6272a4",
-  function: "#50fa7b",
-  number: "#bd93f9",
-  operator: "#ff79c6",
-  punctuation: "#f8f8f2",
-  tag: "#ff79c6",
-  attribute: "#50fa7b",
-  plain: "#f8f8f2",
+const themes = {
+  dark: {
+    bg: "#1e1e1e",
+    text: "#d4d4d4",
+    keyword: "#569cd6",
+    string: "#ce9178",
+    comment: "#6a9955",
+    function: "#dcdcaa",
+    number: "#b5cea8",
+    operator: "#d4d4d4",
+    cursor: "#d4d4d4",
+  },
+  light: {
+    bg: "#ffffff",
+    text: "#333333",
+    keyword: "#0000ff",
+    string: "#a31515",
+    comment: "#008000",
+    function: "#795e26",
+    number: "#098658",
+    operator: "#333333",
+    cursor: "#333333",
+  },
+  cyberpunk: {
+    bg: "#0a0a0f",
+    text: "#00ff9f",
+    keyword: "#ff00ff",
+    string: "#00ffff",
+    comment: "#7c7c7c",
+    function: "#ffaa00",
+    number: "#ff6b6b",
+    operator: "#00ff9f",
+    cursor: "#ff00ff",
+  },
+  matrix: {
+    bg: "#000000",
+    text: "#00ff41",
+    keyword: "#00cc33",
+    string: "#66ff66",
+    comment: "#008f11",
+    function: "#99ff99",
+    number: "#ccffcc",
+    operator: "#00ff41",
+    cursor: "#00ff41",
+  },
 };
 
-function highlightCode(code: string): JSX.Element[] {
-  const lines = code.split("\n");
-  return lines.map((line, lineIndex) => {
-    const parts: JSX.Element[] = [];
-    let remaining = line;
-    let keyIndex = 0;
+function syntaxHighlight(code: string, theme: keyof typeof themes) {
+  const colors = themes[theme];
+  
+  // Simple syntax highlighting
+  let highlighted = code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  
+  // Keywords
+  const keywords = /\b(import|export|from|const|let|var|function|return|if|else|try|catch|async|await|interface|type|enum|struct|impl|pub|use|mod|trait|where|for|while|loop|match|fn|mut|ref|move|box|dyn)\b/g;
+  highlighted = highlighted.replace(keywords, `<span style="color:${colors.keyword}">$1</span>`);
+  
+  // Strings
+  const strings = /(['"`])(.*?)(\1)/g;
+  highlighted = highlighted.replace(strings, `<span style="color:${colors.string}">$1$2$3</span>`);
+  
+  // Comments
+  const comments = /(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)/gm;
+  highlighted = highlighted.replace(comments, `<span style="color:${colors.comment}">$1</span>`);
+  
+  // Numbers
+  const numbers = /\b(\d+\.?\d*)\b/g;
+  highlighted = highlighted.replace(numbers, `<span style="color:${colors.number}">$1</span>`);
+  
+  return highlighted;
+}
 
-    // Simple syntax highlighting patterns
-    const patterns = [
-      { regex: /(\/\/.*$)/, type: "comment" },
-      { regex: /(\/\*[\s\S]*?\*\/)/, type: "comment" },
-      { regex: /('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)/, type: "string" },
-      { regex: /\b(import|export|from|const|let|var|function|return|if|else|for|while|switch|case|break|continue|try|catch|finally|async|await|new|this|class|interface|type|extends|implements|public|private|protected|static|readonly)\b/, type: "keyword" },
-      { regex: /\b(true|false|null|undefined)\b/, type: "keyword" },
-      { regex: /\b(\d+\.?\d*)\b/, type: "number" },
-      { regex: /\b([A-Z][a-zA-Z0-9]*)\b/, type: "function" },
-      { regex: /([{}[\]()])/g, type: "punctuation" },
-      { regex: /([=+\-*/<>!&|]+)/g, type: "operator" },
-    ];
-
-    while (remaining.length > 0) {
-      let matched = false;
-      
-      for (const pattern of patterns) {
-        const match = remaining.match(pattern.regex);
-        if (match && match.index === 0) {
-          const color = syntaxColors[pattern.type] || syntaxColors.plain;
-          parts.push(
-            <span key={keyIndex++} style={{ color }}>
-              {match[0]}
-            </span>
-          );
-          remaining = remaining.slice(match[0].length);
-          matched = true;
-          break;
-        }
-      }
-      
-      if (!matched) {
-        parts.push(
-          <span key={keyIndex++} style={{ color: syntaxColors.plain }}>
-            {remaining[0]}
-          </span>
-        );
-        remaining = remaining.slice(1);
-      }
+function TypewriterEffect({ 
+  text, 
+  isPlaying, 
+  speed, 
+  onComplete,
+  highlightedText 
+}: { 
+  text: string; 
+  isPlaying: boolean; 
+  speed: number;
+  onComplete?: () => void;
+  highlightedText: string;
+}) {
+  const [displayedChars, setDisplayedChars] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  
+  useEffect(() => {
+    if (!isPlaying) return;
+    
+    if (displayedChars < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedChars(prev => prev + 1);
+      }, speed);
+      return () => clearTimeout(timeout);
+    } else if (!isComplete) {
+      setIsComplete(true);
+      onComplete?.();
     }
-
-    return (
-      <div key={lineIndex} className="flex">
-        <span className="w-12 text-right pr-4 text-muted-foreground/50 select-none text-sm">
-          {lineIndex + 1}
-        </span>
-        <span className="flex-1 text-sm font-mono">{parts.length > 0 ? parts : " "}</span>
-      </div>
-    );
-  });
+  }, [displayedChars, isPlaying, speed, text.length, isComplete, onComplete]);
+  
+  const lines = text.slice(0, displayedChars).split('\n');
+  const highlightedLines = highlightedText.split('\n');
+  
+  return (
+    <div className="font-mono text-sm leading-relaxed">
+      {lines.map((line, i) => (
+        <div key={i} className="flex">
+          <span className="select-none text-muted-foreground w-12 text-right pr-4 opacity-50">
+            {i + 1}
+          </span>
+          <span 
+            className="flex-1"
+            dangerouslySetInnerHTML={{ 
+              __html: highlightedLines[i] || ''
+            }}
+          />
+        </div>
+      ))}
+      {isPlaying && displayedChars < text.length && (
+        <span className="animate-pulse">|</span>
+      )}
+    </div>
+  );
 }
 
 export default function CodeCinemaPage() {
-  const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
+  const [selectedScene, setSelectedScene] = useState<CodeScene>(codeScenes[0]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(80);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [showSubtitles, setShowSubtitles] = useState(true);
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [typedCode, setTypedCode] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [progress, setProgress] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const currentScene = cinemaScenes[currentSceneIndex];
-
-  // Typewriter effect for code
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const code = currentScene.code;
-    const duration = (currentScene.duration * 1000) / playbackSpeed;
-    const charDelay = duration / code.length;
-    let currentIndex = 0;
-
-    const interval = setInterval(() => {
-      if (currentIndex <= code.length) {
-        setTypedCode(code.slice(0, currentIndex));
-        setProgress((currentIndex / code.length) * 100);
-        currentIndex++;
-      } else {
-        setIsPlaying(false);
-        setProgress(100);
-      }
-    }, charDelay);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, currentScene, playbackSpeed]);
-
-  // Reset when scene changes
-  useEffect(() => {
-    setTypedCode("");
-    setProgress(0);
+  
+  const currentTheme = themes[selectedScene.theme];
+  const highlightedCode = syntaxHighlight(selectedScene.code, selectedScene.theme);
+  
+  const handlePlay = () => setIsPlaying(!isPlaying);
+  const handleReset = () => {
     setIsPlaying(false);
-  }, [currentSceneIndex]);
-
-  const handlePlayPause = () => {
-    if (progress >= 100) {
-      setProgress(0);
-      setTypedCode("");
-    }
-    setIsPlaying(!isPlaying);
+    setProgress(0);
+    setTimeout(() => setIsPlaying(true), 100);
   };
-
-  const handleSceneChange = (direction: "next" | "prev") => {
-    if (direction === "next") {
-      setCurrentSceneIndex((prev) => (prev + 1) % cinemaScenes.length);
-    } else {
-      setCurrentSceneIndex((prev) => (prev - 1 + cinemaScenes.length) % cinemaScenes.length);
-    }
+  
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(selectedScene.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      await containerRef.current?.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      await document.exitFullscreen();
-      setIsFullscreen(false);
-    }
+  
+  const handleSceneChange = (scene: CodeScene) => {
+    setSelectedScene(scene);
+    setIsPlaying(false);
+    setProgress(0);
+    setTimeout(() => setIsPlaying(true), 300);
   };
-
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    );
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
+  
   return (
-    <div className="min-h-screen pt-20 pb-8" ref={containerRef}>
+    <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <ScrollReveal className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: currentScene.color + "20" }}
-                >
-                  <Film className="w-6 h-6" style={{ color: currentScene.color }} />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold">Code Cinema</h1>
-                  <p className="text-muted-foreground text-sm">
-                    Watch code come to life, one keystroke at a time
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {formatTime(currentScene.duration / playbackSpeed)}
-              </Badge>
-              <Badge variant="secondary">{currentScene.language.toUpperCase()}</Badge>
-            </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+            <Terminal className="h-4 w-4" />
+            <span className="text-sm font-medium">Interactive Experience</span>
           </div>
-        </ScrollReveal>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+            Code <span className="text-gradient-animated">Cinema</span>
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Watch code come to life. Select a scene and enjoy the show as algorithms 
+            and components unfold before your eyes.
+          </p>
+        </motion.div>
+
+        {/* Scene Selector */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
+          {codeScenes.map((scene) => (
+            <button
+              key={scene.id}
+              onClick={() => handleSceneChange(scene)}
+              className={`p-4 rounded-xl border text-left transition-all ${
+                selectedScene.id === scene.id
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Code2 className="w-4 h-4 text-primary" />
+                <Badge variant="outline" className="text-xs">
+                  {scene.language}
+                </Badge>
+              </div>
+              <h3 className="font-semibold text-sm mb-1">{scene.title}</h3>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {scene.description}
+              </p>
+            </button>
+          ))}
+        </motion.div>
 
         {/* Cinema Screen */}
-        <ScrollReveal delay={0.1}>
-          <div className="relative rounded-2xl overflow-hidden bg-[#1e1e2e] border border-border shadow-2xl">
-            {/* Screen Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#181825] border-b border-border/50">
+        <motion.div
+          ref={containerRef}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className={`relative rounded-2xl overflow-hidden border border-border ${
+            isFullscreen ? "fixed inset-0 z-50 rounded-none" : ""
+          }`}
+          style={{ backgroundColor: currentTheme.bg }}
+        >
+          {/* Header Bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+              </div>
+              <span className="text-sm font-medium" style={{ color: currentTheme.text }}>
+                {selectedScene.title}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopy}
+                className="h-8 w-8"
+                style={{ color: currentTheme.text }}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="h-8 w-8"
+                style={{ color: currentTheme.text }}
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Code Display */}
+          <div 
+            className="p-6 overflow-auto"
+            style={{ 
+              backgroundColor: currentTheme.bg,
+              minHeight: isFullscreen ? "calc(100vh - 140px)" : "400px",
+              maxHeight: isFullscreen ? "calc(100vh - 140px)" : "500px"
+            }}
+          >
+            <TypewriterEffect
+              text={selectedScene.code}
+              highlightedText={highlightedCode}
+              isPlaying={isPlaying}
+              speed={selectedScene.speed / playbackSpeed}
+              onComplete={() => setIsPlaying(false)}
+            />
+          </div>
+
+          {/* Controls Bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 bg-black/20">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePlay}
+                className="h-9 w-9"
+                style={{ color: currentTheme.text }}
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleReset}
+                className="h-9 w-9"
+                style={{ color: currentTheme.text }}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                </div>
-                <span className="ml-4 text-sm text-muted-foreground font-mono">
-                  {currentScene.title.replace(/\s+/g, "-").toLowerCase()}.{currentScene.language}
+                <Zap className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Speed</span>
+                <Slider
+                  value={[playbackSpeed]}
+                  onValueChange={([v]) => setPlaybackSpeed(v)}
+                  min={0.5}
+                  max={3}
+                  step={0.5}
+                  className="w-24"
+                />
+                <span className="text-xs text-muted-foreground w-8">
+                  {playbackSpeed}x
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => toggleFavorite(currentScene.id)}
-                >
-                  <Heart
-                    className={`w-4 h-4 ${
-                      favorites.includes(currentScene.id) ? "fill-red-500 text-red-500" : ""
-                    }`}
-                  />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Share2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Code Display */}
-            <div className="relative h-[400px] md:h-[500px] overflow-auto p-6">
-              <div className="font-mono text-sm leading-relaxed">
-                {highlightCode(typedCode)}
-                {isPlaying && (
-                  <motion.span
-                    animate={{ opacity: [1, 0] }}
-                    transition={{ duration: 0.5, repeat: Infinity }}
-                    className="inline-block w-2 h-5 bg-primary ml-0.5"
-                  />
-                )}
-              </div>
-
-              {/* Subtitles */}
-              <AnimatePresence>
-                {showSubtitles && isPlaying && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/80 rounded-xl text-center"
-                  >
-                    <p className="text-white text-sm">{currentScene.description}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="h-1 bg-muted">
-              <motion.div
-                className="h-full bg-primary"
-                style={{ width: `${progress}%` }}
-                transition={{ duration: 0.1 }}
-              />
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center justify-between px-4 py-4 bg-[#181825] border-t border-border/50">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => handleSceneChange("prev")}>
-                  <SkipBack className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="default"
-                  size="icon"
-                  className="h-10 w-10"
-                  onClick={handlePlayPause}
-                >
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleSceneChange("next")}>
-                  <SkipForward className="w-5 h-5" />
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* Volume */}
-                <div className="hidden sm:flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsMuted(!isMuted)}>
-                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </Button>
-                  <Slider
-                    value={[isMuted ? 0 : volume]}
-                    onValueChange={([v]) => setVolume(v)}
-                    max={100}
-                    step={1}
-                    className="w-24"
-                  />
-                </div>
-
-                {/* Settings */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${showSettings ? "bg-primary/20" : ""}`}
-                  onClick={() => setShowSettings(!showSettings)}
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-
-                {/* Subtitles */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 ${showSubtitles ? "bg-primary/20" : ""}`}
-                  onClick={() => setShowSubtitles(!showSubtitles)}
-                >
-                  <Subtitles className="w-4 h-4" />
-                </Button>
-
-                {/* Fullscreen */}
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen}>
-                  {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-
-            {/* Settings Panel */}
-            <AnimatePresence>
-              {showSettings && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-[#181825] border-t border-border/50 px-4 py-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Playback Speed</span>
-                    <div className="flex gap-2">
-                      {[0.5, 1, 1.5, 2].map((speed) => (
-                        <Button
-                          key={speed}
-                          variant={playbackSpeed === speed ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPlaybackSpeed(speed)}
-                        >
-                          {speed}x
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </ScrollReveal>
-
-        {/* Scene Info */}
-        <ScrollReveal delay={0.2} className="mt-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">{currentScene.title}</h2>
-              <p className="text-muted-foreground">{currentScene.description}</p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {currentScene.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
-                    <Code2 className="w-3 h-3 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
-                <Download className="w-4 h-4" />
-                Download Code
-              </Button>
-              <Button className="gap-2">
-                <Sparkles className="w-4 h-4" />
-                Try It Live
-              </Button>
             </div>
           </div>
-        </ScrollReveal>
+        </motion.div>
 
-        {/* Scene Playlist */}
-        <ScrollReveal delay={0.3} className="mt-12">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-            <Film className="w-5 h-5 text-primary" />
-            More Scenes
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {cinemaScenes.map((scene, index) => (
-              <motion.button
-                key={scene.id}
-                onClick={() => setCurrentSceneIndex(index)}
-                className={`p-4 rounded-xl border text-left transition-all ${
-                  currentSceneIndex === index
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-                whileHover={{ y: -4 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: scene.color + "20" }}
-                  >
-                    <Code2 className="w-5 h-5" style={{ color: scene.color }} />
-                  </div>
-                  {favorites.includes(scene.id) && <Heart className="w-4 h-4 text-red-500 fill-red-500" />}
-                </div>
-                <h4 className="font-semibold mb-1 line-clamp-1">{scene.title}</h4>
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{scene.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{scene.language.toUpperCase()}</span>
-                  <span>{formatTime(scene.duration)}</span>
-                </div>
-              </motion.button>
-            ))}
+        {/* Features */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          <div className="p-6 rounded-xl bg-card border border-border">
+            <Type className="w-8 h-8 text-primary mb-4" />
+            <h3 className="font-semibold mb-2">Typewriter Effect</h3>
+            <p className="text-sm text-muted-foreground">
+              Watch code being typed character by character, just like a real developer at work.
+            </p>
           </div>
-        </ScrollReveal>
-
-        {/* Stats */}
-        <ScrollReveal delay={0.4} className="mt-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { icon: Film, label: "Total Scenes", value: cinemaScenes.length },
-              { icon: Clock, label: "Total Runtime", value: formatTime(cinemaScenes.reduce((acc, s) => acc + s.duration, 0)) },
-              { icon: Star, label: "Favorites", value: favorites.length },
-              { icon: Zap, label: "Languages", value: new Set(cinemaScenes.map((s) => s.language)).size },
-            ].map((stat) => (
-              <div key={stat.label} className="p-4 rounded-xl bg-card border border-border text-center">
-                <stat.icon className="w-5 h-5 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
+          <div className="p-6 rounded-xl bg-card border border-border">
+            <Sparkles className="w-8 h-8 text-primary mb-4" />
+            <h3 className="font-semibold mb-2">Syntax Highlighting</h3>
+            <p className="text-sm text-muted-foreground">
+              Beautiful color-coded syntax for multiple languages and themes.
+            </p>
           </div>
-        </ScrollReveal>
+          <div className="p-6 rounded-xl bg-card border border-border">
+            <Settings className="w-8 h-8 text-primary mb-4" />
+            <h3 className="font-semibold mb-2">Customizable</h3>
+            <p className="text-sm text-muted-foreground">
+              Adjust playback speed, themes, and cursor styles to your preference.
+            </p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

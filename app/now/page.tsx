@@ -1,474 +1,342 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
-  Rocket, 
-  Code2, 
-  BookOpen, 
+  Activity, 
   Coffee, 
+  Code2, 
   Music, 
-  Gamepad2,
-  MapPin,
-  Calendar,
-  Clock,
+  BookOpen, 
   Zap,
+  MapPin,
+  Clock,
   Target,
   Sparkles,
-  ArrowRight,
-  ExternalLink,
+  Radio,
   Github,
-  Twitter,
-  Linkedin,
-  Mail
+  Terminal,
+  Palette,
+  Globe
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ScrollReveal } from "@/components/scroll-animations";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import Link from "next/link";
 
-interface CurrentActivity {
-  id: string;
-  title: string;
-  description: string;
-  category: "work" | "learning" | "side-project" | "personal";
-  progress: number;
-  startedAt: string;
-  targetDate?: string;
-  icon: React.ElementType;
-  color: string;
-}
-
-interface CurrentlyReading {
-  title: string;
-  author: string;
-  progress: number;
-  cover?: string;
-}
-
-interface CurrentlyListening {
-  artist: string;
-  track: string;
-  album: string;
-}
-
-const currentActivities: CurrentActivity[] = [
+const currentActivities = [
   {
-    id: "1",
-    title: "Building AI-Powered Portfolio",
-    description: "Adding intelligent features like AI chat, code review, and generative art to my portfolio.",
-    category: "side-project",
-    progress: 85,
-    startedAt: "2024-01-15",
-    targetDate: "2024-03-15",
-    icon: Rocket,
-    color: "#F59E0B",
-  },
-  {
-    id: "2",
-    title: "Learning Rust",
-    description: "Diving into systems programming with Rust. Building CLI tools and WebAssembly modules.",
-    category: "learning",
-    progress: 45,
-    startedAt: "2024-02-01",
     icon: Code2,
-    color: "#DEA584",
+    title: "Building",
+    description: "Working on a real-time collaborative code editor",
+    status: "In Progress",
+    progress: 65,
+    color: "from-blue-500 to-cyan-500"
   },
   {
-    id: "3",
-    title: "Senior Frontend Developer",
-    description: "Leading frontend architecture at TechCorp. Building scalable React applications.",
-    category: "work",
-    progress: 100,
-    startedAt: "2022-03-01",
-    icon: Target,
-    color: "#3B82F6",
+    icon: Palette,
+    title: "Designing",
+    description: "Creating a new design system for a fintech startup",
+    status: "Active",
+    progress: 40,
+    color: "from-purple-500 to-pink-500"
   },
   {
-    id: "4",
-    title: "Writing Technical Blog",
-    description: "Sharing knowledge about React patterns, performance optimization, and modern web development.",
-    category: "personal",
-    progress: 60,
-    startedAt: "2024-01-01",
     icon: BookOpen,
-    color: "#10B981",
-  },
-];
-
-const currentlyReading: CurrentlyReading[] = [
-  {
-    title: "The Pragmatic Programmer",
-    author: "Andrew Hunt & David Thomas",
-    progress: 75,
+    title: "Learning",
+    description: "Deep diving into WebAssembly and Rust",
+    status: "Ongoing",
+    progress: 25,
+    color: "from-green-500 to-emerald-500"
   },
   {
-    title: "Designing Data-Intensive Applications",
-    author: "Martin Kleppmann",
-    progress: 30,
-  },
+    icon: Terminal,
+    title: "Experimenting",
+    description: "Building generative art algorithms with Canvas API",
+    status: "Active",
+    progress: 80,
+    color: "from-orange-500 to-yellow-500"
+  }
 ];
 
-const currentlyListening: CurrentlyListening = {
-  artist: "Tycho",
-  track: "Awake",
-  album: "Awake",
+const currentStack = [
+  { name: "Next.js 15", category: "Framework", color: "#000000" },
+  { name: "TypeScript", category: "Language", color: "#3178C6" },
+  { name: "Tailwind CSS", category: "Styling", color: "#06B6D4" },
+  { name: "Framer Motion", category: "Animation", color: "#FF4D4D" },
+  { name: "PostgreSQL", category: "Database", color: "#336791" },
+  { name: "Redis", category: "Cache", color: "#DC382D" },
+  { name: "Docker", category: "DevOps", color: "#2496ED" },
+  { name: "Figma", category: "Design", color: "#F24E1E" }
+];
+
+const recentlyCompleted = [
+  "Launched portfolio v2.0 with 20+ interactive features",
+  "Published 3 technical articles on my blog",
+  "Contributed to 2 open-source projects",
+  "Completed AWS Solutions Architect certification"
+];
+
+const listeningTo = {
+  title: "Midnight City",
+  artist: "M83",
+  album: "Hurry Up, We're Dreaming",
+  isPlaying: true
 };
 
 const location = {
-  city: "San Francisco",
-  country: "CA",
-  timezone: "PST",
-  weather: "☀️ 18°C",
+  city: "Shanghai",
+  country: "China",
+  timezone: "CST (UTC+8)",
+  weather: "Clear, 18°C"
 };
 
-const categoryColors = {
-  work: "bg-blue-500",
-  learning: "bg-amber-500",
-  "side-project": "bg-purple-500",
-  personal: "bg-green-500",
-};
-
-const categoryLabels = {
-  work: "Work",
-  learning: "Learning",
-  "side-project": "Side Project",
-  personal: "Personal",
-};
-
-function ActivityCard({ activity, index }: { activity: CurrentActivity; index: number }) {
-  const Icon = activity.icon;
-  const [isHovered, setIsHovered] = useState(false);
-  
+export default function NowPage() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="group relative p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all"
-    >
-      {/* Glow effect */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity -z-10"
-        style={{
-          background: `radial-gradient(circle at center, ${activity.color}10, transparent 70%)`,
-        }}
-      />
-      
-      <div className="flex items-start gap-4">
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: `${activity.color}20` }}
-        >
-          <Icon className="w-6 h-6" style={{ color: activity.color }} />
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge 
-              variant="secondary" 
-              className="text-xs"
-              style={{ backgroundColor: `${activity.color}20`, color: activity.color }}
-            >
-              {categoryLabels[activity.category]}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              Started {new Date(activity.startedAt).toLocaleDateString()}
-            </span>
-          </div>
-          
-          <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
-            {activity.title}
-          </h3>
-          
-          <p className="text-sm text-muted-foreground mb-3">
-            {activity.description}
-          </p>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{activity.progress}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${activity.progress}%` }}
-                transition={{ duration: 1, delay: index * 0.1 + 0.3 }}
-                className="h-full rounded-full"
-                style={{ backgroundColor: activity.color }}
-              />
-            </div>
-          </div>
-          
-          {activity.targetDate && (
-            <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-              <Target className="w-3 h-3" />
-              <span>Target: {new Date(activity.targetDate).toLocaleDateString()}</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function NowPage() {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeTab, setActiveTab] = useState<"activities" | "reading" | "listening">("activities");
-  
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
-  return (
-    <div className="min-h-screen py-20">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-            <Zap className="w-4 h-4" />
-            <span className="text-sm font-medium">Live Updates</span>
+        <ScrollReveal className="mb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+              <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-75" />
+            </div>
+            <span className="text-sm font-medium text-green-500">Currently Online</span>
           </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            What I&apos;m Doing{" "}
-            <span className="text-gradient-animated">Now</span>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+            What I&apos;m{" "}
+            <span className="text-gradient-animated">Doing Now</span>
           </h1>
-          
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A real-time snapshot of my current projects, learning journey, and daily activities.
+          <p className="text-muted-foreground text-lg max-w-2xl">
+            A real-time snapshot of my current focus, projects, and interests. 
+            Last updated: March 14, 2026.
           </p>
-        </motion.div>
-        
-        {/* Location & Time Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12"
-        >
-          <div className="p-6 rounded-2xl bg-card border flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Location</p>
-              <p className="text-lg font-semibold">{location.city}, {location.country}</p>
-            </div>
-          </div>
-          
-          <div className="p-6 rounded-2xl bg-card border flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Clock className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Local Time</p>
-              <p className="text-lg font-semibold font-mono">
-                {currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </p>
-            </div>
-          </div>
-          
-          <div className="p-6 rounded-2xl bg-card border flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <p className="text-lg font-semibold">Available for work</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-        
-        {/* Tabs */}
-        <div className="flex justify-center gap-2 mb-8">
-          {[
-            { id: "activities", label: "Activities", icon: Target },
-            { id: "reading", label: "Reading", icon: BookOpen },
-            { id: "listening", label: "Listening", icon: Music },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-muted/80"
-              }`}
+        </ScrollReveal>
+
+        {/* Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          <ScrollReveal delay={0.1}>
+            <motion.div 
+              whileHover={{ y: -5 }}
+              className="p-6 rounded-2xl bg-card border border-border"
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <MapPin className="w-5 h-5 text-primary" />
+                </div>
+                <span className="font-medium">Location</span>
+              </div>
+              <p className="text-2xl font-bold mb-1">{location.city}</p>
+              <p className="text-muted-foreground text-sm">{location.country}</p>
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>{location.timezone}</span>
+                </div>
+              </div>
+            </motion.div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={0.2}>
+            <motion.div 
+              whileHover={{ y: -5 }}
+              className="p-6 rounded-2xl bg-card border border-border"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-purple-500/10">
+                  <Music className="w-5 h-5 text-purple-500" />
+                </div>
+                <span className="font-medium">Now Playing</span>
+              </div>
+              <p className="text-2xl font-bold mb-1">{listeningTo.title}</p>
+              <p className="text-muted-foreground text-sm">{listeningTo.artist}</p>
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[...Array(4)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="w-1 bg-purple-500 rounded-full"
+                        animate={{
+                          height: [8, 16, 8],
+                        }}
+                        transition={{
+                          duration: 0.5,
+                          repeat: Infinity,
+                          delay: i * 0.1,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-muted-foreground">Playing now</span>
+                </div>
+              </div>
+            </motion.div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={0.3}>
+            <motion.div 
+              whileHover={{ y: -5 }}
+              className="p-6 rounded-2xl bg-card border border-border"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-green-500/10">
+                  <Activity className="w-5 h-5 text-green-500" />
+                </div>
+                <span className="font-medium">Focus Mode</span>
+              </div>
+              <p className="text-2xl font-bold mb-1">Deep Work</p>
+              <p className="text-muted-foreground text-sm">Building & Creating</p>
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                  <span>High energy, creative flow</span>
+                </div>
+              </div>
+            </motion.div>
+          </ScrollReveal>
+        </div>
+
+        {/* Current Projects */}
+        <ScrollReveal className="mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Target className="w-6 h-6 text-primary" />
+            <h2 className="text-2xl font-bold">Current Projects</h2>
+          </div>
+        </ScrollReveal>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+          {currentActivities.map((activity, index) => (
+            <ScrollReveal key={activity.title} delay={index * 0.1}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="p-6 rounded-2xl bg-card border border-border group"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`p-3 rounded-xl bg-gradient-to-br ${activity.color}`}>
+                    <activity.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {activity.status}
+                  </Badge>
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{activity.title}</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  {activity.description}
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="font-medium">{activity.progress}%</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${activity.progress}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1, delay: 0.5 }}
+                      className={`h-full bg-gradient-to-r ${activity.color} rounded-full`}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            </ScrollReveal>
           ))}
         </div>
-        
-        {/* Content */}
-        <AnimatePresence mode="wait">
-          {activeTab === "activities" && (
-            <motion.div
-              key="activities"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6"
-            >
-              {currentActivities.map((activity, index) => (
-                <ActivityCard key={activity.id} activity={activity} index={index} />
-              ))}
-            </motion.div>
-          )}
-          
-          {activeTab === "reading" && (
-            <motion.div
-              key="reading"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6"
-            >
-              {currentlyReading.map((book, index) => (
-                <motion.div
-                  key={book.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all group"
-                >
-                  <div className="flex gap-4">
-                    <div className="w-24 h-32 rounded-lg bg-gradient-to-br from-primary/20 to-orange-500/20 flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="w-8 h-8 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
-                        {book.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">{book.author}</p>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">{book.progress}%</span>
-                        </div>
-                        <Progress value={book.progress} className="h-2" />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-          
-          {activeTab === "listening" && (
-            <motion.div
-              key="listening"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="p-8 rounded-2xl bg-card border border-border"
-            >
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="w-48 h-48 rounded-2xl bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 flex items-center justify-center relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          className="w-2 bg-primary rounded-full"
-                          animate={{
-                            height: [20, 60, 20],
-                          }}
-                          transition={{
-                            duration: 1,
-                            repeat: Infinity,
-                            delay: i * 0.1,
-                            ease: "easeInOut",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <Music className="w-12 h-12 text-primary/50 relative z-10" />
-                </div>
-                
-                <div className="text-center md:text-left">
-                  <Badge variant="outline" className="mb-4">Currently Playing</Badge>
-                  <h3 className="text-2xl font-bold mb-2">{currentlyListening.track}</h3>
-                  <p className="text-lg text-muted-foreground mb-1">{currentlyListening.artist}</p>
-                  <p className="text-sm text-muted-foreground">{currentlyListening.album}</p>
-                  
-                  <div className="flex justify-center md:justify-start gap-4 mt-6">
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Open in Spotify
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 text-center"
-        >
-          <p className="text-muted-foreground mb-4">
-            Want to collaborate or just say hi?
-          </p>
-          <div className="flex justify-center gap-4">
-            <Link href="/contact">
-              <Button>
-                <Mail className="w-4 h-4 mr-2" />
-                Get in Touch
-              </Button>
-            </Link>
-            <Link href="/hire">
-              <Button variant="outline">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Hire Me
-              </Button>
-            </Link>
+
+        {/* Tech Stack */}
+        <ScrollReveal className="mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Sparkles className="w-6 h-6 text-primary" />
+            <h2 className="text-2xl font-bold">Current Stack</h2>
           </div>
-        </motion.div>
-        
-        {/* Last Updated */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="text-center text-xs text-muted-foreground mt-12"
-        >
-          Last updated: March 4, 2026 • Inspired by{" "}
-          <a 
-            href="https://nownownow.com" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="underline hover:text-primary"
-          >
-            nownownow.com
-          </a>
-        </motion.p>
+        </ScrollReveal>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+          {currentStack.map((tech, index) => (
+            <ScrollReveal key={tech.name} delay={index * 0.05}>
+              <motion.div
+                whileHover={{ y: -3, scale: 1.05 }}
+                className="p-4 rounded-xl bg-card border border-border text-center group cursor-pointer"
+              >
+                <div 
+                  className="w-4 h-4 rounded-full mx-auto mb-3"
+                  style={{ backgroundColor: tech.color }}
+                />
+                <p className="font-medium text-sm mb-1">{tech.name}</p>
+                <p className="text-xs text-muted-foreground">{tech.category}</p>
+              </motion.div>
+            </ScrollReveal>
+          ))}
+        </div>
+
+        {/* Recently Completed */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ScrollReveal>
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/5 to-orange-500/5 border border-border">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-xl bg-green-500/10">
+                  <Github className="w-5 h-5 text-green-500" />
+                </div>
+                <h2 className="text-xl font-bold">Recently Completed</h2>
+              </div>
+              <ul className="space-y-4">
+                {recentlyCompleted.map((item, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 flex-shrink-0" />
+                    <span className="text-muted-foreground">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={0.2}>
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-border">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-xl bg-purple-500/10">
+                  <Radio className="w-5 h-5 text-purple-500" />
+                </div>
+                <h2 className="text-xl font-bold">What&apos;s Next</h2>
+              </div>
+              <ul className="space-y-4">
+                {[
+                  "Launch a SaaS product for developers",
+                  "Speak at a tech conference",
+                  "Build an AI-powered creative tool",
+                  "Start a YouTube channel for coding tutorials"
+                ].map((item, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
+                    <span className="text-muted-foreground">{item}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </div>
+          </ScrollReveal>
+        </div>
+
+        {/* Footer Note */}
+        <ScrollReveal className="mt-16 text-center">
+          <p className="text-sm text-muted-foreground">
+            Inspired by <a href="https://nownownow.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">nownownow.com</a>. 
+            This page is a living document — it changes as my focus shifts.
+          </p>
+        </ScrollReveal>
       </div>
     </div>
   );
 }
-
-export default NowPage;

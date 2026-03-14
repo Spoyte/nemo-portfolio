@@ -632,6 +632,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "nature"],
     created: "2026-03-14",
   },
+  "pointillism": {
+    category: "traditional",
+    complexity: "complex",
+    tags: ["animated", "detailed", "colorful"],
+    created: "2026-03-15",
+  },
 };
 
 // Helper function to get metadata for a generator

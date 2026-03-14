@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronograph — Time as Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+        }
+
+        canvas {
+            box-shadow: 
+                0 0 60px rgba(100, 150, 200, 0.15),
+                0 0 120px rgba(100, 150, 200, 0.05);
+            border-radius: 4px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+
+        button {
+            background: rgba(20, 30, 40, 0.9);
+            border: 1px solid rgba(100, 150, 200, 0.4);
+            color: #a0c0d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        button:hover {
+            background: rgba(40, 60, 80, 0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(100, 150, 200, 0.2);
+        }
+
+        button.active {
+            background: rgba(100, 150, 200, 0.3);
+            border-color: rgba(100, 150, 200, 0.8);
+            color: #d0e0f0;
+        }
+
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 180, 200, 0.6);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .time-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 180, 200, 0.8);
+            font-size: 14px;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .legend {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 24px;
+            color: rgba(160, 180, 200, 0.5);
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="info">Chronograph — Time as Art</div>
+    <div class="time-display" id="timeDisplay">00:00:00</div>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background: hsl(200, 80%, 60%);"></div>
+            <span>Hours</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: hsl(280, 80%, 60%);"></div>
+            <span>Minutes</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: hsl(60, 80%, 60%);"></div>
+            <span>Seconds</span>
+        </div>
+    </div>
+    <div class="controls">
+        <button onclick="toggleTrails()" id="trailsBtn">Trails: On</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="changePalette()">Palette</button>
+        <button onclick="toggleNumbers()" id="numbersBtn">Clock: Off</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 800);
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Configuration
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const maxRadius = size * 0.42;
+        
+        // State
+        let isRunning = true;
+        let showTrails = true;
+        let showClock = false;
+        let animationId = null;
+        let paletteIndex = 0;
+        
+        // Particle trails for each time unit
+        const trails = {
+            hours: [],
+            minutes: [],
+            seconds: []
+        };
+        
+        const maxTrailLength = 60;
+        
+        // Color palettes
+        const palettes = [
+            { // Classic
+                hours: { h: 200, s: 80, l: 60 },
+                minutes: { h: 280, s: 80, l: 60 },
+                seconds: { h: 60, s: 80, l: 60 }
+            },
+            { // Sunset
+                hours: { h: 20, s: 90, l: 55 },
+                minutes: { h: 340, s: 80, l: 60 },
+                seconds: { h: 50, s: 90, l: 65 }
+            },
+            { // Ocean
+                hours: { h: 180, s: 70, l: 50 },
+                minutes: { h: 200, s: 80, l: 55 },
+                seconds: { h: 160, s: 90, l: 60 }
+            },
+            { // Forest
+                hours: { h: 120, s: 60, l: 45 },
+                minutes: { h: 90, s: 70, l: 55 },
+                seconds: { h: 150, s: 80, l: 50 }
+            },
+            { // Monochrome
+                hours: { h: 220, s: 20, l: 70 },
+                minutes: { h: 220, s: 40, l: 60 },
+                seconds: { h: 220, s: 60, l: 80 }
+            }
+        ];
+        
+        function getTimeData() {
+            const now = new Date();
+            return {
+                hours: now.getHours(),
+                minutes: now.getMinutes(),
+                seconds: now.getSeconds(),
+                milliseconds: now.getMilliseconds()
+            };
+        }
+        
+        function formatTime(time) {
+            return `${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`;
+        }
+        
+        function getAngle(value, max) {
+            return ((value / max) * Math.PI * 2) - Math.PI / 2;
+        }
+        
+        function getPosition(angle, radius) {
+            return {
+                x: centerX + Math.cos(angle) * radius,
+                y: centerY + Math.sin(angle) * radius
+            };
+        }
+        
+        function drawOrbital(radius, angle, color, size, glow = 15) {
+            const pos = getPosition(angle, radius);
+            
+            // Glow effect
+            const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size + glow);
+            gradient.addColorStop(0, `hsla(${color.h}, ${color.s}%, ${color.l}%, 0.8)`);
+            gradient.addColorStop(0.5, `hsla(${color.h}, ${color.s}%, ${color.l}%, 0.3)`);
+            gradient.addColorStop(1, `hsla(${color.h}, ${color.s}%, ${color.l}%, 0)`);
+            
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, size + glow, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Core
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
+            ctx.fill();
+            
+            return pos;
+        }
+        
+        function drawTrail(trail, color, width = 2) {
+            if (trail.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(trail[0].x, trail[0].y);
+            
+            for (let i = 1; i < trail.length; i++) {
+                const alpha = i / trail.length;
+                ctx.lineTo(trail[i].x, trail[i].y);
+            }
+            
+            ctx.strokeStyle = `hsla(${color.h}, ${color.s}%, ${color.l}%, 0.4)`;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+        
+        function drawConnection(pos1, pos2, color, alpha = 0.2) {
+            ctx.beginPath();
+            ctx.moveTo(pos1.x, pos1.y);
+            ctx.lineTo(pos2.x, pos2.y);
+            ctx.strokeStyle = `hsla(${color.h}, ${color.s}%, ${color.l}%, ${alpha})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        
+        function drawClockFace(time) {
+            if (!showClock) return;
+            
+            // Hour markers
+            for (let i = 0; i < 12; i++) {
+                const angle = getAngle(i, 12);
+                const inner = getPosition(angle, maxRadius * 0.88);
+                const outer = getPosition(angle, maxRadius * 0.95);
+                
+                ctx.beginPath();
+                ctx.moveTo(inner.x, inner.y);
+                ctx.lineTo(outer.x, outer.y);
+                ctx.strokeStyle = 'rgba(160, 180, 200, 0.3)';
+                ctx.lineWidth = i % 3 === 0 ? 3 : 1;
+                ctx.stroke();
+            }
+            
+            // Digital time
+            ctx.font = 'bold 24px "SF Mono", Monaco, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(160, 180, 200, 0.6)';
+            ctx.fillText(formatTime(time), centerX, centerY);
+        }
+        
+        function updateTrails(hourPos, minutePos, secondPos) {
+            trails.hours.push(hourPos);
+            trails.minutes.push(minutePos);
+            trails.seconds.push(secondPos);
+            
+            if (trails.hours.length > maxTrailLength) trails.hours.shift();
+            if (trails.minutes.length > maxTrailLength) trails.minutes.shift();
+            if (trails.seconds.length > maxTrailLength) trails.seconds.shift();
+        }
+        
+        function draw() {
+            if (!isRunning) return;
+            
+            const time = getTimeData();
+            const palette = palettes[paletteIndex];
+            
+            // Smooth transitions using milliseconds
+            const smoothSeconds = time.seconds + time.milliseconds / 1000;
+            const smoothMinutes = time.minutes + smoothSeconds / 60;
+            const smoothHours = (time.hours % 12) + smoothMinutes / 60;
+            
+            // Calculate angles
+            const hourAngle = getAngle(smoothHours, 12);
+            const minuteAngle = getAngle(smoothMinutes, 60);
+            const secondAngle = getAngle(smoothSeconds, 60);
+            
+            // Calculate radii (orbital distances)
+            const hourRadius = maxRadius * 0.35;
+            const minuteRadius = maxRadius * 0.6;
+            const secondRadius = maxRadius * 0.85;
+            
+            // Clear with trail effect
+            if (showTrails) {
+                ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+                ctx.fillRect(0, 0, size, size);
+            } else {
+                ctx.fillStyle = '#0a0a0f';
+                ctx.fillRect(0, 0, size, size);
+            }
+            
+            // Draw orbital rings
+            ctx.strokeStyle = 'rgba(100, 150, 200, 0.08)';
+            ctx.lineWidth = 1;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, hourRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, minuteRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, secondRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Get positions
+            const hourPos = getPosition(hourAngle, hourRadius);
+            const minutePos = getPosition(minuteAngle, minuteRadius);
+            const secondPos = getPosition(secondAngle, secondRadius);
+            
+            // Update trails
+            updateTrails(hourPos, minutePos, secondPos);
+            
+            // Draw trails
+            if (showTrails) {
+                drawTrail(trails.hours, palette.hours, 3);
+                drawTrail(trails.minutes, palette.minutes, 2);
+                drawTrail(trails.seconds, palette.seconds, 1);
+            }
+            
+            // Draw connections between orbitals
+            drawConnection(hourPos, minutePos, palette.minutes, 0.15);
+            drawConnection(minutePos, secondPos, palette.seconds, 0.15);
+            drawConnection(hourPos, secondPos, palette.hours, 0.08);
+            
+            // Draw orbitals
+            drawOrbital(hourRadius, hourAngle, palette.hours, 8, 20);
+            drawOrbital(minuteRadius, minuteAngle, palette.minutes, 6, 15);
+            drawOrbital(secondRadius, secondAngle, palette.seconds, 4, 10);
+            
+            // Draw center glow
+            const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 30);
+            centerGradient.addColorStop(0, 'rgba(100, 150, 200, 0.3)');
+            centerGradient.addColorStop(1, 'rgba(100, 150, 200, 0)');
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
+            ctx.fillStyle = centerGradient;
+            ctx.fill();
+            
+            // Draw clock face if enabled
+            drawClockFace(time);
+            
+            // Update time display
+            document.getElementById('timeDisplay').textContent = formatTime(time);
+            
+            animationId = requestAnimationFrame(draw);
+        }
+        
+        // Controls
+        function toggleTrails() {
+            showTrails = !showTrails;
+            document.getElementById('trailsBtn').textContent = `Trails: ${showTrails ? 'On' : 'Off'}`;
+            if (!showTrails) {
+                trails.hours = [];
+                trails.minutes = [];
+                trails.seconds = [];
+            }
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) draw();
+        }
+        
+        function changePalette() {
+            paletteIndex = (paletteIndex + 1) % palettes.length;
+            trails.hours = [];
+            trails.minutes = [];
+            trails.seconds = [];
+        }
+        
+        function toggleNumbers() {
+            showClock = !showClock;
+            document.getElementById('numbersBtn').textContent = `Clock: ${showClock ? 'On' : 'Off'}`;
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const newSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 800);
+            if (Math.abs(newSize - size / dpr) > 50) {
+                location.reload();
+            }
+        });
+        
+        // Initialize
+        draw();
+    </script>
+</body>
+</html>

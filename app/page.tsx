@@ -38,12 +38,20 @@ import { LiveCodingDemo } from "@/components/live-coding-demo";
 import { CaseStudiesSection } from "@/components/case-studies-section";
 import { InteractiveResume } from "@/components/interactive-resume";
 import { AchievementShowcase } from "@/components/achievement-showcase";
+import { AchievementShowcaseEnhanced } from "@/components/achievement-showcase-enhanced";
+import { DailyChallenges } from "@/components/daily-challenges";
+import { IdeaGeneratorSection } from "@/components/idea-generator-section";
+import { SoundboardSection } from "@/components/soundboard-section";
 import { EnhancedHero } from "@/components/enhanced-hero";
 import { QuoteWall } from "@/components/quote-wall";
 import { AnimatedSkillsChart } from "@/components/animated-skills-chart";
 import { MorphingBlobHero } from "@/components/morphing-blob-hero";
 import { HolographicProjectCards } from "@/components/holographic-project-cards";
 import { Keyboard, Volume2 } from "lucide-react";
+import { CodeTimeCapsule } from "@/components/code-time-capsule";
+import { DeveloperHoroscope } from "@/components/developer-horoscope";
+import { PairProgrammingSimulator } from "@/components/pair-programming-simulator";
+import { BugBountyGame } from "@/components/bug-bounty-game";
 
 const features = [
   {
@@ -238,6 +246,32 @@ export default function Home() {
 
       {/* Achievement Showcase */}
       <AchievementShowcase />
+      
+      {/* Enhanced Achievement Gallery */}
+      <AchievementShowcaseEnhanced />
+      
+      {/* Daily Challenges */}
+      <DailyChallenges />
+      
+      {/* Idea Generator */}
+      <IdeaGeneratorSection />
+      
+      {/* Soundboard */}
+      <SoundboardSection />
+
+      {/* NEW FEATURES - Portfolio Enhancement */}
+      
+      {/* Developer Horoscope */}
+      <DeveloperHoroscope />
+      
+      {/* Code Time Capsule */}
+      <CodeTimeCapsule />
+      
+      {/* Pair Programming Simulator */}
+      <PairProgrammingSimulator />
+      
+      {/* Bug Bounty Game */}
+      <BugBountyGame />
 
       {/* Interactive Resume */}
       <InteractiveResume />
