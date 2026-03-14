@@ -21,8 +21,17 @@ const navItems = [
   { href: "/contact", label: "Contact" },
 ];
 
+const newNavItems = [
+  { href: "/labs", label: "Labs", badge: "New" },
+  { href: "/guestbook", label: "Guestbook", badge: "New" },
+  { href: "/bookmarks", label: "Bookmarks", badge: "New" },
+];
+
 const moreNavItems = [
   { href: "/v2-features", label: "V2 Features", badge: "New" },
+  { href: "/labs", label: "Labs", badge: "New" },
+  { href: "/guestbook", label: "Guestbook", badge: "New" },
+  { href: "/bookmarks", label: "Bookmarks", badge: "New" },
   { href: "/matrix-rain", label: "Matrix Rain", badge: "New" },
   { href: "/typing-race", label: "Typing Race", badge: "New" },
   { href: "/soundboard", label: "Soundboard", badge: "New" },

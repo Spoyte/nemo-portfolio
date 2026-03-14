@@ -1,284 +1,214 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Bookmark, 
-  Sparkles, 
+  Search, 
   ExternalLink, 
-  Search,
+  Star, 
+  Folder,
+  Tag,
+  Clock,
+  Trash2,
+  Plus,
   Filter,
-  Heart,
-  Code2,
-  Palette,
-  BookOpen,
-  Cpu,
-  Globe,
-  Zap,
-  Layers,
-  Terminal,
-  PenTool,
-  Music,
-  Video,
-  Newspaper,
-  Lightbulb
+  Heart
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BookmarkItem {
   id: string;
   title: string;
-  description: string;
   url: string;
+  description: string;
   category: string;
   tags: string[];
-  favorite?: boolean;
+  isFavorite: boolean;
+  addedAt: string;
 }
 
-const categories = [
-  { id: "all", label: "All", icon: Layers },
-  { id: "development", label: "Development", icon: Code2 },
-  { id: "design", label: "Design", icon: Palette },
-  { id: "learning", label: "Learning", icon: BookOpen },
-  { id: "tools", label: "Tools", icon: Cpu },
-  { id: "inspiration", label: "Inspiration", icon: Lightbulb },
-  { id: "reading", label: "Reading", icon: Newspaper },
-];
+const categories = ["All", "Development", "Design", "Learning", "Tools", "Inspiration", "Reading"];
 
-const bookmarksData: BookmarkItem[] = [
-  // Development
+const initialBookmarks: BookmarkItem[] = [
   {
     id: "1",
-    title: "Next.js Documentation",
-    description: "The official Next.js documentation - my go-to resource for React framework best practices.",
-    url: "https://nextjs.org/docs",
-    category: "development",
-    tags: ["React", "Framework", "Documentation"],
-    favorite: true,
+    title: "MDN Web Docs",
+    url: "https://developer.mozilla.org",
+    description: "The bible of web development documentation.",
+    category: "Development",
+    tags: ["reference", "docs", "web"],
+    isFavorite: true,
+    addedAt: "2024-01-15"
   },
   {
     id: "2",
-    title: "TypeScript Handbook",
-    description: "Comprehensive guide to TypeScript - essential reading for type-safe JavaScript development.",
-    url: "https://www.typescriptlang.org/docs/",
-    category: "development",
-    tags: ["TypeScript", "JavaScript", "Documentation"],
+    title: "CSS-Tricks",
+    url: "https://css-tricks.com",
+    description: "Daily articles about CSS, HTML, JavaScript, and all things web design.",
+    category: "Development",
+    tags: ["css", "tutorial", "blog"],
+    isFavorite: true,
+    addedAt: "2024-01-20"
   },
   {
     id: "3",
-    title: "MDN Web Docs",
-    description: "The bible of web development. Comprehensive documentation for HTML, CSS, and JavaScript.",
-    url: "https://developer.mozilla.org",
-    category: "development",
-    tags: ["Reference", "Web", "Documentation"],
-    favorite: true,
+    title: "Dribbble",
+    url: "https://dribbble.com",
+    description: "Discover the world's top designers and creative professionals.",
+    category: "Design",
+    tags: ["inspiration", "ui", "portfolio"],
+    isFavorite: false,
+    addedAt: "2024-02-01"
   },
   {
     id: "4",
-    title: "React Patterns",
-    description: "Common React design patterns and best practices for building scalable applications.",
-    url: "https://reactpatterns.com",
-    category: "development",
-    tags: ["React", "Patterns", "Best Practices"],
+    title: "Awwwards",
+    url: "https://www.awwwards.com",
+    description: "Website awards - best web design trends and inspiration.",
+    category: "Inspiration",
+    tags: ["awards", "web-design", "trends"],
+    isFavorite: true,
+    addedAt: "2024-02-05"
   },
   {
     id: "5",
-    title: "Node.js Best Practices",
-    description: "The largest Node.js best practices list. Essential for backend development.",
-    url: "https://github.com/goldbergyoni/nodebestpractices",
-    category: "development",
-    tags: ["Node.js", "Backend", "Best Practices"],
+    title: "React Documentation",
+    url: "https://react.dev",
+    description: "The library for web and native user interfaces.",
+    category: "Development",
+    tags: ["react", "docs", "javascript"],
+    isFavorite: true,
+    addedAt: "2024-02-10"
   },
-  // Design
   {
     id: "6",
-    title: "Dribbble",
-    description: "Community of designers sharing their work. Endless inspiration for UI/UX projects.",
-    url: "https://dribbble.com",
-    category: "design",
-    tags: ["UI/UX", "Inspiration", "Community"],
-    favorite: true,
+    title: "Tailwind CSS",
+    url: "https://tailwindcss.com",
+    description: "Rapidly build modern websites without ever leaving your HTML.",
+    category: "Development",
+    tags: ["css", "framework", "styling"],
+    isFavorite: true,
+    addedAt: "2024-02-12"
   },
   {
     id: "7",
-    title: "Awwwards",
-    description: "Recognizing the best in web design. Showcases cutting-edge websites and trends.",
-    url: "https://www.awwwards.com",
-    category: "design",
-    tags: ["Web Design", "Awards", "Inspiration"],
+    title: "Figma",
+    url: "https://www.figma.com",
+    description: "The collaborative interface design tool.",
+    category: "Tools",
+    tags: ["design", "prototyping", "collaboration"],
+    isFavorite: false,
+    addedAt: "2024-02-15"
   },
   {
     id: "8",
-    title: "Figma Community",
-    description: "Free design resources, templates, and plugins from the Figma community.",
-    url: "https://www.figma.com/community",
-    category: "design",
-    tags: ["Figma", "Resources", "Templates"],
+    title: "GitHub",
+    url: "https://github.com",
+    description: "Where the world builds software.",
+    category: "Tools",
+    tags: ["git", "code", "collaboration"],
+    isFavorite: true,
+    addedAt: "2024-02-18"
   },
   {
     id: "9",
-    title: "Coolors",
-    description: "Color palette generator. Create, save, and share perfect color combinations.",
-    url: "https://coolors.co",
-    category: "design",
-    tags: ["Colors", "Tools", "Generator"],
+    title: "Smashing Magazine",
+    url: "https://www.smashingmagazine.com",
+    description: "For professional web designers and developers.",
+    category: "Reading",
+    tags: ["articles", "web-design", "development"],
+    isFavorite: false,
+    addedAt: "2024-02-20"
   },
   {
     id: "10",
-    title: "Google Fonts",
-    description: "Library of free licensed font families. Essential for web typography.",
-    url: "https://fonts.google.com",
-    category: "design",
-    tags: ["Typography", "Fonts", "Free"],
+    title: "Framer",
+    url: "https://www.framer.com",
+    description: "Design and ship your dream site with zero code.",
+    category: "Tools",
+    tags: ["no-code", "design", "website"],
+    isFavorite: false,
+    addedAt: "2024-02-22"
   },
-  // Learning
   {
     id: "11",
     title: "freeCodeCamp",
-    description: "Learn to code for free. Comprehensive curriculum covering full-stack development.",
     url: "https://www.freecodecamp.org",
-    category: "learning",
-    tags: ["Free", "Courses", "Programming"],
-    favorite: true,
+    description: "Learn to code for free with interactive lessons.",
+    category: "Learning",
+    tags: ["education", "programming", "free"],
+    isFavorite: true,
+    addedAt: "2024-02-25"
   },
   {
     id: "12",
-    title: "Frontend Masters",
-    description: "Expert-led video courses on frontend development. Worth every penny.",
-    url: "https://frontendmasters.com",
-    category: "learning",
-    tags: ["Courses", "Video", "Advanced"],
-  },
-  {
-    id: "13",
-    title: "CSS-Tricks",
-    description: "Daily articles about CSS, HTML, JavaScript, and all things web design.",
-    url: "https://css-tricks.com",
-    category: "learning",
-    tags: ["CSS", "Tutorials", "Blog"],
-  },
-  {
-    id: "14",
-    title: "Smashing Magazine",
-    description: "Articles for web designers and developers. High-quality, in-depth content.",
-    url: "https://www.smashingmagazine.com",
-    category: "learning",
-    tags: ["Web Design", "Development", "Articles"],
-  },
-  // Tools
-  {
-    id: "15",
-    title: "Vercel",
-    description: "Platform for frontend developers. Deploy Next.js apps with zero configuration.",
-    url: "https://vercel.com",
-    category: "tools",
-    tags: ["Deployment", "Hosting", "Next.js"],
-    favorite: true,
-  },
-  {
-    id: "16",
-    title: "GitHub",
-    description: "Where the world builds software. Essential for version control and collaboration.",
-    url: "https://github.com",
-    category: "tools",
-    tags: ["Git", "Version Control", "Open Source"],
-  },
-  {
-    id: "17",
-    title: "Supabase",
-    description: "Open source Firebase alternative. PostgreSQL database with real-time subscriptions.",
-    url: "https://supabase.com",
-    category: "tools",
-    tags: ["Database", "Backend", "Open Source"],
-  },
-  {
-    id: "18",
-    title: "Tailwind CSS",
-    description: "Utility-first CSS framework. Rapidly build modern websites without leaving HTML.",
-    url: "https://tailwindcss.com",
-    category: "tools",
-    tags: ["CSS", "Framework", "Utility-first"],
-    favorite: true,
-  },
-  {
-    id: "19",
-    title: "Framer Motion",
-    description: "Production-ready motion library for React. Create beautiful animations with ease.",
-    url: "https://www.framer.com/motion/",
-    category: "tools",
-    tags: ["Animation", "React", "Library"],
-  },
-  // Inspiration
-  {
-    id: "20",
     title: "CodePen",
-    description: "Social development environment for front-end designers and developers.",
     url: "https://codepen.io",
-    category: "inspiration",
-    tags: ["Code", "Showcase", "Community"],
-  },
-  {
-    id: "21",
-    title: "SiteInspire",
-    description: "Showcase of the finest web and interactive design. Minimal and curated.",
-    url: "https://www.siteinspire.com",
-    category: "inspiration",
-    tags: ["Web Design", "Showcase", "Minimal"],
-  },
-  {
-    id: "22",
-    title: "Mobbin",
-    description: "World's largest mobile app design reference library. Great for mobile inspiration.",
-    url: "https://mobbin.com",
-    category: "inspiration",
-    tags: ["Mobile", "UI/UX", "Reference"],
-  },
-  // Reading
-  {
-    id: "23",
-    title: "Hacker News",
-    description: "Tech news aggregator. Stay updated with the latest in technology and startups.",
-    url: "https://news.ycombinator.com",
-    category: "reading",
-    tags: ["News", "Tech", "Community"],
-  },
-  {
-    id: "24",
-    title: "Dev.to",
-    description: "Community of software developers sharing articles and discussions.",
-    url: "https://dev.to",
-    category: "reading",
-    tags: ["Community", "Articles", "Development"],
-  },
-  {
-    id: "25",
-    title: "CSS Weekly",
-    description: "Weekly newsletter with the latest CSS news, tutorials, and resources.",
-    url: "https://css-weekly.com",
-    category: "reading",
-    tags: ["Newsletter", "CSS", "Weekly"],
-  },
+    description: "The best place to build, test, and discover front-end code.",
+    category: "Tools",
+    tags: ["playground", "code", "community"],
+    isFavorite: true,
+    addedAt: "2024-03-01"
+  }
 ];
 
-export default function BookmarksPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+const categoryColors: Record<string, string> = {
+  "Development": "bg-blue-500/10 text-blue-500",
+  "Design": "bg-purple-500/10 text-purple-500",
+  "Learning": "bg-green-500/10 text-green-500",
+  "Tools": "bg-orange-500/10 text-orange-500",
+  "Inspiration": "bg-pink-500/10 text-pink-500",
+  "Reading": "bg-yellow-500/10 text-yellow-500"
+};
 
-  const filteredBookmarks = bookmarksData.filter((bookmark) => {
+export default function BookmarksPage() {
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(initialBookmarks);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Get all unique tags
+  const allTags = Array.from(new Set(bookmarks.flatMap(b => b.tags)));
+
+  // Filter bookmarks
+  const filteredBookmarks = bookmarks.filter(bookmark => {
     const matchesSearch = 
       bookmark.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bookmark.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bookmark.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const matchesCategory = activeCategory === "all" || bookmark.category === activeCategory;
-    const matchesFavorites = !favoritesOnly || bookmark.favorite;
-    
-    return matchesSearch && matchesCategory && matchesFavorites;
+    const matchesCategory = activeCategory === "All" || bookmark.category === activeCategory;
+    const matchesFavorites = !showFavoritesOnly || bookmark.isFavorite;
+    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => bookmark.tags.includes(tag));
+
+    return matchesSearch && matchesCategory && matchesFavorites && matchesTags;
   });
+
+  const toggleFavorite = (id: string) => {
+    setBookmarks(prev => prev.map(b => 
+      b.id === id ? { ...b, isFavorite: !b.isFavorite } : b
+    ));
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
+  const stats = {
+    total: bookmarks.length,
+    favorites: bookmarks.filter(b => b.isFavorite).length,
+    categories: new Set(bookmarks.map(b => b.category)).size,
+    tags: allTags.length
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -292,31 +222,59 @@ export default function BookmarksPage() {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+            transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
           >
             <Bookmark className="h-4 w-4" />
-            <span className="text-sm font-medium">Curated Resources</span>
+            <span className="text-sm font-medium">Curated Collection</span>
           </motion.div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Bookmarks
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            My{" "}
+            <span className="text-gradient-animated">Bookmarks</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A collection of tools, resources, and inspiration I use and recommend. 
-            Curated over years of development.
+          
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            A curated collection of resources, tools, and inspiration I find useful.
           </p>
         </motion.div>
 
-        {/* Search and Filter */}
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+        >
+          {[
+            { label: "Total Bookmarks", value: stats.total, icon: Bookmark },
+            { label: "Favorites", value: stats.favorites, icon: Heart },
+            { label: "Categories", value: stats.categories, icon: Folder },
+            { label: "Tags", value: stats.tags, icon: Tag },
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 + index * 0.05 }}
+              className="p-4 rounded-xl bg-card border border-border text-center"
+            >
+              <stat.icon className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Search and Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="mb-8 space-y-4"
         >
-          {/* Search */}
-          <div className="relative max-w-xl mx-auto">
+          {/* Search Bar */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search bookmarks..."
@@ -327,100 +285,127 @@ export default function BookmarksPage() {
           </div>
 
           {/* Category Filter */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {categories.map((category) => {
-              const Icon = category.icon;
-              return (
-                <Button
-                  key={category.id}
-                  variant={activeCategory === category.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveCategory(category.id)}
-                  className="gap-2"
-                >
-                  <Icon className="h-4 w-4" />
-                  {category.label}
-                </Button>
-              );
-            })}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  activeCategory === category
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+          {/* Tag Filter */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            {allTags.slice(0, 8).map((tag) => (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={`px-2 py-1 rounded-md text-xs transition-all ${
+                  selectedTags.includes(tag)
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
           </div>
 
           {/* Favorites Toggle */}
-          <div className="flex justify-center">
-            <Button
-              variant={favoritesOnly ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFavoritesOnly(!favoritesOnly)}
-              className="gap-2"
-            >
-              <Heart className={`h-4 w-4 ${favoritesOnly ? "fill-current" : ""}`} />
-              {favoritesOnly ? "Showing Favorites" : "Show Favorites Only"}
-            </Button>
-          </div>
-        </motion.div>
-
-        {/* Results Count */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center mb-8 text-sm text-muted-foreground"
-        >
-          Showing {filteredBookmarks.length} of {bookmarksData.length} bookmarks
+          <button
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              showFavoritesOnly
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${showFavoritesOnly ? "fill-current" : ""}`} />
+            Favorites Only
+          </button>
         </motion.div>
 
         {/* Bookmarks Grid */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          layout
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {filteredBookmarks.map((bookmark, index) => (
-            <motion.div
-              key={bookmark.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <a
-                href={bookmark.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block h-full"
+          <AnimatePresence mode="popLayout">
+            {filteredBookmarks.map((bookmark, index) => (
+              <motion.div
+                key={bookmark.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: index * 0.03 }}
+                className="group relative p-5 rounded-xl bg-card border border-border hover:border-primary/30 transition-all duration-300"
               >
-                <Card className="h-full hover:border-primary/50 transition-all duration-300 group hover:shadow-lg hover:-translate-y-1">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-orange-500/20 flex items-center justify-center">
+                      <span className="text-lg">{bookmark.url.charAt(8).toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold group-hover:text-primary transition-colors">
                         {bookmark.title}
-                      </CardTitle>
-                      {bookmark.favorite && (
-                        <Heart className="h-4 w-4 text-primary fill-primary flex-shrink-0" />
-                      )}
+                      </h3>
+                      <Badge className={`text-xs ${categoryColors[bookmark.category]}`}>
+                        {bookmark.category}
+                      </Badge>
                     </div>
-                    <CardDescription className="line-clamp-2">
-                      {bookmark.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {bookmark.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground group-hover:text-primary transition-colors">
-                      <Globe className="h-3 w-3 mr-1" />
-                      <span className="truncate">{new URL(bookmark.url).hostname}</span>
-                      <ExternalLink className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </a>
-            </motion.div>
-          ))}
+                  </div>
+                  <button
+                    onClick={() => toggleFavorite(bookmark.id)}
+                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+                  >
+                    <Star className={`h-4 w-4 ${bookmark.isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"}`} />
+                  </button>
+                </div>
+
+                {/* Description */}
+                <p className="text-sm text-muted-foreground mb-3">{bookmark.description}</p>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {bookmark.tags.map((tag) => (
+                    <span 
+                      key={tag} 
+                      className="px-2 py-0.5 text-xs bg-secondary rounded-full text-muted-foreground"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {new Date(bookmark.addedAt).toLocaleDateString()}
+                  </div>
+                  <a
+                    href={bookmark.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    Visit
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </motion.div>
 
         {/* Empty State */}
@@ -430,28 +415,11 @@ export default function BookmarksPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No bookmarks found</h3>
-            <p className="text-muted-foreground">
-              Try adjusting your search or filters
-            </p>
+            <Bookmark className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+            <h3 className="text-xl font-semibold mb-2">No bookmarks found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filters</p>
           </motion.div>
         )}
-
-        {/* Footer Note */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mt-16 text-center text-sm text-muted-foreground"
-        >
-          <p>
-            Have a suggestion?{" "}
-            <a href="/contact" className="text-primary hover:underline">
-              Let me know
-            </a>
-          </p>
-        </motion.div>
       </div>
     </div>
   );

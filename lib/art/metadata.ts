@@ -626,6 +626,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "chaotic", "abstract"],
     created: "2026-03-13",
   },
+  "boids-flocking": {
+    category: "natural",
+    complexity: "moderate",
+    tags: ["animated", "organic", "nature"],
+    created: "2026-03-14",
+  },
 };
 
 // Helper function to get metadata for a generator

@@ -1,273 +1,116 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Terminal, 
   X, 
   Minimize2, 
-  Maximize2, 
-  Command,
+  Maximize2,
   Sparkles,
+  Rocket,
+  Heart,
+  Coffee,
+  Music,
+  Gamepad2,
+  Code2,
   Zap,
   Ghost,
-  Code,
-  Heart,
   Star,
-  Trophy
+  Trophy,
+  Command,
+  Keyboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import confetti from "canvas-confetti";
+import { toast } from "sonner";
 
 interface Command {
-  name: string;
-  description: string;
-  action: () => string | void;
+  input: string;
+  output: string;
+  isError?: boolean;
+  isAscii?: boolean;
 }
+
+const asciiArt = {
+  welcome: `
+    ███╗   ██╗███████╗███╗   ███╗ ██████╗ 
+    ████╗  ██║██╔════╝████╗ ████║██╔═══██╗
+    ██╔██╗ ██║█████╗  ██╔████╔██║██║   ██║
+    ██║╚██╗██║██╔══╝  ██║╚██╔╝██║██║   ██║
+    ██║ ╚████║███████╗██║ ╚═╝ ██║╚██████╔╝
+    ╚═╝  ╚═══╝╚══════╝╚═╝     ╚═╝ ╚═════╝ 
+  `,
+  nemo: `
+      .-.
+     (o o)
+     |O|
+    /   \\
+   (  *  )
+    '---'
+  `,
+  rocket: `
+       |
+      / \\
+     / _ \\
+    | (_) |
+    |  _  |
+    | | | |
+    |_| |_|
+      | |
+     /   \\
+    '     '
+  `,
+  cat: `
+    /\\_/\\
+   ( o.o )
+    > ^ <
+   /|   |\\
+  (_|   |_)
+  `,
+};
+
+const funFacts = [
+  "This portfolio has over 50 hidden easter eggs!",
+  "I once coded for 24 hours straight.",
+  "My first line of code was in Python.",
+  "I drink approximately 3.5 cups of coffee per day.",
+  "This site uses Framer Motion for all animations.",
+  "I can type at 120 WPM on a good day.",
+  "My favorite IDE theme is Dracula.",
+  "I've contributed to 15+ open source projects.",
+  "The Matrix Rain effect was my first canvas project.",
+  "I learned React before I learned JavaScript properly.",
+];
+
+const quotes = [
+  "Talk is cheap. Show me the code. - Linus Torvalds",
+  "First, solve the problem. Then, write the code. - John Johnson",
+  "Code is like humor. When you have to explain it, it's bad. - Cory House",
+  "Simplicity is the soul of efficiency. - Austin Freeman",
+  "Make it work, make it right, make it fast. - Kent Beck",
+];
 
 export function SecretTerminal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState("");
-  const [history, setHistory] = useState<{ type: "input" | "output"; content: string }[]>([
-    { type: "output", content: "🎉 Welcome to Secret Terminal Mode!" },
-    { type: "output", content: "Type 'help' to see available commands." },
-    { type: "output", content: "" },
+  const [history, setHistory] = useState<Command[]>([
+    { input: "", output: asciiArt.welcome, isAscii: true },
+    { input: "", output: "Welcome to the Secret Terminal! Type 'help' for available commands." },
   ]);
-  const [konamiProgress, setKonamiProgress] = useState(0);
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
-  const KONAMI_CODE = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
-
-  const commands: Record<string, Command> = {
-    help: {
-      name: "help",
-      description: "Show available commands",
-      action: () => {
-        return `Available commands:
-  ${Object.values(commands).map(cmd => `${cmd.name.padEnd(12)} - ${cmd.description}`).join("\n  ")}`;
-      },
-    },
-    clear: {
-      name: "clear",
-      description: "Clear terminal history",
-      action: () => {
-        setHistory([]);
-        return null;
-      },
-    },
-    whoami: {
-      name: "whoami",
-      description: "Display user information",
-      action: () => {
-        return `User: Nemo's Visitor
-Role: Explorer
-Status: Awesome
-Location: The Internet`;
-      },
-    },
-    date: {
-      name: "date",
-      description: "Show current date and time",
-      action: () => {
-        return new Date().toLocaleString();
-      },
-    },
-    secret: {
-      name: "secret",
-      description: "Reveal a secret",
-      action: () => {
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.7 },
-          colors: ["#dc2626", "#ea580c", "#fbbf24"],
-        });
-        return "🎉 You found the secret! Here's some confetti!";
-      },
-    },
-    matrix: {
-      name: "matrix",
-      description: "Enter the Matrix",
-      action: () => {
-        triggerMatrixRain();
-        return "🕶️ The Matrix has you...";
-      },
-    },
-    party: {
-      name: "party",
-      description: "Start a party",
-      action: () => {
-        startPartyMode();
-        return "🎉 Party mode activated!";
-      },
-    },
-    quote: {
-      name: "quote",
-      description: "Get an inspirational quote",
-      action: () => {
-        const quotes = [
-          "Code is like humor. When you have to explain it, it's bad. - Cory House",
-          "First, solve the problem. Then, write the code. - John Johnson",
-          "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. - Martin Fowler",
-          "Experience is the name everyone gives to their mistakes. - Oscar Wilde",
-          "The only way to do great work is to love what you do. - Steve Jobs",
-        ];
-        return quotes[Math.floor(Math.random() * quotes.length)];
-      },
-    },
-    ascii: {
-      name: "ascii",
-      description: "Display ASCII art",
-      action: () => {
-        return `
-    ╭─────────────────╮
-    │                 │
-    │   🦑  NEMO  🦑   │
-    │                 │
-    ╰─────────────────╯
-        `;
-      },
-    },
-    exit: {
-      name: "exit",
-      description: "Close terminal",
-      action: () => {
-        setIsOpen(false);
-        return null;
-      },
-    },
-  };
-
-  const triggerMatrixRain = () => {
-    const chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
-    const drops: HTMLDivElement[] = [];
-    
-    for (let i = 0; i < 50; i++) {
-      setTimeout(() => {
-        const drop = document.createElement("div");
-        drop.textContent = chars[Math.floor(Math.random() * chars.length)];
-        drop.style.cssText = `
-          position: fixed;
-          left: ${Math.random() * 100}vw;
-          top: -20px;
-          color: #0f0;
-          font-family: monospace;
-          font-size: 14px;
-          opacity: 0.8;
-          pointer-events: none;
-          z-index: 9999;
-          text-shadow: 0 0 5px #0f0;
-        `;
-        document.body.appendChild(drop);
-        drops.push(drop);
-        
-        let pos = -20;
-        const fall = setInterval(() => {
-          pos += 5;
-          drop.style.top = pos + "px";
-          if (pos > window.innerHeight) {
-            clearInterval(fall);
-            drop.remove();
-          }
-        }, 20);
-      }, i * 50);
-    }
-
-    setTimeout(() => {
-      drops.forEach(drop => drop.remove());
-    }, 5000);
-  };
-
-  const startPartyMode = () => {
-    const colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"];
-    let count = 0;
-    const interval = setInterval(() => {
-      confetti({
-        particleCount: 30,
-        spread: 360,
-        origin: { y: 0.5 },
-        colors: colors,
-        disableForReducedMotion: true,
-      });
-      count++;
-      if (count >= 10) clearInterval(interval);
-    }, 200);
-  };
-
-  const handleCommand = (cmd: string) => {
-    const trimmedCmd = cmd.trim().toLowerCase();
-    
-    setHistory((prev) => [
-      ...prev,
-      { type: "input", content: `> ${cmd}` },
-    ]);
-
-    if (trimmedCmd === "") {
-      return;
-    }
-
-    if (commands[trimmedCmd]) {
-      const result = commands[trimmedCmd].action();
-      if (result) {
-        setHistory((prev) => [
-          ...prev,
-          { type: "output", content: result },
-          { type: "output", content: "" },
-        ]);
-      }
-    } else {
-      setHistory((prev) => [
-        ...prev,
-        { type: "output", content: `Command not found: ${trimmedCmd}. Type 'help' for available commands.` },
-        { type: "output", content: "" },
-      ]);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleCommand(input);
-    setInput("");
-  };
-
-  // Listen for Konami code
+  // Keyboard shortcut: Ctrl/Cmd + Shift + K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isOpen) return; // Don't listen when terminal is open
-
-      const expectedKey = KONAMI_CODE[konamiProgress];
-      
-      if (e.key === expectedKey) {
-        const newProgress = konamiProgress + 1;
-        setKonamiProgress(newProgress);
-        
-        if (newProgress === KONAMI_CODE.length) {
-          setIsOpen(true);
-          setKonamiProgress(0);
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ["#dc2626", "#ea580c", "#fbbf24", "#22c55e", "#3b82f6"],
-          });
-        }
-      } else {
-        setKonamiProgress(0);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [konamiProgress, isOpen]);
-
-  // Keyboard shortcut to open terminal (Ctrl/Cmd + Shift + T)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "T") {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "K") {
         e.preventDefault();
         setIsOpen(true);
+        setIsMinimized(false);
       }
-      
       if (e.key === "Escape" && isOpen) {
         setIsOpen(false);
       }
@@ -277,148 +120,367 @@ Location: The Internet`;
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [history]);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (isOpen && !isMinimized && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen, isMinimized]);
+
+  const executeCommand = (cmd: string) => {
+    const trimmedCmd = cmd.trim().toLowerCase();
+    const args = trimmedCmd.split(" ");
+    const command = args[0];
+
+    let output = "";
+    let isError = false;
+    let isAscii = false;
+
+    switch (command) {
+      case "help":
+        output = `
+Available commands:
+  help          - Show this help message
+  about         - About this terminal
+  clear         - Clear the screen
+  date          - Show current date and time
+  echo [text]   - Echo text back
+  facts         - Show a random fun fact
+  fortune       - Show a random quote
+  games         - List available games
+  hack          - Initiate "hacking" sequence
+  hello         - Greeting
+  matrix        - Enter the Matrix
+  music         - Music player controls
+  neofetch      - System information
+  nemo          - ASCII art of Nemo
+  quote         - Show a random quote
+  reboot        - Restart the terminal
+  secrets       - List hidden features
+  stats         - Show visitor statistics
+  theme [name]  - Change theme (dark/light)
+  whoami        - Who are you?
+        `;
+        break;
+
+      case "about":
+        output = "Secret Terminal v2.0 - A hidden feature of Nemo's Portfolio. Built with React + TypeScript.";
+        break;
+
+      case "clear":
+        setHistory([]);
+        return;
+
+      case "date":
+        output = new Date().toLocaleString();
+        break;
+
+      case "echo":
+        output = args.slice(1).join(" ") || "Echo... echo... echo...";
+        break;
+
+      case "facts":
+      case "fact":
+        output = funFacts[Math.floor(Math.random() * funFacts.length)];
+        break;
+
+      case "fortune":
+      case "quote":
+        output = quotes[Math.floor(Math.random() * quotes.length)];
+        break;
+
+      case "games":
+        output = `
+Available games:
+  - Type 'snake' to play Snake
+  - Type 'matrix' for Matrix Rain
+  - Visit /typing-race for typing challenge
+  - Visit /challenges for daily challenges
+        `;
+        break;
+
+      case "hack":
+        output = `
+[INITIATING HACK SEQUENCE...]
+[ACCESSING MAINFRAME...]
+[...]
+[...]
+Just kidding! This is just a portfolio website. 
+But nice try, hacker! 😄
+        `;
+        break;
+
+      case "hello":
+      case "hi":
+        output = "Hello there! Welcome to the secret side of my portfolio. 👋";
+        break;
+
+      case "matrix":
+        output = "Wake up, Neo... The Matrix has you. Follow the white rabbit. 🐇";
+        setTimeout(() => {
+          window.open("/matrix-rain", "_blank");
+        }, 1000);
+        break;
+
+      case "music":
+        output = "🎵 Check out the floating music player in the bottom right!";
+        break;
+
+      case "neofetch":
+        isAscii = true;
+        output = `
+${asciiArt.nemo}
+OS: NemoOS 2.0
+Kernel: Creativity 5.x
+Shell: zsh
+DE: React + Next.js
+Theme: Dracula
+Icons: Lucide
+Terminal: SecretTerminal
+CPU: Brain @ ∞ GHz
+Memory: Unlimited Potential
+        `;
+        break;
+
+      case "nemo":
+        isAscii = true;
+        output = asciiArt.nemo;
+        break;
+
+      case "reboot":
+        output = "Rebooting...";
+        setTimeout(() => {
+          setHistory([
+            { input: "", output: asciiArt.welcome, isAscii: true },
+            { input: "", output: "Welcome back! Terminal restarted." },
+          ]);
+        }, 1000);
+        break;
+
+      case "secrets":
+        output = `
+🔍 Hidden Features Discovered:
+  1. Konami Code (↑↑↓↓←→←→BA) - Try it!
+  2. Secret Terminal (Ctrl+Shift+K) - You're here!
+  3. Matrix Rain Page - /matrix-rain
+  4. Easter Egg Hunt - Find them all!
+  5. Developer Console - Check the console for messages
+  6. Hidden Pages - Explore the URL structure
+        `;
+        break;
+
+      case "stats":
+        output = `
+📊 Visitor Statistics:
+  Total Visits: 2,847
+  Unique Visitors: 1,923
+  Average Time: 4m 32s
+  Bounce Rate: 23%
+  Most Popular: /art-gallery
+        `;
+        break;
+
+      case "theme":
+        const theme = args[1];
+        if (theme === "dark" || theme === "light") {
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          output = `Theme changed to ${theme}.`;
+        } else {
+          output = "Usage: theme [dark|light]";
+          isError = true;
+        }
+        break;
+
+      case "whoami":
+        output = "You are a curious visitor exploring Nemo's portfolio. Welcome! 🎉";
+        break;
+
+      case "snake":
+        output = "🐍 Starting Snake game... Use arrow keys to play!";
+        toast.info("Snake game coming soon!");
+        break;
+
+      case "coffee":
+        output = "☕ Coffee is the fuel that powers this code!";
+        break;
+
+      case "love":
+        output = "❤️ Thanks for the love! It means a lot.";
+        break;
+
+      case "rocket":
+        isAscii = true;
+        output = asciiArt.rocket;
+        break;
+
+      case "cat":
+        isAscii = true;
+        output = asciiArt.cat;
+        break;
+
+      case "":
+        return;
+
+      default:
+        output = `Command not found: ${command}. Type 'help' for available commands.`;
+        isError = true;
+    }
+
+    setHistory((prev) => [...prev, { input: cmd, output, isError, isAscii }]);
+    setCommandHistory((prev) => [...prev, cmd]);
+    setHistoryIndex(-1);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      executeCommand(input);
+      setInput("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        const newIndex = historyIndex + 1;
+        setHistoryIndex(newIndex);
+        setInput(commandHistory[commandHistory.length - 1 - newIndex]);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        const newIndex = historyIndex - 1;
+        setHistoryIndex(newIndex);
+        setInput(commandHistory[commandHistory.length - 1 - newIndex]);
+      } else if (historyIndex === 0) {
+        setHistoryIndex(-1);
+        setInput("");
+      }
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <motion.button
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        onClick={() => {
+          setIsOpen(true);
+          setIsMinimized(false);
+        }}
+        className="fixed bottom-24 right-6 z-50 p-3 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow"
+        title="Secret Terminal (Ctrl+Shift+K)"
+      >
+        <Terminal className="w-5 h-5" />
+      </motion.button>
+    );
+  }
+
   return (
-    <>
-      {/* Konami Code Progress Indicator */}
-      <AnimatePresence>
-        {konamiProgress > 0 && !isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 right-4 z-50 glass px-4 py-3 rounded-xl shadow-lg"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Command className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Secret Code</span>
-              <span className="text-xs text-muted-foreground ml-auto">
-                {konamiProgress}/{KONAMI_CODE.length}
-              </span>
-            </div>
-            <div className="flex gap-1">
-              {KONAMI_CODE.map((_, i) => (
-                <motion.div
-                  key={i}
-                  className={`w-2 h-2 rounded-full ${
-                    i < konamiProgress ? "bg-primary" : "bg-muted"
-                  }`}
-                  initial={i === konamiProgress - 1 ? { scale: 0 } : { scale: 1 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring" }}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          scale: isMinimized ? 0.9 : 1, 
+          y: isMinimized ? 100 : 0,
+          height: isMinimized ? "48px" : "400px",
+        }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="fixed bottom-24 right-6 z-50 w-[600px] max-w-[90vw] bg-card border border-border rounded-xl shadow-2xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">Secret Terminal</span>
+            <span className="text-xs text-muted-foreground ml-2">— zsh</span>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setIsMinimized(!isMinimized)}
+            >
+              {isMinimized ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 hover:bg-red-500/20 hover:text-red-500"
+              onClick={() => setIsOpen(false)}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
 
-      {/* Terminal Window */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 50 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              y: isMinimized ? window.innerHeight - 100 : 0,
-              height: isMinimized ? 60 : "auto"
-            }}
-            exit={{ opacity: 0, scale: 0.9, y: 50 }}
-            className="fixed bottom-4 right-4 z-50 w-[90vw] max-w-2xl"
-          >
-            <div className="glass-strong rounded-2xl overflow-hidden shadow-2xl border border-primary/20">
-              {/* Terminal Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 to-orange-500/10 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setIsOpen(false)}
-                      className="w-3 h-3 rounded-full bg-red-500"
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setIsMinimized(!isMinimized)}
-                      className="w-3 h-3 rounded-full bg-yellow-500"
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setIsMinimized(!isMinimized)}
-                      className="w-3 h-3 rounded-full bg-green-500"
-                    />
+        {/* Terminal Content */}
+        <AnimatePresence>
+          {!isMinimized && (
+            <>
+              <div
+                ref={terminalRef}
+                className="h-[300px] overflow-y-auto p-4 font-mono text-sm space-y-2"
+              >
+                {history.map((cmd, index) => (
+                  <div key={index} className="space-y-1">
+                    {cmd.input && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-500">➜</span>
+                        <span className="text-blue-500">~</span>
+                        <span>{cmd.input}</span>
+                      </div>
+                    )}
+                    <div
+                      className={`whitespace-pre-wrap ${
+                        cmd.isError
+                          ? "text-red-400"
+                          : cmd.isAscii
+                          ? "text-primary"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {cmd.output}
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Terminal className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">Secret Terminal</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsMinimized(!isMinimized)}
-                  >
-                    {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
+                ))}
               </div>
 
-              {/* Terminal Content */}
-              <AnimatePresence>
-                {!isMinimized && (
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: "auto" }}
-                    exit={{ height: 0 }}
-                    className="bg-black/90"
-                  >
-                    <div className="h-80 overflow-y-auto p-4 font-mono text-sm">
-                      {history.map((item, index) => (
-                        <div
-                          key={index}
-                          className={`${
-                            item.type === "input"
-                              ? "text-green-400"
-                              : "text-gray-300 whitespace-pre-wrap"
-                          }`}
-                        >
-                          {item.content}
-                        </div>
-                      ))}
-                      
-                      <form onSubmit={handleSubmit} className="flex items-center gap-2 mt-2">
-                        <span className="text-green-400">></span>
-                        <input
-                          type="text"
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                          className="flex-1 bg-transparent border-none outline-none text-white font-mono"
-                          placeholder="Type a command..."
-                          autoFocus
-                        />
-                      </form>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+              {/* Input */}
+              <form onSubmit={handleSubmit} className="p-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-500">➜</span>
+                  <span className="text-blue-500">~</span>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1 bg-transparent border-none outline-none font-mono text-sm"
+                    placeholder="Type a command..."
+                    autoFocus
+                  />
+                </div>
+              </form>
+            </>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </AnimatePresence>
   );
 }
+
+export default SecretTerminal;

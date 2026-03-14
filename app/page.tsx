@@ -15,7 +15,12 @@ import {
   Briefcase,
   Rocket,
   Terminal,
-  Coffee
+  Coffee,
+  BookOpen,
+  Bookmark,
+  Quote,
+  FileCode,
+  Beaker
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnhancedVisitorCounter } from "@/components/enhanced-visitor-counter";
@@ -33,6 +38,9 @@ import { AchievementShowcase } from "@/components/achievement-showcase";
 import { EnhancedHero } from "@/components/enhanced-hero";
 import { QuoteWall } from "@/components/quote-wall";
 import { AnimatedSkillsChart } from "@/components/animated-skills-chart";
+import { MorphingBlobHero } from "@/components/morphing-blob-hero";
+import { HolographicProjectCards } from "@/components/holographic-project-cards";
+import { Keyboard, Volume2 } from "lucide-react";
 
 const features = [
   {
@@ -69,6 +77,12 @@ const techStack = [
 export default function Home() {
   return (
     <>
+      {/* New Morphing Blob Hero */}
+      <MorphingBlobHero />
+
+      {/* Holographic Project Cards */}
+      <HolographicProjectCards />
+
       {/* Enhanced Hero Section */}
       <EnhancedHero />
 

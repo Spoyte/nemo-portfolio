@@ -21,6 +21,9 @@ import { SecretTerminal } from "@/components/secret-terminal";
 import { EnhancedEasterEggs } from "@/components/enhanced-easter-eggs";
 import { MicroInteractions } from "@/components/micro-interactions";
 import { MagicTerminal } from "@/components/magic-terminal";
+import { ParticleConstellation } from "@/components/particle-constellation";
+import { KeyboardNavigator } from "@/components/keyboard-navigator";
+import { DynamicFavicon } from "@/components/dynamic-favicon";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -96,6 +99,11 @@ export default function RootLayout({
           <EnhancedEasterEggs />
           <MicroInteractions />
           <MagicTerminal />
+          
+          {/* New Portfolio Enhancement Components */}
+          <ParticleConstellation />
+          <KeyboardNavigator />
+          <DynamicFavicon />
         </ThemeProvider>
       </body>
     </html>

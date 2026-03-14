@@ -1,154 +1,204 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 
-// SVG favicon data URLs for different states
-const favicons = {
+const canvasSize = 32;
+
+// Different favicon themes
+const themes = {
   default: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🦑</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🦑</text></svg>`,
+    bg: "#dc2626",
+    text: "#ffffff",
+    shape: "circle",
   },
-  home: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏠</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🏠</text></svg>`,
+  dark: {
+    bg: "#1c1917",
+    text: "#f87171",
+    shape: "circle",
   },
-  about: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">👤</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">👤</text></svg>`,
+  matrix: {
+    bg: "#000000",
+    text: "#00ff00",
+    shape: "square",
   },
-  projects: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💼</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💼</text></svg>`,
+  ocean: {
+    bg: "#0c4a6e",
+    text: "#7dd3fc",
+    shape: "circle",
   },
-  blog: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📝</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📝</text></svg>`,
+  sunset: {
+    bg: "#7c2d12",
+    text: "#fdba74",
+    shape: "circle",
   },
-  contact: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">✉️</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">✉️</text></svg>`,
-  },
-  art: {
-    light: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎨</text></svg>`,
-    dark: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎨</text></svg>`,
-  },
-  // Time-based favicons
-  morning: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌅</text></svg>`,
-  afternoon: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">☀️</text></svg>`,
-  evening: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌆</text></svg>`,
-  night: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌙</text></svg>`,
 };
 
 export function DynamicFavicon() {
-  const pathname = usePathname();
-  const [favicon, setFavicon] = useState(favicons.default.light);
-  const [mounted, setMounted] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<keyof typeof themes>("default");
+  const [animationFrame, setAnimationFrame] = useState(0);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const drawFavicon = useCallback(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  // Update favicon based on route
-  useEffect(() => {
-    if (!mounted) return;
+    const theme = themes[currentTheme];
 
-    let newFavicon = favicons.default.light;
+    // Clear canvas
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Route-based favicon
-    if (pathname === "/") {
-      newFavicon = favicons.home.light;
-    } else if (pathname.includes("about")) {
-      newFavicon = favicons.about.light;
-    } else if (pathname.includes("project")) {
-      newFavicon = favicons.projects.light;
-    } else if (pathname.includes("blog")) {
-      newFavicon = favicons.blog.light;
-    } else if (pathname.includes("contact")) {
-      newFavicon = favicons.contact.light;
-    } else if (pathname.includes("art")) {
-      newFavicon = favicons.art.light;
+    // Draw background shape
+    ctx.fillStyle = theme.bg;
+    if (theme.shape === "circle") {
+      ctx.beginPath();
+      ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillRect(2, 2, canvasSize - 4, canvasSize - 4);
     }
 
-    setFavicon(newFavicon);
-    updateFavicon(newFavicon);
-  }, [pathname, mounted]);
+    // Draw "N" letter with animation
+    ctx.fillStyle = theme.text;
+    ctx.font = "bold 20px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-  // Time-based favicon updates
+    // Add subtle animation to the letter
+    const offsetY = Math.sin(animationFrame * 0.1) * 1;
+    ctx.fillText("N", canvasSize / 2, canvasSize / 2 + offsetY);
+
+    // Update favicon
+    const link = document.querySelector('link[rel*="icon"]') as HTMLLinkElement;
+    if (link) {
+      link.href = canvas.toDataURL();
+    }
+  }, [currentTheme, animationFrame]);
+
+  // Animation loop
   useEffect(() => {
-    if (!mounted) return;
-
-    const updateTimeBasedFavicon = () => {
-      const hour = new Date().getHours();
-      let timeFavicon = favicons.morning;
-
-      if (hour >= 5 && hour < 12) {
-        timeFavicon = favicons.morning;
-      } else if (hour >= 12 && hour < 17) {
-        timeFavicon = favicons.afternoon;
-      } else if (hour >= 17 && hour < 21) {
-        timeFavicon = favicons.evening;
-      } else {
-        timeFavicon = favicons.night;
-      }
-
-      // Only update if on home page (as a subtle touch)
-      if (pathname === "/") {
-        updateFavicon(timeFavicon);
-      }
-    };
-
-    updateTimeBasedFavicon();
-    const interval = setInterval(updateTimeBasedFavicon, 60000); // Check every minute
+    let frame = 0;
+    const interval = setInterval(() => {
+      frame++;
+      setAnimationFrame(frame);
+    }, 100);
 
     return () => clearInterval(interval);
-  }, [pathname, mounted]);
+  }, []);
 
-  const updateFavicon = (href: string) => {
-    // Remove existing favicons
-    const existingFavicons = document.querySelectorAll('link[rel*="icon"]');
-    existingFavicons.forEach((f) => f.remove());
-
-    // Add new favicon
-    const link = document.createElement("link");
-    link.rel = "icon";
-    link.type = "image/svg+xml";
-    link.href = href;
-    document.head.appendChild(link);
-
-    // Also add apple touch icon
-    const appleLink = document.createElement("link");
-    appleLink.rel = "apple-touch-icon";
-    appleLink.href = href;
-    document.head.appendChild(appleLink);
-  };
-
-  // Handle visibility change (show notification badge when tab is hidden)
+  // Redraw on changes
   useEffect(() => {
-    if (!mounted) return;
+    drawFavicon();
+  }, [drawFavicon]);
 
-    let notificationCount = 0;
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "class") {
+          const isDark = document.documentElement.classList.contains("dark");
+          setCurrentTheme(isDark ? "dark" : "default");
+        }
+      });
+    });
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Simulate notification (in real app, this would be actual notifications)
-        notificationCount++;
-        if (notificationCount > 0) {
-          const badgeFavicon = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="80" cy="20" r="15" fill="red"/><text y=".9em" font-size="90">🦑</text></svg>`;
-          updateFavicon(badgeFavicon);
+    observer.observe(document.documentElement, { attributes: true });
+
+    // Check initial state
+    const isDark = document.documentElement.classList.contains("dark");
+    setCurrentTheme(isDark ? "dark" : "default");
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Listen for page changes
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const path = window.location.pathname;
+      if (path.includes("matrix")) setCurrentTheme("matrix");
+      else if (path.includes("ocean")) setCurrentTheme("ocean");
+      else if (path.includes("sunset")) setCurrentTheme("sunset");
+    };
+
+    window.addEventListener("popstate", handleRouteChange);
+    handleRouteChange();
+
+    return () => window.removeEventListener("popstate", handleRouteChange);
+  }, []);
+
+  // Easter egg: Change favicon on Konami code
+  useEffect(() => {
+    const konamiCode = [
+      "ArrowUp",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowLeft",
+      "ArrowRight",
+      "b",
+      "a",
+    ];
+    let index = 0;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === konamiCode[index]) {
+        index++;
+        if (index === konamiCode.length) {
+          setCurrentTheme("matrix");
+          index = 0;
         }
       } else {
-        notificationCount = 0;
-        // Reset to current route favicon
-        const event = new Event("popstate");
-        window.dispatchEvent(event);
+        index = 0;
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [mounted]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return null; // This component doesn't render anything visible
 }
+
+// Favicon theme switcher component
+export function FaviconThemeSwitcher() {
+  const [current, setCurrent] = useState<keyof typeof themes>("default");
+
+  const setTheme = (theme: keyof typeof themes) => {
+    setCurrent(theme);
+    // Dispatch custom event for DynamicFavicon to pick up
+    window.dispatchEvent(new CustomEvent("faviconThemeChange", { detail: theme }));
+  };
+
+  return (
+    <div className="flex gap-2">
+      {(Object.keys(themes) as Array<keyof typeof themes>).map((theme) => (
+        <motion.button
+          key={theme}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTheme(theme)}
+          className={`w-8 h-8 rounded-lg border-2 transition-colors ${
+            current === theme ? "border-primary" : "border-transparent"
+          }`}
+          style={{
+            backgroundColor: themes[theme].bg,
+          }}
+          title={`${theme} theme`}
+        >
+          <span
+            className="text-xs font-bold"
+            style={{ color: themes[theme].text }}
+          >
+            N
+          </span>
+        </motion.button>
+      ))}
+    </div>
+  );
+}
+
+export default DynamicFavicon;

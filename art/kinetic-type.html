@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kinetic Type — Living Letterforms</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0f;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        button:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.4);
+        }
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="info">
+        KINETIC TYPE — Living Letterforms<br>
+        Letter shapes deformed by physics fields
+    </div>
+    <div class="controls">
+        <button onclick="setMode('wave')">Wave</button>
+        <button onclick="setMode('noise')">Noise</button>
+        <button onclick="setMode('ripple')">Ripple</button>
+        <button onclick="setMode('magnetic')">Magnetic</button>
+        <button onclick="cycleText()">Change Text</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let time = 0;
+        let mode = 'wave';
+        let textIndex = 0;
+        
+        const texts = [
+            'CREATE',
+            'FLOW',
+            'BREATHE',
+            'WONDER',
+            'BECOME',
+            'ECHO',
+            'DRIFT',
+            'FORM'
+        ];
+        
+        // Letterform definitions as stroke paths (simplified)
+        // Each letter is defined as a series of line segments
+        const letterPaths = {
+            'A': [
+                [[0,1],[0.5,0],[1,1]],
+                [[0.25,0.6],[0.75,0.6]]
+            ],
+            'B': [
+                [[0,0],[0,1]],
+                [[0,0],[0.7,0],[0.7,0.45],[0,0.5]],
+                [[0,0.5],[0.7,0.55],[0.7,1],[0,1]]
+            ],
+            'C': [
+                [[1,0.2],[0.5,0],[0,0.5],[0.5,1],[1,0.8]]
+            ],
+            'D': [
+                [[0,0],[0,1]],
+                [[0,0],[0.6,0],[0.8,0.5],[0.6,1],[0,1]]
+            ],
+            'E': [
+                [[1,0],[0,0],[0,1],[1,1]],
+                [[0,0.5],[0.7,0.5]]
+            ],
+            'F': [
+                [[0,1],[0,0],[1,0]],
+                [[0,0.5],[0.7,0.5]]
+            ],
+            'G': [
+                [[0.8,0.2],[0.5,0],[0,0.5],[0.5,1],[1,0.8],[1,0.6],[0.6,0.6]]
+            ],
+            'H': [
+                [[0,0],[0,1]],
+                [[1,0],[1,1]],
+                [[0,0.5],[1,0.5]]
+            ],
+            'I': [
+                [[0.5,0],[0.5,1]],
+                [[0.3,0],[0.7,0]],
+                [[0.3,1],[0.7,1]]
+            ],
+            'J': [
+                [[0.7,0],[0.7,0.8],[0.5,1],[0.2,0.9]]
+            ],
+            'K': [
+                [[0,0],[0,1]],
+                [[1,0],[0,0.5],[1,1]]
+            ],
+            'L': [
+                [[0,0],[0,1],[1,1]]
+            ],
+            'M': [
+                [[0,1],[0,0],[0.5,0.5],[1,0],[1,1]]
+            ],
+            'N': [
+                [[0,1],[0,0],[1,1],[1,0]]
+            ],
+            'O': [
+                [[0.5,0],[0,1],[1,1],[1,0],[0.5,0]]
+            ],
+            'P': [
+                [[0,1],[0,0],[0.7,0],[0.7,0.45],[0,0.5]]
+            ],
+            'Q': [
+                [[0.5,0],[0,1],[1,1],[1,0],[0.5,0]],
+                [[0.6,0.7],[1,1]]
+            ],
+            'R': [
+                [[0,1],[0,0],[0.7,0],[0.7,0.45],[0,0.5]],
+                [[0.5,0.5],[1,1]]
+            ],
+            'S': [
+                [[1,0.2],[0.5,0],[0,0.3],[0.5,0.5],[1,0.7],[0.5,1],[0,0.8]]
+            ],
+            'T': [
+                [[0.5,0],[0.5,1]],
+                [[0,0],[1,0]]
+            ],
+            'U': [
+                [[0,0],[0,0.8],[0.5,1],[1,0.8],[1,0]]
+            ],
+            'V': [
+                [[0,0],[0.5,1],[1,0]]
+            ],
+            'W': [
+                [[0,0],[0.25,1],[0.5,0.5],[0.75,1],[1,0]]
+            ],
+            'X': [
+                [[0,0],[1,1]],
+                [[1,0],[0,1]]
+            ],
+            'Y': [
+                [[0,0],[0.5,0.5],[1,0]],
+                [[0.5,0.5],[0.5,1]]
+            ],
+            'Z': [
+                [[0,0],[1,0],[0,1],[1,1]]
+            ],
+            ' ': [] // Space
+        };
+        
+        // Simplex noise implementation
+        class SimplexNoise {
+            constructor() {
+                this.perm = new Uint8Array(512);
+                for (let i = 0; i < 256; i++) this.perm[i] = this.perm[i + 256] = Math.floor(Math.random() * 256);
+            }
+            noise2D(x, y) {
+                const F2 = 0.5 * (Math.sqrt(3) - 1);
+                const G2 = (3 - Math.sqrt(3)) / 6;
+                let n0, n1, n2;
+                let s = (x + y) * F2;
+                let i = Math.floor(x + s);
+                let j = Math.floor(y + s);
+                let t = (i + j) * G2;
+                let X0 = i - t;
+                let Y0 = j - t;
+                let x0 = x - X0;
+                let y0 = y - Y0;
+                let i1, j1;
+                if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+                let x1 = x0 - i1 + G2;
+                let y1 = y0 - j1 + G2;
+                let x2 = x0 - 1 + 2 * G2;
+                let y2 = y0 - 1 + 2 * G2;
+                let ii = i & 255;
+                let jj = j & 255;
+                n0 = this.grad(this.perm[ii + this.perm[jj]], x0, y0);
+                n1 = this.grad(this.perm[ii + i1 + this.perm[jj + j1]], x1, y1);
+                n2 = this.grad(this.perm[ii + 1 + this.perm[jj + 1]], x2, y2);
+                return 70 * (n0 + n1 + n2);
+            }
+            grad(hash, x, y) {
+                let h = hash & 15;
+                let grad = 1 + (h & 7);
+                if ((h & 8) !== 0) grad = -grad;
+                return (h < 8) ? grad * x : grad * y;
+            }
+        }
+        
+        const noise = new SimplexNoise();
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        
+        function setMode(newMode) {
+            mode = newMode;
+        }
+        
+        function cycleText() {
+            textIndex = (textIndex + 1) % texts.length;
+        }
+        
+        // Deformation functions
+        function deformWave(x, y, t) {
+            const freq = 0.02;
+            const amp = 15;
+            return {
+                x: x + Math.sin(y * freq + t * 2) * amp,
+                y: y + Math.cos(x * freq + t * 1.5) * amp * 0.5
+            };
+        }
+        
+        function deformNoise(x, y, t) {
+            const scale = 0.003;
+            const amp = 20;
+            const n = noise.noise2D(x * scale + t * 0.5, y * scale);
+            const angle = n * Math.PI * 2;
+            return {
+                x: x + Math.cos(angle) * amp,
+                y: y + Math.sin(angle) * amp
+            };
+        }
+        
+        function deformRipple(x, y, t) {
+            const cx = width / 2;
+            const cy = height / 2;
+            const dx = x - cx;
+            const dy = y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const wave = Math.sin(dist * 0.02 - t * 3) * Math.exp(-dist * 0.001);
+            const amp = 30;
+            return {
+                x: x + (dx / dist) * wave * amp,
+                y: y + (dy / dist) * wave * amp
+            };
+        }
+        
+        function deformMagnetic(x, y, t) {
+            // Multiple attractor points
+            const attractors = [
+                { x: width * 0.3 + Math.sin(t) * 100, y: height * 0.4 + Math.cos(t * 0.7) * 80 },
+                { x: width * 0.7 + Math.cos(t * 0.8) * 100, y: height * 0.6 + Math.sin(t * 0.5) * 80 }
+            ];
+            
+            let totalDx = 0, totalDy = 0;
+            attractors.forEach(a => {
+                const dx = a.x - x;
+                const dy = a.y - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const force = 5000 / (dist * dist + 1000);
+                totalDx += (dx / dist) * force;
+                totalDy += (dy / dist) * force;
+            });
+            
+            return { x: x + totalDx, y: y + totalDy };
+        }
+        
+        function deformPoint(x, y, t) {
+            switch(mode) {
+                case 'wave': return deformWave(x, y, t);
+                case 'noise': return deformNoise(x, y, t);
+                case 'ripple': return deformRipple(x, y, t);
+                case 'magnetic': return deformMagnetic(x, y, t);
+                default: return { x, y };
+            }
+        }
+        
+        // Draw a letter with deformation
+        function drawLetter(letter, x, y, size, t) {
+            const paths = letterPaths[letter];
+            if (!paths || paths.length === 0) return;
+            
+            const letterWidth = size * 0.8;
+            const letterHeight = size;
+            
+            ctx.strokeStyle = `hsl(${200 + Math.sin(t + x * 0.001) * 60}, 80%, 60%)`;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            paths.forEach(path => {
+                if (path.length < 2) return;
+                
+                ctx.beginPath();
+                
+                // Sample points along each line segment
+                const points = [];
+                for (let i = 0; i < path.length - 1; i++) {
+                    const p1 = path[i];
+                    const p2 = path[i + 1];
+                    const segments = 10;
+                    
+                    for (let s = 0; s <= segments; s++) {
+                        const t_seg = s / segments;
+                        const px = x + (p1[0] + (p2[0] - p1[0]) * t_seg) * letterWidth;
+                        const py = y + (p1[1] + (p2[1] - p1[1]) * t_seg) * letterHeight;
+                        points.push({ x: px, y: py });
+                    }
+                }
+                
+                // Deform and draw
+                for (let i = 0; i < points.length; i++) {
+                    const p = points[i];
+                    const deformed = deformPoint(p.x, p.y, t);
+                    
+                    if (i === 0) {
+                        ctx.moveTo(deformed.x, deformed.y);
+                    } else {
+                        ctx.lineTo(deformed.x, deformed.y);
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Draw glowing dots at key points
+                ctx.fillStyle = `hsl(${200 + Math.sin(t * 2 + x * 0.002) * 60}, 90%, 70%)`;
+                for (let i = 0; i < points.length; i += 5) {
+                    const p = points[i];
+                    const deformed = deformPoint(p.x, p.y, t);
+                    const glow = Math.sin(t * 3 + i * 0.5) * 0.5 + 0.5;
+                    ctx.globalAlpha = glow * 0.8;
+                    ctx.beginPath();
+                    ctx.arc(deformed.x, deformed.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            });
+        }
+        
+        function draw() {
+            // Fade effect
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+            
+            const text = texts[textIndex];
+            const letterSize = Math.min(width / (text.length + 2), 120);
+            const totalWidth = text.length * letterSize * 0.9;
+            const startX = (width - totalWidth) / 2;
+            const startY = (height - letterSize) / 2;
+            
+            // Draw each letter
+            for (let i = 0; i < text.length; i++) {
+                const letter = text[i];
+                const x = startX + i * letterSize * 0.9;
+                const y = startY;
+                
+                // Add subtle letter-specific time offset
+                const letterTime = time + i * 0.2;
+                drawLetter(letter, x, y, letterSize, letterTime);
+            }
+            
+            // Draw connecting energy lines between letters
+            ctx.strokeStyle = `hsla(${220 + Math.sin(time) * 40}, 70%, 50%, 0.3)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < text.length - 1; i++) {
+                const x1 = startX + i * letterSize * 0.9 + letterSize * 0.4;
+                const y1 = startY + letterSize * 0.5 + Math.sin(time * 2 + i) * 10;
+                const x2 = startX + (i + 1) * letterSize * 0.9 + letterSize * 0.4;
+                const y2 = startY + letterSize * 0.5 + Math.sin(time * 2 + i + 1) * 10;
+                
+                const d1 = deformPoint(x1, y1, time);
+                const d2 = deformPoint(x2, y2, time);
+                
+                ctx.moveTo(d1.x, d1.y);
+                ctx.lineTo(d2.x, d2.y);
+            }
+            ctx.stroke();
+            
+            time += 0.016;
+            requestAnimationFrame(draw);
+        }
+        
+        draw();
+    </script>
+</body>
+</html>

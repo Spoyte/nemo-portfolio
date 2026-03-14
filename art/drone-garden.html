@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Garden — Generative Ambient Soundscape</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        canvas {
+            box-shadow: 0 0 100px rgba(80, 60, 140, 0.25);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        .controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+            align-items: center;
+        }
+        button {
+            background: rgba(25, 25, 40, 0.9);
+            border: 1px solid rgba(100, 80, 180, 0.4);
+            color: #b0a0d0;
+            padding: 14px 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+        }
+        button:hover {
+            background: rgba(45, 40, 70, 0.95);
+            border-color: rgba(140, 120, 220, 0.6);
+            color: #d0c0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(100, 80, 180, 0.3);
+        }
+        button.active {
+            background: rgba(80, 60, 140, 0.4);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #e0d0ff;
+            box-shadow: 0 0 30px rgba(140, 120, 220, 0.4);
+        }
+        .info {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: rgba(160, 150, 200, 0.5);
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .status {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(200, 180, 255, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        .key {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+            color: rgba(160, 150, 200, 0.4);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        .key span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Generative Ambient Soundscape</div>
+    <div class="status" id="status">Click canvas to plant a drone • Press space to clear</div>
+    <canvas id="canvas"></canvas>
+    
+    <div class="key">
+        <span><div class="dot" style="background: #ff6b9d"></div> Root</span>
+        <span><div class="dot" style="background: #4ecdc4"></div> Third</span>
+        <span><div class="dot" style="background: #ffe66d"></div> Fifth</span>
+        <span><div class="dot" style="background: #a8e6cf"></div> Seventh</span>
+    </div>
+    
+    <div class="controls">
+        <button id="startBtn" onclick="toggleAudio()">Begin Listening</button>
+        <button onclick="randomizeGarden()">Randomize</button>
+        <button onclick="clearGarden()">Clear All</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const statusEl = document.getElementById('status');
+        
+        // Canvas setup
+        const displaySize = 700;
+        const renderScale = 1.5;
+        canvas.width = displaySize * renderScale;
+        canvas.height = displaySize * renderScale;
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
+        
+        // Audio context
+        let audioCtx = null;
+        let isPlaying = false;
+        let masterGain = null;
+        let reverbNode = null;
+        
+        // Drone garden
+        const drones = [];
+        const maxDrones = 12;
+        
+        // Musical scales (frequencies in Hz)
+        const scales = {
+            ethereal: [110, 130.81, 146.83, 164.81, 196, 220, 261.63, 293.66], // A2-C4
+            cosmic: [65.41, 73.42, 82.41, 98, 110, 130.81, 146.83, 174.61], // C2-F3
+            crystal: [261.63, 293.66, 329.63, 349.23, 392, 440, 493.88, 523.25], // C4-C5
+            deep: [55, 61.74, 65.41, 73.42, 82.41, 87.31, 98, 110] // A1-A2
+        };
+        let currentScale = 'ethereal';
+        
+        // Chord intervals (ratios from root)
+        const chordIntervals = [1, 1.25, 1.5, 1.875]; // root, major third, fifth, major seventh
+        const intervalColors = ['#ff6b9d', '#4ecdc4', '#ffe66d', '#a8e6cf'];
+        
+        // Drone class
+        class Drone {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseRadius = 15 + Math.random() * 25;
+                this.radius = this.baseRadius;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.pulseSpeed = 0.5 + Math.random() * 1;
+                this.oscillators = [];
+                this.gains = [];
+                this.panners = [];
+                this.lfos = [];
+                this.lfoGains = [];
+                this.age = 0;
+                this.maxAge = 30000 + Math.random() * 60000; // 30-90 seconds
+                this.isDying = false;
+                
+                // Pick root note based on y position (higher = higher pitch)
+                const scaleNotes = scales[currentScale];
+                const noteIndex = Math.floor((1 - y / canvas.height) * scaleNotes.length);
+                this.rootFreq = scaleNotes[Math.max(0, Math.min(noteIndex, scaleNotes.length - 1))];
+                
+                if (isPlaying && audioCtx) {
+                    this.createAudio();
+                }
+            }
+            
+            createAudio() {
+                // Create 4 oscillators for rich chord texture
+                chordIntervals.forEach((interval, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    const panner = audioCtx.createStereoPanner();
+                    const lfo = audioCtx.createOscillator();
+                    const lfoGain = audioCtx.createGain();
+                    
+                    // Slight detuning for organic feel
+                    const detune = (Math.random() - 0.5) * 8;
+                    osc.frequency.value = this.rootFreq * interval + detune;
+                    osc.type = i === 0 ? 'sine' : i === 1 ? 'triangle' : 'sine';
+                    
+                    // Stereo position based on x
+                    panner.pan.value = (this.x / canvas.width - 0.5) * 1.5;
+                    
+                    // LFO for subtle movement
+                    lfo.frequency.value = 0.1 + Math.random() * 0.3;
+                    lfoGain.gain.value = 2 + Math.random() * 3;
+                    
+                    // Individual note gain
+                    const baseGain = i === 0 ? 0.15 : i === 1 ? 0.1 : i === 2 ? 0.08 : 0.05;
+                    gain.gain.value = 0;
+                    
+                    // Connect: osc -> gain -> panner -> master
+                    osc.connect(gain);
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(osc.frequency);
+                    gain.connect(panner);
+                    panner.connect(masterGain);
+                    
+                    osc.start();
+                    lfo.start();
+                    
+                    // Fade in
+                    gain.gain.setTargetAtTime(baseGain, audioCtx.currentTime, 2);
+                    
+                    this.oscillators.push(osc);
+                    this.gains.push(gain);
+                    this.panners.push(panner);
+                    this.lfos.push(lfo);
+                    this.lfoGains.push(lfoGain);
+                });
+            }
+            
+            update(dt) {
+                this.age += dt;
+                this.pulsePhase += this.pulseSpeed * dt * 0.001;
+                
+                // Pulsing radius
+                this.radius = this.baseRadius + Math.sin(this.pulsePhase) * 5;
+                
+                // Natural decay
+                if (this.age > this.maxAge && !this.isDying) {
+                    this.fadeOut();
+                }
+                
+                // Update audio if playing
+                if (isPlaying && this.oscillators.length > 0) {
+                    // Subtle pan movement
+                    this.panners.forEach((pan, i) => {
+                        const offset = i * 0.3;
+                        const panValue = (this.x / canvas.width - 0.5) * 1.5 + 
+                                        Math.sin(this.pulsePhase + offset) * 0.3;
+                        pan.pan.setTargetAtTime(panValue, audioCtx.currentTime, 0.1);
+                    });
+                }
+            }
+            
+            fadeOut() {
+                this.isDying = true;
+                if (this.gains.length > 0) {
+                    this.gains.forEach(gain => {
+                        gain.gain.setTargetAtTime(0, audioCtx.currentTime, 3);
+                    });
+                }
+            }
+            
+            isDead() {
+                return this.isDying && this.age > this.maxAge + 4000;
+            }
+            
+            destroy() {
+                this.oscillators.forEach(osc => {
+                    try { osc.stop(); } catch(e) {}
+                });
+                this.lfos.forEach(lfo => {
+                    try { lfo.stop(); } catch(e) {}
+                });
+                this.oscillators = [];
+                this.gains = [];
+                this.panners = [];
+                this.lfos = [];
+                this.lfoGains = [];
+            }
+            
+            draw(ctx) {
+                const alpha = this.isDying ? 
+                    Math.max(0, 1 - (this.age - this.maxAge) / 4000) : 
+                    Math.min(1, this.age / 2000);
+                
+                // Draw concentric rings for each chord tone
+                chordIntervals.forEach((interval, i) => {
+                    const ringRadius = this.radius * (1 + i * 0.4);
+                    const ringAlpha = alpha * (1 - i * 0.15);
+                    
+                    const gradient = ctx.createRadialGradient(
+                        this.x, this.y, 0,
+                        this.x, this.y, ringRadius
+                    );
+                    gradient.addColorStop(0, intervalColors[i] + Math.floor(ringAlpha * 40).toString(16).padStart(2, '0'));
+                    gradient.addColorStop(0.5, intervalColors[i] + Math.floor(ringAlpha * 20).toString(16).padStart(2, '0'));
+                    gradient.addColorStop(1, 'transparent');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, ringRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Ring outline
+                    ctx.strokeStyle = intervalColors[i] + Math.floor(ringAlpha * 30).toString(16).padStart(2, '0');
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, ringRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+                
+                // Center glow
+                const centerGlow = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius * 0.5
+                );
+                centerGlow.addColorStop(0, 'rgba(255, 255, 255, ' + (alpha * 0.3) + ')');
+                centerGlow.addColorStop(1, 'transparent');
+                ctx.fillStyle = centerGlow;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Create reverb impulse
+        function createReverbImpulse() {
+            const rate = audioCtx.sampleRate;
+            const length = rate * 3; // 3 seconds
+            const decay = 2;
+            const impulse = audioCtx.createBuffer(2, length, rate);
+            
+            for (let channel = 0; channel < 2; channel++) {
+                const data = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+                }
+            }
+            return impulse;
+        }
+        
+        // Initialize audio
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Master gain
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.6;
+            
+            // Reverb
+            const convolver = audioCtx.createConvolver();
+            convolver.buffer = createReverbImpulse();
+            
+            // Compressor for safety
+            const compressor = audioCtx.createDynamicsCompressor();
+            compressor.threshold.value = -24;
+            compressor.knee.value = 30;
+            compressor.ratio.value = 12;
+            compressor.attack.value = 0.003;
+            compressor.release.value = 0.25;
+            
+            // Chain: master -> reverb -> compressor -> destination
+            masterGain.connect(convolver);
+            convolver.connect(compressor);
+            compressor.connect(audioCtx.destination);
+            
+            // Dry path too
+            masterGain.connect(compressor);
+            
+            // Create audio for existing drones
+            drones.forEach(drone => drone.createAudio());
+        }
+        
+        // Toggle audio
+        function toggleAudio() {
+            if (!isPlaying) {
+                initAudio();
+                isPlaying = true;
+                startBtn.textContent = 'Pause';
+                startBtn.classList.add('active');
+                statusEl.textContent = 'Audio active • Click canvas to add drones';
+            } else {
+                if (audioCtx.state === 'running') {
+                    audioCtx.suspend();
+                    startBtn.textContent = 'Resume';
+                    startBtn.classList.remove('active');
+                    statusEl.textContent = 'Audio paused';
+                } else {
+                    audioCtx.resume();
+                    startBtn.textContent = 'Pause';
+                    startBtn.classList.add('active');
+                    statusEl.textContent = 'Audio active • Click canvas to add drones';
+                }
+            }
+        }
+        
+        // Add drone at position
+        function addDrone(x, y) {
+            if (drones.length >= maxDrones) {
+                // Remove oldest
+                const old = drones.shift();
+                old.fadeOut();
+                setTimeout(() => old.destroy(), 4000);
+            }
+            drones.push(new Drone(x, y));
+        }
+        
+        // Randomize garden
+        function randomizeGarden() {
+            // Clear existing
+            drones.forEach(d => {
+                d.fadeOut();
+                setTimeout(() => d.destroy(), 4000);
+            });
+            drones.length = 0;
+            
+            // Pick random scale
+            const scaleNames = Object.keys(scales);
+            currentScale = scaleNames[Math.floor(Math.random() * scaleNames.length)];
+            
+            // Add random drones
+            const count = 4 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const x = 100 + Math.random() * (canvas.width - 200);
+                    const y = 100 + Math.random() * (canvas.height - 200);
+                    addDrone(x, y);
+                }, i * 800);
+            }
+            
+            if (!isPlaying) {
+                statusEl.textContent = 'Garden randomized • Press Begin to hear';
+            }
+        }
+        
+        // Clear all drones
+        function clearGarden() {
+            drones.forEach(d => {
+                d.fadeOut();
+                setTimeout(() => d.destroy(), 4000);
+            });
+            drones.length = 0;
+            statusEl.textContent = 'Garden cleared • Click canvas to plant new drones';
+        }
+        
+        // Animation loop
+        let lastTime = performance.now();
+        
+        function animate() {
+            const now = performance.now();
+            const dt = now - lastTime;
+            lastTime = now;
+            
+            // Clear with gradient background
+            const bgGradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, canvas.width * 0.8
+            );
+            bgGradient.addColorStop(0, '#12121a');
+            bgGradient.addColorStop(0.5, '#0a0a12');
+            bgGradient.addColorStop(1, '#050508');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(100, 80, 140, 0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 50 * renderScale;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Update and draw drones
+            for (let i = drones.length - 1; i >= 0; i--) {
+                const drone = drones[i];
+                drone.update(dt);
+                drone.draw(ctx);
+                
+                if (drone.isDead()) {
+                    drone.destroy();
+                    drones.splice(i, 1);
+                }
+            }
+            
+            // Draw connections between nearby drones
+            ctx.strokeStyle = 'rgba(140, 120, 200, 0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < drones.length; i++) {
+                for (let j = i + 1; j < drones.length; j++) {
+                    const d1 = drones[i];
+                    const d2 = drones[j];
+                    const dist = Math.hypot(d1.x - d2.x, d1.y - d2.y);
+                    
+                    if (dist < 200 * renderScale) {
+                        const alpha = (1 - dist / (200 * renderScale)) * 0.3;
+                        ctx.strokeStyle = `rgba(140, 120, 200, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.moveTo(d1.x, d1.y);
+                        ctx.lineTo(d2.x, d2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Event listeners
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * renderScale;
+            const y = (e.clientY - rect.top) * renderScale;
+            addDrone(x, y);
+            
+            if (!isPlaying) {
+                statusEl.textContent = 'Drone planted • Press Begin to hear';
+            }
+        });
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                clearGarden();
+            }
+        });
+        
+        // Start with a few drones
+        randomizeGarden();
+        
+        // Begin animation
+        animate();
+    </script>
+</body>
+</html>
