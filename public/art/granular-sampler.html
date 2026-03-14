@@ -10,653 +10,624 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
-            min-height: 100vh;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
-            color: #e0e0e0;
-            overflow-x: hidden;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 300;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .subtitle {
-            font-size: 0.85rem;
-            color: #888;
-            letter-spacing: 0.1em;
-        }
-        
-        .main-display {
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        canvas {
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(180deg, #0d0d15 0%, #151525 100%);
-            border-radius: 8px;
-            display: block;
-        }
-        
-        .waveform-label {
-            font-size: 0.7rem;
-            color: #666;
-            margin-top: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-        
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .control-group {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 1.25rem;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        
-        .control-group h3 {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #00d4ff;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-        
-        .slider-container {
-            margin-bottom: 1rem;
-        }
-        
-        .slider-container:last-child {
-            margin-bottom: 0;
-        }
-        
-        .slider-label {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a0a1a 50%, #0f0a1a 100%);
             display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: #aaa;
-            margin-bottom: 0.4rem;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #e0d0e0;
         }
-        
-        .slider-label span:last-child {
-            color: #00d4ff;
-            font-family: monospace;
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            padding: 20px;
         }
-        
-        input[type="range"] {
+
+        h1 {
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: #a080a0;
+            margin-bottom: 8px;
+        }
+
+        canvas {
+            border-radius: 4px;
+            box-shadow: 
+                0 0 60px rgba(160, 80, 160, 0.15),
+                0 0 120px rgba(160, 80, 160, 0.08);
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
             width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
+            max-width: 600px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+
+        label {
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #806080;
+        }
+
+        input[type="range"] {
+            width: 120px;
+            height: 4px;
+            background: rgba(160, 80, 160, 0.2);
+            border-radius: 2px;
             outline: none;
             -webkit-appearance: none;
         }
-        
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            width: 12px;
+            height: 12px;
+            background: #c080c0;
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 212, 255, 0.4);
         }
-        
+
         input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            width: 12px;
+            height: 12px;
+            background: #c080c0;
             border-radius: 50%;
             cursor: pointer;
             border: none;
-            box-shadow: 0 2px 8px rgba(0, 212, 255, 0.4);
         }
-        
-        .button-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-        }
-        
+
         button {
-            padding: 0.875rem 1rem;
-            border: none;
-            border-radius: 8px;
+            background: rgba(160, 80, 160, 0.15);
+            border: 1px solid rgba(160, 80, 160, 0.4);
+            color: #c080c0;
+            padding: 10px 24px;
+            border-radius: 6px;
             font-family: inherit;
-            font-size: 0.8rem;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
             cursor: pointer;
             transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            font-weight: 500;
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #00d4ff, #0099cc);
-            color: #000;
+
+        button:hover {
+            background: rgba(160, 80, 160, 0.25);
+            border-color: rgba(160, 80, 160, 0.6);
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 212, 255, 0.4);
+
+        button.active {
+            background: rgba(160, 80, 160, 0.4);
+            border-color: #c080c0;
+            box-shadow: 0 0 20px rgba(160, 80, 160, 0.3);
         }
-        
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            color: #e0e0e0;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+
+        button.danger {
+            border-color: rgba(160, 80, 80, 0.4);
+            color: #c08080;
         }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.25);
+
+        button.danger:hover {
+            background: rgba(160, 80, 80, 0.2);
+            border-color: rgba(160, 80, 80, 0.6);
         }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #ff4757, #cc0033);
-            color: #fff;
-        }
-        
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(255, 71, 87, 0.4);
-        }
-        
-        .grain-display {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 4px;
-            margin-top: 1rem;
-        }
-        
-        .grain {
-            aspect-ratio: 1;
-            border-radius: 4px;
-            background: rgba(0, 212, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.2);
-            transition: all 0.05s ease;
-        }
-        
-        .grain.active {
-            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-            border-color: #00d4ff;
-            box-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
-        }
-        
-        .info {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 1.25rem;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        
-        .info h3 {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #7b2cbf;
-            margin-bottom: 0.75rem;
-        }
-        
-        .info p {
-            font-size: 0.8rem;
-            line-height: 1.6;
-            color: #aaa;
-        }
-        
-        .info code {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 0.15rem 0.4rem;
-            border-radius: 4px;
-            color: #00d4ff;
-            font-size: 0.75rem;
-        }
-        
-        .status-bar {
+
+        .waveform-select {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            font-size: 0.7rem;
-            color: #666;
-            text-transform: uppercase;
+            gap: 8px;
+        }
+
+        .waveform-btn {
+            padding: 8px 16px;
+            font-size: 10px;
+        }
+
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 10px;
+            line-height: 1.6;
+            color: #604060;
+            max-width: 200px;
+        }
+
+        .grain-count {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 10px;
+            color: #604060;
             letter-spacing: 0.1em;
         }
-        
-        .status-bar span.active {
-            color: #00d4ff;
-        }
-        
-        @media (max-width: 600px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            h1 {
-                font-size: 1.4rem;
-            }
-            
-            .controls {
-                grid-template-columns: 1fr;
-            }
-            
-            .grain-display {
-                grid-template-columns: repeat(6, 1fr);
-            }
+
+        .value-display {
+            font-size: 10px;
+            color: #a080a0;
+            min-width: 40px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
+    <div class="info">
+        GRANULAR SAMPLER<br><br>
+        Click + drag on waveform<br>
+        to select sample region<br><br>
+        Grains scatter from<br>
+        selection with random<br>
+        pitch and position<br><br>
+        Pure synthesis —<br>
+        no external samples
+    </div>
+
+    <div class="grain-count" id="grainCount">grains: 0</div>
+
     <div class="container">
-        <header>
-            <h1>Granular Sampler</h1>
-            <p class="subtitle">Microsound Explorer — Chop, Scatter, Transform</p>
-        </header>
+        <h1>Granular Sampler</h1>
         
-        <div class="main-display">
-            <canvas id="waveform"></canvas>
-            <div class="waveform-label">Real-time Grain Visualization</div>
-        </div>
-        
+        <canvas id="canvas" width="600" height="200"></canvas>
+
         <div class="controls">
-            <div class="control-group">
-                <h3>Grain Parameters</h3>
-                <div class="slider-container">
-                    <div class="slider-label">
-                        <span>Grain Size</span>
-                        <span id="grainSizeVal">50ms</span>
-                    </div>
+            <div class="control-row">
+                <button id="playBtn">Start Audio</button>
+                <button id="clearBtn" class="danger">Clear Selection</button>
+            </div>
+
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Grain Size (ms)</label>
                     <input type="range" id="grainSize" min="10" max="200" value="50">
+                    <span class="value-display" id="grainSizeVal">50</span>
                 </div>
-                <div class="slider-container">
-                    <div class="slider-label">
-                        <span>Density</span>
-                        <span id="densityVal">20 grains/s</span>
-                    </div>
-                    <input type="range" id="density" min="5" max="100" value="20">
+                <div class="control-group">
+                    <label>Density</label>
+                    <input type="range" id="density" min="1" max="50" value="20">
+                    <span class="value-display" id="densityVal">20</span>
                 </div>
-                <div class="slider-container">
-                    <div class="slider-label">
-                        <span>Scatter</span>
-                        <span id="scatterVal">30%</span>
-                    </div>
-                    <input type="range" id="scatter" min="0" max="100" value="30">
-                </div>
-                <div class="slider-container">
-                    <div class="slider-label">
-                        <span>Pitch Variance</span>
-                        <span id="pitchVal">±12 semitones</span>
-                    </div>
-                    <input type="range" id="pitch" min="0" max="24" value="12">
+                <div class="control-group">
+                    <label>Spray</label>
+                    <input type="range" id="spray" min="0" max="100" value="30">
+                    <span class="value-display" id="sprayVal">30</span>
                 </div>
             </div>
-            
-            <div class="control-group">
-                <h3>Sound Source</h3>
-                <div class="button-grid">
-                    <button class="btn-secondary" onclick="setSource('sine')">Sine</button>
-                    <button class="btn-secondary" onclick="setSource('sawtooth')">Saw</button>
-                    <button class="btn-secondary" onclick="setSource('square')">Square</button>
-                    <button class="btn-secondary" onclick="setSource('triangle')">Triangle</button>
+
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Pitch Spread</label>
+                    <input type="range" id="pitch" min="0" max="100" value="25">
+                    <span class="value-display" id="pitchVal">25</span>
                 </div>
-                <div class="slider-container" style="margin-top: 1rem;">
-                    <div class="slider-label">
-                        <span>Base Frequency</span>
-                        <span id="freqVal">220 Hz</span>
-                    </div>
-                    <input type="range" id="baseFreq" min="55" max="880" value="220">
+                <div class="control-group">
+                    <label>Feedback</label>
+                    <input type="range" id="feedback" min="0" max="80" value="30">
+                    <span class="value-display" id="feedbackVal">30</span>
                 </div>
-                <div class="slider-container">
-                    <div class="slider-label">
-                        <span>Filter Cutoff</span>
-                        <span id="filterVal">2000 Hz</span>
-                    </div>
-                    <input type="range" id="filterCutoff" min="200" max="8000" value="2000">
+                <div class="control-group">
+                    <label>Master Gain</label>
+                    <input type="range" id="gain" min="0" max="100" value="60">
+                    <span class="value-display" id="gainVal">60</span>
                 </div>
             </div>
-            
-            <div class="control-group">
-                <h3>Playback</h3>
-                <div class="button-grid">
-                    <button class="btn-primary" id="playBtn" onclick="togglePlay()">Start</button>
-                    <button class="btn-danger" onclick="scatterBurst()">Scatter</button>
+
+            <div class="control-row">
+                <label>Source Waveform:</label>
+                <div class="waveform-select">
+                    <button class="waveform-btn active" data-wave="sine">Sine</button>
+                    <button class="waveform-btn" data-wave="sawtooth">Saw</button>
+                    <button class="waveform-btn" data-wave="square">Square</button>
+                    <button class="waveform-btn" data-wave="triangle">Tri</button>
                 </div>
-                <div class="slider-container" style="margin-top: 1rem;">
-                    <div class="slider-label">
-                        <span>Master Volume</span>
-                        <span id="volumeVal">70%</span>
-                    </div>
-                    <input type="range" id="volume" min="0" max="100" value="70">
-                </div>
-                <div class="grain-display" id="grainDisplay"></div>
             </div>
-            
-            <div class="info">
-                <h3>About Granular Synthesis</h3>
-                <p>
-                    Granular synthesis breaks sound into tiny fragments called <em>grains</em> 
-                    (typically 10-100ms). By scattering these grains in time and pitch, 
-                    complex textures emerge from simple sources.
-                </p>
-                <p style="margin-top: 0.75rem;">
-                    <strong>Try:</strong> High density + high scatter for clouds of sound. 
-                    Low density + sine wave for rhythmic patterns. Click <code>Scatter</code> 
-                    for a burst of randomized grains.
-                </p>
-            </div>
-        </div>
-        
-        <div class="status-bar">
-            <span id="statusText">Ready</span>
-            <span id="grainCount">0 grains active</span>
         </div>
     </div>
 
     <script>
-        // Audio Context
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Audio context
         let audioCtx = null;
         let masterGain = null;
-        let filter = null;
+        let feedbackNode = null;
         let isPlaying = false;
+        
+        // Grain synthesis
+        let grains = [];
         let grainInterval = null;
-        let activeGrains = new Set();
+        let nextGrainTime = 0;
+        
+        // Selection
+        let selection = { start: 0.3, end: 0.7 };
+        let isDragging = false;
+        let dragStart = null;
         
         // Parameters
         const params = {
             grainSize: 50,
             density: 20,
-            scatter: 30,
-            pitchVariance: 12,
-            baseFreq: 220,
-            filterCutoff: 2000,
-            volume: 0.7,
+            spray: 30,
+            pitchSpread: 25,
+            feedback: 30,
+            gain: 60,
             waveform: 'sine'
         };
         
-        // Initialize grain display
-        const grainDisplay = document.getElementById('grainDisplay');
-        for (let i = 0; i < 32; i++) {
-            const grain = document.createElement('div');
-            grain.className = 'grain';
-            grain.id = `grain-${i}`;
-            grainDisplay.appendChild(grain);
-        }
-        
-        // Initialize canvas
-        const canvas = document.getElementById('waveform');
-        const ctx = canvas.getContext('2d');
-        
-        function resizeCanvas() {
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width * window.devicePixelRatio;
-            canvas.height = rect.height * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        
-        // Waveform visualization
-        let waveformData = new Array(200).fill(0);
-        
-        function drawWaveform() {
-            const width = canvas.width / window.devicePixelRatio;
-            const height = canvas.height / window.devicePixelRatio;
+        // Generate synthetic source buffer
+        function generateSourceBuffer() {
+            const sampleRate = audioCtx.sampleRate;
+            const duration = 2.0;
+            const length = sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, length, sampleRate);
+            const data = buffer.getChannelData(0);
             
-            ctx.fillStyle = '#0d0d15';
-            ctx.fillRect(0, 0, width, height);
-            
-            // Draw grid
-            ctx.strokeStyle = 'rgba(0, 212, 255, 0.1)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 5; i++) {
-                const y = (height / 4) * i;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(width, y);
-                ctx.stroke();
+            // Create evolving waveform with multiple harmonics
+            for (let i = 0; i < length; i++) {
+                const t = i / sampleRate;
+                const freq = 110 + Math.sin(t * 0.5) * 55; // Drone base
+                
+                let sample = 0;
+                sample += Math.sin(2 * Math.PI * freq * t) * 0.4;
+                sample += Math.sin(2 * Math.PI * freq * 2 * t) * 0.2;
+                sample += Math.sin(2 * Math.PI * freq * 3 * t) * 0.1;
+                sample += Math.sin(2 * Math.PI * freq * 0.5 * t) * 0.3;
+                
+                // Add some noise texture
+                sample += (Math.random() - 0.5) * 0.05;
+                
+                // Envelope
+                const env = Math.min(1, t * 2) * Math.min(1, (duration - t) * 2);
+                data[i] = sample * env * 0.5;
             }
             
-            // Draw waveform
-            ctx.strokeStyle = '#00d4ff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            
-            for (let i = 0; i < waveformData.length; i++) {
-                const x = (width / waveformData.length) * i;
-                const y = height / 2 + waveformData[i] * (height / 3);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+            return buffer;
+        }
+        
+        let sourceBuffer = null;
+        
+        // Grain class
+        class Grain {
+            constructor(startTime, position, duration, pitch, gain) {
+                this.startTime = startTime;
+                this.position = position;
+                this.duration = duration;
+                this.pitch = pitch;
+                this.gain = gain;
+                this.source = null;
+                this.gainNode = null;
             }
-            ctx.stroke();
             
-            // Draw grain markers
-            activeGrains.forEach(grain => {
-                const x = (grain.position % waveformData.length) * (width / waveformData.length);
-                const intensity = 1 - (Date.now() - grain.startTime) / grain.duration;
-                if (intensity > 0) {
-                    ctx.fillStyle = `rgba(123, 44, 191, ${intensity * 0.8})`;
-                    ctx.fillRect(x - 2, 0, 4, height);
+            play() {
+                if (!sourceBuffer) return;
+                
+                const now = audioCtx.currentTime;
+                
+                // Create source
+                this.source = audioCtx.createBufferSource();
+                this.source.buffer = sourceBuffer;
+                this.source.playbackRate.value = this.pitch;
+                
+                // Create gain envelope
+                this.gainNode = audioCtx.createGain();
+                const amp = (this.gain / 100) * 0.3;
+                
+                this.gainNode.gain.setValueAtTime(0, now);
+                this.gainNode.gain.linearRampToValueAtTime(amp, now + this.duration * 0.1);
+                this.gainNode.gain.exponentialRampToValueAtTime(0.001, now + this.duration);
+                
+                // Connect
+                this.source.connect(this.gainNode);
+                this.gainNode.connect(masterGain);
+                
+                // Schedule playback from position
+                const offset = this.position * sourceBuffer.duration;
+                this.source.start(now, offset, this.duration);
+                
+                // Cleanup
+                this.source.onended = () => {
+                    this.dispose();
+                };
+            }
+            
+            dispose() {
+                if (this.source) {
+                    try { this.source.stop(); } catch(e) {}
+                    this.source.disconnect();
                 }
-            });
-            
-            requestAnimationFrame(drawWaveform);
+                if (this.gainNode) {
+                    this.gainNode.disconnect();
+                }
+            }
         }
-        drawWaveform();
         
+        // Initialize audio
         function initAudio() {
             if (audioCtx) return;
             
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
-            filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = params.filterCutoff;
-            
+            // Master gain
             masterGain = audioCtx.createGain();
-            masterGain.gain.value = params.volume;
+            masterGain.gain.value = params.gain / 100;
             
-            filter.connect(masterGain);
-            masterGain.connect(audioCtx.destination);
+            // Feedback delay for texture
+            feedbackNode = audioCtx.createDelay();
+            feedbackNode.delayTime.value = 0.1;
+            const feedbackGain = audioCtx.createGain();
+            feedbackGain.gain.value = params.feedback / 200;
+            
+            // Connect feedback loop
+            masterGain.connect(feedbackNode);
+            feedbackNode.connect(feedbackGain);
+            feedbackGain.connect(masterGain);
+            
+            // Output
+            const outputGain = audioCtx.createGain();
+            outputGain.gain.value = 0.7;
+            masterGain.connect(outputGain);
+            outputGain.connect(audioCtx.destination);
+            
+            // Generate source
+            sourceBuffer = generateSourceBuffer();
         }
         
-        function createGrain() {
-            if (!audioCtx) return;
+        // Spawn a grain
+        function spawnGrain() {
+            if (!audioCtx || !isPlaying) return;
             
             const now = audioCtx.currentTime;
-            const grainDuration = (params.grainSize / 1000) * (0.5 + Math.random());
-            const scatterOffset = (Math.random() - 0.5) * (params.scatter / 100) * 0.5;
-            const startTime = now + Math.max(0, scatterOffset);
+            if (now < nextGrainTime) return;
             
-            // Pitch randomization
-            const semitoneOffset = (Math.random() - 0.5) * params.pitchVariance * 2;
-            const freqMultiplier = Math.pow(2, semitoneOffset / 12);
-            const frequency = params.baseFreq * freqMultiplier;
+            // Calculate grain parameters
+            const selWidth = selection.end - selection.start;
+            const sprayAmount = (params.spray / 100) * selWidth;
             
-            // Create oscillator
-            const osc = audioCtx.createOscillator();
-            osc.type = params.waveform;
-            osc.frequency.value = frequency;
+            // Random position within selection + spray
+            let position = selection.start + (Math.random() * selWidth);
+            position += (Math.random() - 0.5) * sprayAmount;
+            position = Math.max(0, Math.min(1, position));
             
-            // Create grain envelope
-            const grainGain = audioCtx.createGain();
-            grainGain.gain.setValueAtTime(0, startTime);
-            grainGain.gain.linearRampToValueAtTime(0.3, startTime + grainDuration * 0.1);
-            grainGain.gain.exponentialRampToValueAtTime(0.01, startTime + grainDuration);
+            // Random pitch variation
+            const pitchSpread = params.pitchSpread / 100;
+            const pitch = 1 + (Math.random() - 0.5) * pitchSpread;
             
-            // Connect
-            osc.connect(grainGain);
-            grainGain.connect(filter);
+            // Grain duration in seconds
+            const duration = (params.grainSize / 1000) * (0.8 + Math.random() * 0.4);
             
-            // Schedule
-            osc.start(startTime);
-            osc.stop(startTime + grainDuration);
+            // Create and play grain
+            const grain = new Grain(now, position, duration, pitch, params.gain);
+            grain.play();
+            grains.push(grain);
             
-            // Track grain
-            const grain = {
-                id: Math.random().toString(36).substr(2, 9),
-                startTime: Date.now(),
-                duration: grainDuration * 1000,
-                position: Math.floor(Math.random() * waveformData.length)
-            };
-            activeGrains.add(grain);
-            
-            // Update waveform data
-            const idx = grain.position;
-            waveformData[idx] = Math.sin(Date.now() / 100) * 0.5;
-            
-            // Update display
-            const grainEl = document.getElementById(`grain-${Math.floor(Math.random() * 32)}`);
-            if (grainEl) {
-                grainEl.classList.add('active');
-                setTimeout(() => grainEl.classList.remove('active'), grainDuration * 1000);
-            }
-            
-            // Cleanup
-            setTimeout(() => {
-                activeGrains.delete(grain);
-                waveformData[idx] *= 0.9;
-            }, grainDuration * 1000);
-            
-            updateStatus();
+            // Schedule next grain based on density
+            const interval = 1 / (params.density * 2);
+            nextGrainTime = now + interval * (0.5 + Math.random());
         }
         
-        function scatterBurst() {
-            if (!audioCtx) initAudio();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            
-            const burstCount = 20 + Math.floor(Math.random() * 30);
-            for (let i = 0; i < burstCount; i++) {
-                setTimeout(() => createGrain(), i * 30);
-            }
-            
-            document.getElementById('statusText').textContent = 'Scatter Burst!';
-            setTimeout(() => updateStatus(), 1000);
-        }
-        
-        function togglePlay() {
-            const btn = document.getElementById('playBtn');
-            
-            if (!isPlaying) {
-                initAudio();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                
-                const intervalMs = 1000 / params.density;
-                grainInterval = setInterval(createGrain, intervalMs);
-                
-                isPlaying = true;
-                btn.textContent = 'Stop';
-                btn.classList.remove('btn-primary');
-                btn.classList.add('btn-danger');
-            } else {
-                clearInterval(grainInterval);
-                isPlaying = false;
-                btn.textContent = 'Start';
-                btn.classList.remove('btn-danger');
-                btn.classList.add('btn-primary');
-            }
-            updateStatus();
-        }
-        
-        function setSource(type) {
-            params.waveform = type;
-            document.querySelectorAll('.button-grid button').forEach(btn => {
-                btn.style.background = 'rgba(255, 255, 255, 0.08)';
-                btn.style.color = '#e0e0e0';
+        // Cleanup finished grains
+        function cleanupGrains() {
+            grains = grains.filter(g => {
+                if (audioCtx && audioCtx.currentTime > g.startTime + g.duration) {
+                    g.dispose();
+                    return false;
+                }
+                return true;
             });
-            event.target.style.background = 'linear-gradient(135deg, #00d4ff, #0099cc)';
-            event.target.style.color = '#000';
         }
         
-        function updateStatus() {
-            const status = isPlaying ? 'Playing' : 'Ready';
-            document.getElementById('statusText').textContent = status;
-            document.getElementById('grainCount').textContent = 
-                `${activeGrains.size} grains active`;
-        }
-        
-        // Slider event listeners
-        document.getElementById('grainSize').addEventListener('input', (e) => {
-            params.grainSize = parseInt(e.target.value);
-            document.getElementById('grainSizeVal').textContent = `${params.grainSize}ms`;
-        });
-        
-        document.getElementById('density').addEventListener('input', (e) => {
-            params.density = parseInt(e.target.value);
-            document.getElementById('densityVal').textContent = `${params.density} grains/s`;
+        // Draw waveform and selection
+        function draw() {
+            ctx.fillStyle = '#0a050a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw waveform
+            if (sourceBuffer) {
+                const data = sourceBuffer.getChannelData(0);
+                const step = Math.ceil(data.length / canvas.width);
+                
+                ctx.strokeStyle = 'rgba(160, 80, 160, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                for (let x = 0; x < canvas.width; x++) {
+                    const idx = x * step;
+                    let min = 0, max = 0;
+                    for (let i = 0; i < step && idx + i < data.length; i++) {
+                        const s = data[idx + i];
+                        if (s < min) min = s;
+                        if (s > max) max = s;
+                    }
+                    const y1 = canvas.height / 2 + min * 80;
+                    const y2 = canvas.height / 2 + max * 80;
+                    ctx.moveTo(x, y1);
+                    ctx.lineTo(x, y2);
+                }
+                ctx.stroke();
+            } else {
+                // Draw placeholder waveform
+                ctx.strokeStyle = 'rgba(160, 80, 160, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x++) {
+                    const y = canvas.height / 2 + Math.sin(x * 0.05) * 40 * Math.sin(x * 0.01);
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            // Draw selection
+            const selX1 = selection.start * canvas.width;
+            const selX2 = selection.end * canvas.width;
+            const selWidth = selX2 - selX1;
+            
+            ctx.fillStyle = 'rgba(160, 80, 160, 0.2)';
+            ctx.fillRect(selX1, 0, selWidth, canvas.height);
+            
+            ctx.strokeStyle = '#c080c0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(selX1, 0);
+            ctx.lineTo(selX1, canvas.height);
+            ctx.moveTo(selX2, 0);
+            ctx.lineTo(selX2, canvas.height);
+            ctx.stroke();
+            
+            // Draw grain spray visualization
             if (isPlaying) {
-                clearInterval(grainInterval);
-                const intervalMs = 1000 / params.density;
-                grainInterval = setInterval(createGrain, intervalMs);
+                const sprayAmount = (params.spray / 100) * (selection.end - selection.start);
+                const sprayX1 = Math.max(0, selection.start - sprayAmount / 2) * canvas.width;
+                const sprayX2 = Math.min(1, selection.end + sprayAmount / 2) * canvas.width;
+                
+                ctx.fillStyle = 'rgba(160, 80, 160, 0.05)';
+                ctx.fillRect(sprayX1, 0, sprayX2 - sprayX1, canvas.height);
+            }
+            
+            // Draw active grains
+            if (audioCtx) {
+                const now = audioCtx.currentTime;
+                grains.forEach(g => {
+                    const progress = (now - g.startTime) / g.duration;
+                    if (progress >= 0 && progress <= 1) {
+                        const x = g.position * canvas.width;
+                        const y = canvas.height / 2 + (Math.random() - 0.5) * 20;
+                        const alpha = 1 - progress;
+                        const size = (1 - progress) * 6;
+                        
+                        ctx.fillStyle = `rgba(200, 150, 200, ${alpha * 0.8})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+            }
+            
+            // Update grain count
+            document.getElementById('grainCount').textContent = `grains: ${grains.length}`;
+        }
+        
+        // Animation loop
+        function animate() {
+            spawnGrain();
+            cleanupGrains();
+            draw();
+            requestAnimationFrame(animate);
+        }
+        
+        // Event handlers
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (!audioCtx) {
+                initAudio();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').textContent = isPlaying ? 'Stop Audio' : 'Start Audio';
+            document.getElementById('playBtn').classList.toggle('active', isPlaying);
+            
+            if (isPlaying) {
+                nextGrainTime = audioCtx.currentTime;
             }
         });
         
-        document.getElementById('scatter').addEventListener('input', (e) => {
-            params.scatter = parseInt(e.target.value);
-            document.getElementById('scatterVal').textContent = `${params.scatter}%`;
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            selection = { start: 0, end: 1 };
         });
         
-        document.getElementById('pitch').addEventListener('input', (e) => {
-            params.pitchVariance = parseInt(e.target.value);
-            document.getElementById('pitchVal').textContent = `±${params.pitchVariance} semitones`;
+        // Canvas interaction
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / canvas.width;
+            isDragging = true;
+            dragStart = x;
+            selection = { start: x, end: x };
         });
         
-        document.getElementById('baseFreq').addEventListener('input', (e) => {
-            params.baseFreq = parseInt(e.target.value);
-            document.getElementById('freqVal').textContent = `${params.baseFreq} Hz`;
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / canvas.width));
+            selection.start = Math.min(dragStart, x);
+            selection.end = Math.max(dragStart, x);
         });
         
-        document.getElementById('filterCutoff').addEventListener('input', (e) => {
-            params.filterCutoff = parseInt(e.target.value);
-            document.getElementById('filterVal').textContent = `${params.filterCutoff} Hz`;
-            if (filter) filter.frequency.setTargetAtTime(params.filterCutoff, audioCtx.currentTime, 0.1);
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
         });
         
-        document.getElementById('volume').addEventListener('input', (e) => {
-            params.volume = parseInt(e.target.value) / 100;
-            document.getElementById('volumeVal').textContent = `${parseInt(e.target.value)}%`;
-            if (masterGain) masterGain.gain.setTargetAtTime(params.volume, audioCtx.currentTime, 0.1);
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
         });
         
-        // Decay waveform over time
-        setInterval(() => {
-            for (let i = 0; i < waveformData.length; i++) {
-                waveformData[i] *= 0.95;
-            }
-        }, 50);
+        // Parameter controls
+        function setupSlider(id, param) {
+            const slider = document.getElementById(id);
+            const display = document.getElementById(id + 'Val');
+            
+            slider.addEventListener('input', () => {
+                params[param] = parseInt(slider.value);
+                display.textContent = slider.value;
+                
+                if (param === 'gain' && masterGain) {
+                    masterGain.gain.value = params.gain / 100;
+                }
+            });
+        }
+        
+        setupSlider('grainSize', 'grainSize');
+        setupSlider('density', 'density');
+        setupSlider('spray', 'spray');
+        setupSlider('pitch', 'pitchSpread');
+        setupSlider('feedback', 'feedback');
+        setupSlider('gain', 'gain');
+        
+        // Waveform selection
+        document.querySelectorAll('.waveform-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.waveform-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                params.waveform = btn.dataset.wave;
+                
+                // Regenerate source with new waveform
+                if (audioCtx) {
+                    sourceBuffer = generateSourceBuffer();
+                }
+            });
+        });
+        
+        // Start animation
+        animate();
     </script>
 </body>
 </html>

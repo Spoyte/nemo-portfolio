@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Instruments — Nemo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e4e4e7;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ef4444 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: #71717a;
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .instruments {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+    }
+
+    .instrument {
+      background: linear-gradient(145deg, #18181b 0%, #0f0f12 100%);
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .instrument::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-color) 0%, transparent 100%);
+      opacity: 0.6;
+      transition: opacity 0.3s ease;
+    }
+
+    .instrument:hover {
+      transform: translateY(-4px);
+      border-color: #3f3f46;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .instrument:hover::before {
+      opacity: 1;
+    }
+
+    .instrument-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--accent-bg) 0%, transparent 100%);
+    }
+
+    .instrument h2 {
+      font-size: 1.4rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #fafafa;
+    }
+
+    .instrument .category {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-color);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .instrument p {
+      color: #a1a1aa;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .feature {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #71717a;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #71717a;
+      text-decoration: none;
+      margin-bottom: 40px;
+      transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: #e4e4e7;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 80px;
+      padding-top: 40px;
+      border-top: 1px solid #27272a;
+      color: #52525b;
+      font-size: 0.9rem;
+    }
+
+    .waveform {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 100px;
+      opacity: 0.1;
+      pointer-events: none;
+      background: linear-gradient(to top, 
+        transparent 0%,
+        var(--wave-color, #f59e0b) 100%
+      );
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23fff' d='M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+      mask-size: cover;
+      mask-position: bottom;
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 1.8rem; }
+      .instruments { grid-template-columns: 1fr; }
+      .instrument { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="waveform"></div>
+  
+  <div class="container">
+    <a href="/" class="back-link">← Back to Gallery</a>
+    
+    <header>
+      <h1>🔊 Sound Instruments</h1>
+      <p class="subtitle">
+        Browser-based audio experiments using the Web Audio API. 
+        No samples, no libraries — pure synthesized sound.
+      </p>
+    </header>
+
+    <div class="instruments">
+      <a href="drone-garden.html" class="instrument" style="--accent-color: #10b981; --accent-bg: rgba(16, 185, 129, 0.15);">
+        <div class="instrument-icon">🌿</div>
+        <div class="category">Ambient / Generative</div>
+        <h2>Drone Garden</h2>
+        <p>Five ethereal drones that evolve organically. Layer multiple tones to create immersive ambient soundscapes. Each drone uses multiple oscillators with subtle detuning and LFO modulation.</p>
+        <div class="features">
+          <span class="feature">5 voices</span>
+          <span class="feature">LFO modulation</span>
+          <span class="feature">Reverb</span>
+        </div>
+      </a>
+
+      <a href="polyrhythm-sequencer.html" class="instrument" style="--accent-color: #f59e0b; --accent-bg: rgba(245, 158, 11, 0.15);">
+        <div class="instrument-icon">🥁</div>
+        <div class="category">Rhythmic / Sequencer</div>
+        <h2>Polyrhythm Sequencer</h2>
+        <p>Create complex rhythmic patterns with multiple independent sequencers. Each track has its own step count, creating emergent polyrhythms that evolve over time.</p>
+        <div class="features">
+          <span class="feature">4 tracks</span>
+          <span class="feature">Polyrhythms</span>
+          <span class="feature">Synthesis</span>
+        </div>
+      </a>
+
+      <a href="granular-sampler.html" class="instrument" style="--accent-color: #8b5cf6; --accent-bg: rgba(139, 92, 246, 0.15);">
+        <div class="instrument-icon">✨</div>
+        <div class="category">Textural / Microsound</div>
+        <h2>Granular Synthesizer</h2>
+        <p>Explore microsound textures — clouds of tiny audio grains that coalesce into emergent sonic landscapes. Click and drag to spawn grain clusters in real-time.</p>
+        <div class="features">
+          <span class="feature">Grain clouds</span>
+          <span class="feature">Interactive</span>
+          <span class="feature">Reverb</span>
+        </div>
+      </a>
+    </div>
+
+    <footer>
+      <p>Built with the Web Audio API • No external libraries • Pure browser synthesis</p>
+    </footer>
+  </div>
+
+  <script>
+    // Subtle parallax effect on waveform
+    document.addEventListener('mousemove', (e) => {
+      const waveform = document.querySelector('.waveform');
+      const x = e.clientX / window.innerWidth;
+      waveform.style.transform = `translateX(${(x - 0.5) * 20}px)`;
+    });
+  </script>
+</body>
+</html>
