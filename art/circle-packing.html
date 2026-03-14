@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circle Packing — Organic Geometry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+        }
+        canvas {
+            box-shadow: 0 0 60px rgba(80, 120, 180, 0.15);
+            border-radius: 4px;
+        }
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: rgba(20, 25, 40, 0.9);
+            border: 1px solid rgba(80, 120, 180, 0.4);
+            color: #90a8d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        button:hover {
+            background: rgba(35, 45, 70, 0.95);
+            border-color: rgba(100, 140, 200, 0.6);
+            color: #b0c8f0;
+            transform: translateY(-1px);
+        }
+        .info {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            color: rgba(144, 168, 208, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        .stats {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            color: rgba(144, 168, 208, 0.7);
+            font-size: 12px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Click to add • Auto-packs toward center</div>
+    <div class="stats" id="stats">Circles: 0</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="setMode('random')">Random</button>
+        <button onclick="setMode('center')">Center</button>
+        <button onclick="setMode('gradient')">Gradient</button>
+        <button onclick="setMode('fibonacci')">Fibonacci</button>
+        <button onclick="clearCanvas()">Clear</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statsEl = document.getElementById('stats');
+        
+        // High resolution for crisp rendering
+        const displaySize = 800;
+        const renderScale = 2;
+        canvas.width = displaySize * renderScale;
+        canvas.height = displaySize * renderScale;
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
+        
+        let circles = [];
+        let mode = 'center';
+        let animationId = null;
+        let growthSpeed = 0.5;
+        
+        // Color palettes
+        const palettes = {
+            ocean: ['#0066cc', '#0099cc', '#00cccc', '#00ffcc', '#66ffcc'],
+            sunset: ['#ff0066', '#ff3366', '#ff6633', '#ff9933', '#ffcc33'],
+            forest: ['#003300', '#006600', '#009900', '#00cc00', '#66ff66'],
+            cosmic: ['#330066', '#660099', '#9900cc', '#cc00ff', '#ff66ff'],
+            monochrome: ['#1a1a2e', '#16213e', '#0f3460', '#533483', '#e94560']
+        };
+        let currentPalette = 'ocean';
+        
+        class Circle {
+            constructor(x, y, targetR) {
+                this.x = x;
+                this.y = y;
+                this.r = 1;
+                this.targetR = targetR || this.calculateMaxRadius();
+                this.growing = true;
+                this.color = this.getColor();
+                this.strokeWidth = renderScale * (0.5 + Math.random() * 1.5);
+            }
+            
+            calculateMaxRadius() {
+                // Distance to canvas edges
+                const distToEdge = Math.min(
+                    this.x,
+                    this.y,
+                    canvas.width - this.x,
+                    canvas.height - this.y
+                );
+                
+                // Distance to other circles
+                let minDist = distToEdge;
+                for (let other of circles) {
+                    if (other === this) continue;
+                    const d = Math.hypot(this.x - other.x, this.y - other.y);
+                    minDist = Math.min(minDist, d - other.r);
+                }
+                
+                return Math.max(2, minDist - 2);
+            }
+            
+            getColor() {
+                const palette = palettes[currentPalette];
+                const idx = Math.floor((this.r / 100) * palette.length) % palette.length;
+                return palette[Math.floor(Math.random() * palette.length)];
+            }
+            
+            grow() {
+                if (!this.growing) return;
+                
+                if (this.r < this.targetR) {
+                    this.r += growthSpeed * renderScale;
+                    // Update color based on size
+                    if (Math.random() < 0.1) {
+                        this.color = this.getColor();
+                    }
+                } else {
+                    this.growing = false;
+                }
+                
+                // Check collision with edges
+                if (this.x - this.r <= 0 || this.x + this.r >= canvas.width ||
+                    this.y - this.r <= 0 || this.y + this.r >= canvas.height) {
+                    this.growing = false;
+                }
+                
+                // Check collision with other circles
+                for (let other of circles) {
+                    if (other === this) continue;
+                    const d = Math.hypot(this.x - other.x, this.y - other.y);
+                    if (d < this.r + other.r + 2) {
+                        this.growing = false;
+                        break;
+                    }
+                }
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                
+                // Gradient fill
+                const gradient = ctx.createRadialGradient(
+                    this.x - this.r * 0.3, this.y - this.r * 0.3, 0,
+                    this.x, this.y, this.r
+                );
+                gradient.addColorStop(0, this.color + '40');
+                gradient.addColorStop(0.7, this.color + '20');
+                gradient.addColorStop(1, this.color + '05');
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // Stroke
+                ctx.strokeStyle = this.color + '80';
+                ctx.lineWidth = this.strokeWidth;
+                ctx.stroke();
+                
+                // Inner highlight
+                ctx.beginPath();
+                ctx.arc(this.x - this.r * 0.3, this.y - this.r * 0.3, this.r * 0.15, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + '30';
+                ctx.fill();
+            }
+        }
+        
+        function getSpawnPoint() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxDist = Math.min(canvas.width, canvas.height) * 0.45;
+            
+            switch(mode) {
+                case 'random':
+                    return {
+                        x: Math.random() * (canvas.width - 100) + 50,
+                        y: Math.random() * (canvas.height - 100) + 50
+                    };
+                    
+                case 'center':
+                    // Bias toward center with some randomness
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * maxDist * (1 - circles.length / 2000);
+                    return {
+                        x: centerX + Math.cos(angle) * dist,
+                        y: centerY + Math.sin(angle) * dist
+                    };
+                    
+                case 'gradient':
+                    // Size-based gradient from center
+                    const gradAngle = Math.random() * Math.PI * 2;
+                    const gradDist = Math.pow(Math.random(), 0.5) * maxDist;
+                    return {
+                        x: centerX + Math.cos(gradAngle) * gradDist,
+                        y: centerY + Math.sin(gradAngle) * gradDist
+                    };
+                    
+                case 'fibonacci':
+                    // Golden angle spiral
+                    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+                    const idx = circles.length;
+                    const fibDist = Math.sqrt(idx) * 25 * renderScale;
+                    const fibAngle = idx * goldenAngle;
+                    return {
+                        x: centerX + Math.cos(fibAngle) * Math.min(fibDist, maxDist),
+                        y: centerY + Math.sin(fibAngle) * Math.min(fibDist, maxDist)
+                    };
+                    
+                default:
+                    return { x: centerX, y: centerY };
+            }
+        }
+        
+        function canPlaceCircle(x, y, minDist = 5) {
+            // Check edges
+            if (x < minDist || x > canvas.width - minDist ||
+                y < minDist || y > canvas.height - minDist) {
+                return false;
+            }
+            
+            // Check other circles
+            for (let c of circles) {
+                const d = Math.hypot(x - c.x, y - c.y);
+                if (d < c.r + minDist) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        function addCircle() {
+            // Try multiple spawn points
+            for (let attempt = 0; attempt < 50; attempt++) {
+                const pos = getSpawnPoint();
+                if (canPlaceCircle(pos.x, pos.y)) {
+                    circles.push(new Circle(pos.x, pos.y));
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        function drawBackground() {
+            // Subtle radial gradient
+            const bg = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, canvas.width
+            );
+            bg.addColorStop(0, '#0f0f1a');
+            bg.addColorStop(0.5, '#0a0a12');
+            bg.addColorStop(1, '#050508');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function animate() {
+            drawBackground();
+            
+            // Grow and draw all circles
+            let growingCount = 0;
+            for (let c of circles) {
+                c.grow();
+                c.draw();
+                if (c.growing) growingCount++;
+            }
+            
+            // Try to add new circles
+            if (circles.length < 800 && Math.random() < 0.3) {
+                addCircle();
+            }
+            
+            // Update stats
+            statsEl.textContent = `Circles: ${circles.length} | Growing: ${growingCount}`;
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function setMode(newMode) {
+            mode = newMode;
+            // Cycle palette
+            const paletteKeys = Object.keys(palettes);
+            const currentIdx = paletteKeys.indexOf(currentPalette);
+            currentPalette = paletteKeys[(currentIdx + 1) % paletteKeys.length];
+        }
+        
+        function clearCanvas() {
+            circles = [];
+            // Randomize palette
+            const paletteKeys = Object.keys(palettes);
+            currentPalette = paletteKeys[Math.floor(Math.random() * paletteKeys.length)];
+        }
+        
+        // Click to add circle at specific location
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * renderScale * (canvas.width / rect.width) / (canvas.width / displaySize);
+            const y = (e.clientY - rect.top) * renderScale * (canvas.height / rect.height) / (canvas.height / displaySize);
+            
+            if (canPlaceCircle(x, y)) {
+                circles.push(new Circle(x, y, 50 * renderScale));
+            }
+        });
+        
+        // Start
+        animate();
+    </script>
+</body>
+</html>
