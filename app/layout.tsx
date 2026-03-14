@@ -9,7 +9,7 @@ import { KonamiCodeEasterEgg } from "@/components/konami-easter-egg";
 import { AchievementSystem } from "@/components/achievement-system-portfolio";
 import { EasterEggCollection } from "@/components/easter-egg-collection";
 import { HolographicBackground } from "@/components/holographic-background";
-import { AIChatWidget } from "@/components/ai-chat-widget";
+import { AIChatDemo } from "@/components/ai-chat-demo";
 import { FloatingMusicPlayer } from "@/components/floating-music-player";
 import { MiniMusicPlayer } from "@/components/mini-music-player";
 import { ThemeSwitcher } from "@/components/theme-switcher";

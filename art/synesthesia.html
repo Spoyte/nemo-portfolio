@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synesthesia — Audio-Visual Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #a0c0d0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            position: relative;
+            width: 90vw;
+            max-width: 800px;
+            aspect-ratio: 1;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 100px rgba(100, 150, 255, 0.1);
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(20, 30, 40, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: rgba(100, 150, 200, 0.2);
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            border-radius: 8px;
+            color: #a0c0d0;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            background: rgba(100, 150, 200, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(100, 150, 200, 0.3);
+        }
+        
+        .btn.active {
+            background: rgba(100, 200, 150, 0.3);
+            border-color: rgba(100, 200, 150, 0.5);
+            color: #c0e0d0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 11px;
+            opacity: 0.6;
+            line-height: 1.6;
+        }
+        
+        .info h1 {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #c0d0e0;
+        }
+        
+        .start-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 15, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        .start-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .start-overlay h1 {
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .start-overlay p {
+            color: #888;
+            font-size: 14px;
+            max-width: 400px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        .param-sliders {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(20, 30, 40, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+        
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .slider-row label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 60px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>SYNTHESIA</h1>
+        <div>Audio-Visual Generative Art</div>
+        <div id="status">Click Start to begin</div>
+    </div>
+    
+    <div class="param-sliders">
+        <div class="slider-row">
+            <label>Chaos</label>
+            <input type="range" id="chaos" min="0" max="100" value="30">
+        </div>
+        <div class="slider-row">
+            <label>Speed</label>
+            <input type="range" id="speed" min="10" max="200" value="80">
+        </div>
+        <div class="slider-row">
+            <label>Density</label>
+            <input type="range" id="density" min="50" max="500" value="200">
+        </div>
+    </div>
+    
+    <div class="container">
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <div class="start-overlay" id="startOverlay">
+        <h1>SYNTHESIA</h1>
+        <p>Generative audio-visual experience.<br>Sound and visuals created in real-time.<br>Wear headphones for best experience.</p>
+        <button class="btn" id="startBtn" style="font-size: 14px; padding: 16px 32px;">Start Experience</button>
+    </div>
+    
+    <div class="controls">
+        <button class="btn" id="regenerateBtn">New Seed</button>
+        <button class="btn" id="pauseBtn">Pause</button>
+        <button class="btn" id="muteBtn">Mute</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startOverlay = document.getElementById('startOverlay');
+        const startBtn = document.getElementById('startBtn');
+        const regenerateBtn = document.getElementById('regenerateBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const statusEl = document.getElementById('status');
+        
+        // Parameters
+        let chaos = 0.3;
+        let speed = 0.8;
+        let particleCount = 200;
+        let isRunning = false;
+        let isPaused = false;
+        let isMuted = false;
+        
+        // Audio context
+        let audioCtx = null;
+        let masterGain = null;
+        let analyser = null;
+        
+        // Visual state
+        let particles = [];
+        let orbs = [];
+        let time = 0;
+        let seed = Math.random();
+        
+        // Resize canvas
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Simplex-like noise function
+        const noise = (function() {
+            const p = new Uint8Array(512);
+            for (let i = 0; i < 256; i++) p[i] = i;
+            for (let i = 255; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [p[i], p[j]] = [p[j], p[i]];
+            }
+            for (let i = 0; i < 256; i++) p[i + 256] = p[i];
+            
+            function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+            function lerp(t, a, b) { return a + t * (b - a); }
+            function grad(hash, x, y) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 4 ? y : h === 12 || h === 14 ? x : 0;
+                return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+            }
+            
+            return function(x, y) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                x -= Math.floor(x);
+                y -= Math.floor(y);
+                const u = fade(x);
+                const v = fade(y);
+                const A = p[X] + Y, B = p[X + 1] + Y;
+                return lerp(v, lerp(u, grad(p[A], x, y), grad(p[B], x - 1, y)),
+                               lerp(u, grad(p[A + 1], x, y - 1), grad(p[B + 1], x - 1, y - 1)));
+            };
+        })();
+        
+        // Audio synthesis
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.3;
+            
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            
+            masterGain.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            
+            startDrone();
+            scheduleNotes();
+        }
+        
+        function createOscillator(freq, type, gainVal) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.value = gainVal;
+            osc.connect(gain);
+            gain.connect(masterGain);
+            return { osc, gain };
+        }
+        
+        let droneOscs = [];
+        
+        function startDrone() {
+            // Pentatonic drone: C - D - E - G - A
+            const baseFreq = 65.41; // C2
+            const ratios = [1, 1.125, 1.25, 1.5, 1.667]; // Pentatonic intervals
+            
+            ratios.forEach((ratio, i) => {
+                const freq = baseFreq * ratio;
+                const { osc, gain } = createOscillator(freq, 'sine', 0.05);
+                
+                // Add subtle detune for warmth
+                osc.detune.value = (Math.random() - 0.5) * 10;
+                
+                // LFO for movement
+                const lfo = audioCtx.createOscillator();
+                const lfoGain = audioCtx.createGain();
+                lfo.frequency.value = 0.1 + Math.random() * 0.2;
+                lfoGain.gain.value = 0.02;
+                lfo.connect(lfoGain);
+                lfoGain.connect(gain.gain);
+                lfo.start();
+                
+                osc.start();
+                droneOscs.push({ osc, gain, lfo, lfoGain, baseFreq: freq });
+            });
+        }
+        
+        function playBell(freq, time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+            
+            // FM for bell-like tone
+            const mod = audioCtx.createOscillator();
+            const modGain = audioCtx.createGain();
+            mod.frequency.value = freq * 2.5;
+            modGain.gain.value = freq * 0.5;
+            mod.connect(modGain);
+            modGain.connect(osc.frequency);
+            mod.start(time);
+            mod.stop(time + 2);
+            
+            // Envelope
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.15, time + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 2);
+            
+            osc.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.start(time);
+            osc.stop(time + 2);
+        }
+        
+        function scheduleNotes() {
+            if (!audioCtx || isMuted) return;
+            
+            const now = audioCtx.currentTime;
+            const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00]; // C4 pentatonic
+            const octave = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5 pentatonic
+            const notes = [...pentatonic, ...octave];
+            
+            // Play random bell notes
+            if (Math.random() < 0.3 * chaos + 0.1) {
+                const note = notes[Math.floor(Math.random() * notes.length)];
+                playBell(note, now);
+                
+                // Visual trigger for note
+                createOrb(note);
+            }
+            
+            setTimeout(scheduleNotes, 200 + Math.random() * 800);
+        }
+        
+        // Visual classes
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                const rect = canvas.getBoundingClientRect();
+                this.x = Math.random() * rect.width;
+                this.y = Math.random() * rect.height;
+                this.vx = 0;
+                this.vy = 0;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+                this.size = Math.random() * 2 + 1;
+                this.hue = Math.random() * 60 + 200; // Blue-purple range
+            }
+            
+            update(audioData) {
+                const rect = canvas.getBoundingClientRect();
+                
+                // Get frequency data at this particle's position
+                const freqIndex = Math.floor((this.x / rect.width) * (audioData.length / 2));
+                const freqValue = (audioData[freqIndex] || 0) / 255;
+                
+                // Noise-based flow field
+                const n = noise(this.x * 0.005 + seed, this.y * 0.005 + time * 0.0001 * speed);
+                const angle = n * Math.PI * 4 + freqValue * Math.PI;
+                
+                this.vx += Math.cos(angle) * 0.2 * speed;
+                this.vy += Math.sin(angle) * 0.2 * speed;
+                
+                // Audio reactivity
+                this.vx += (Math.random() - 0.5) * freqValue * chaos * 2;
+                this.vy += (Math.random() - 0.5) * freqValue * chaos * 2;
+                
+                // Friction
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                
+                // Move
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Wrap
+                if (this.x < 0) this.x = rect.width;
+                if (this.x > rect.width) this.x = 0;
+                if (this.y < 0) this.y = rect.height;
+                if (this.y > rect.height) this.y = 0;
+                
+                // Update hue based on audio
+                this.hue = 200 + freqValue * 100 + time * 0.01;
+                
+                this.life--;
+                if (this.life <= 0) this.reset();
+            }
+            
+            draw(ctx) {
+                const alpha = (this.life / this.maxLife) * 0.8;
+                ctx.fillStyle = `hsla(${this.hue}, 70%, 60%, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        class Orb {
+            constructor(freq) {
+                const rect = canvas.getBoundingClientRect();
+                this.x = rect.width / 2;
+                this.y = rect.height / 2;
+                this.freq = freq;
+                this.radius = 0;
+                this.maxRadius = Math.min(rect.width, rect.height) * 0.4;
+                this.life = 60;
+                this.hue = 200 + (freq / 880) * 100;
+            }
+            
+            update() {
+                this.radius += this.maxRadius / 60;
+                this.life--;
+            }
+            
+            draw(ctx) {
+                const alpha = (this.life / 60) * 0.3;
+                ctx.strokeStyle = `hsla(${this.hue}, 80%, 60%, ${alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        function createOrb(freq) {
+            orbs.push(new Orb(freq));
+        }
+        
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!isRunning || isPaused) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            
+            // Get audio data
+            let audioData = new Uint8Array(128);
+            if (analyser) {
+                analyser.getByteFrequencyData(audioData);
+            }
+            
+            // Fade effect
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, rect.width, rect.height);
+            
+            // Draw connections between nearby particles
+            ctx.globalCompositeOperation = 'lighter';
+            
+            for (let i = 0; i < particles.length; i++) {
+                const p1 = particles[i];
+                p1.update(audioData);
+                
+                // Connect to nearby particles
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 60) {
+                        const alpha = (1 - dist / 60) * 0.3;
+                        ctx.strokeStyle = `hsla(${(p1.hue + p2.hue) / 2}, 70%, 60%, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+                
+                p1.draw(ctx);
+            }
+            
+            // Update and draw orbs
+            orbs = orbs.filter(orb => orb.life > 0);
+            orbs.forEach(orb => {
+                orb.update();
+                orb.draw(ctx);
+            });
+            
+            // Draw frequency rings
+            if (analyser) {
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                for (let i = 0; i < 8; i++) {
+                    const freqIndex = i * 4;
+                    const value = audioData[freqIndex] / 255;
+                    const radius = 50 + i * 30 + value * 50;
+                    
+                    ctx.strokeStyle = `hsla(${200 + i * 20}, 70%, 60%, ${value * 0.3})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            ctx.globalCompositeOperation = 'source-over';
+            
+            time += 16;
+            requestAnimationFrame(animate);
+        }
+        
+        // Event handlers
+        startBtn.addEventListener('click', () => {
+            initAudio();
+            initParticles();
+            isRunning = true;
+            startOverlay.classList.add('hidden');
+            statusEl.textContent = 'Running • Click New Seed for variation';
+            animate();
+        });
+        
+        regenerateBtn.addEventListener('click', () => {
+            seed = Math.random();
+            particles.forEach(p => p.reset());
+            statusEl.textContent = 'New seed: ' + seed.toFixed(4);
+        });
+        
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            pauseBtn.classList.toggle('active', isPaused);
+            if (!isPaused) animate();
+        });
+        
+        muteBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+            muteBtn.classList.toggle('active', isMuted);
+            if (masterGain) {
+                masterGain.gain.setTargetAtTime(isMuted ? 0 : 0.3, audioCtx.currentTime, 0.1);
+            }
+        });
+        
+        // Parameter sliders
+        document.getElementById('chaos').addEventListener('input', (e) => {
+            chaos = parseInt(e.target.value) / 100;
+        });
+        
+        document.getElementById('speed').addEventListener('input', (e) => {
+            speed = parseInt(e.target.value) / 100;
+        });
+        
+        document.getElementById('density').addEventListener('input', (e) => {
+            particleCount = parseInt(e.target.value);
+            initParticles();
+        });
+        
+        // Initial render
+        ctx.fillStyle = '#0a0a0f';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>

@@ -20,7 +20,10 @@ import {
   Bookmark,
   Quote,
   FileCode,
-  Beaker
+  Beaker,
+  BarChart3,
+  Brain,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnhancedVisitorCounter } from "@/components/enhanced-visitor-counter";
@@ -193,30 +196,30 @@ export default function Home() {
 
             <ScrollReveal delay={0.3}>
               <SpotlightCard className="h-full">
-                <Link href="/soundboard" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Volume2 className="w-6 h-6 text-white" />
+                <Link href="/games" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Gamepad2 className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Dev Soundboard</h3>
+                  <h3 className="text-lg font-semibold mb-2">Mini Game Arcade</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Classic developer sound effects, jokes, and programming wisdom.
+                    Memory match, reaction time, color sequence, and focus trainer games.
                   </p>
-                  <Badge variant="outline" className="bg-pink-500/10 text-pink-500">New →</Badge>
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.4}>
               <SpotlightCard className="h-full">
-                <Link href="/challenges" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Trophy className="w-6 h-6 text-white" />
+                <Link href="/analytics" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <BarChart3 className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Daily Challenges</h3>
+                  <h3 className="text-lg font-semibold mb-2">Live Analytics</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Complete challenges, earn points, unlock achievements and rewards.
+                    Real-time dashboard showing visitor stats, goals, and activity feed.
                   </p>
-                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500">New →</Badge>
+                  <Badge variant="outline" className="bg-orange-500/10 text-orange-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
