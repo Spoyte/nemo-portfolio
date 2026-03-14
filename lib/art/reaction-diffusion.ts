@@ -1,265 +1,263 @@
-import { ArtGenerator, GeneratorContext, ExportOptions } from "./core";
+import { ArtGenerator, fillCanvas, SeededRandom } from "./core";
 
-export interface ReactionDiffusionParams {
-  // Gray-Smith model parameters
-  feedRate: number;       // 0.01-0.1: Feed rate (f)
-  killRate: number;       // 0.01-0.1: Kill rate (k)
-  diffusionA: number;     // 0.5-1.0: Diffusion rate A
-  diffusionB: number;     // 0.1-0.5: Diffusion rate B
-  // Visual parameters
-  colorScheme: "coral" | "zebra" | "bacteria" | "fingerprint" | "waves";
-  scale: number;          // 1-4: Pattern scale
-  animated: boolean;
-}
+// Gray-Scott Reaction-Diffusion Model
+// Two chemicals: U (substrate) and V (activator)
+// Reaction: U + 2V -> 3V (converts U to V)
+// U is continuously fed, V is continuously removed
 
-export const reactionDiffusionDefaultParams: ReactionDiffusionParams = {
-  feedRate: 0.0545,
-  killRate: 0.062,
-  diffusionA: 1.0,
-  diffusionB: 0.5,
-  colorScheme: "coral",
-  scale: 2,
-  animated: true,
-};
+export const reactionDiffusion: ArtGenerator = {
+  name: "Reaction Diffusion",
+  description: "Emergent patterns from chemical reaction simulation (Gray-Scott model)",
+  params: {
+    feedRate: {
+      name: "Feed Rate (F)",
+      type: "range",
+      min: 0.01,
+      max: 0.1,
+      step: 0.001,
+      default: 0.0545,
+    },
+    killRate: {
+      name: "Kill Rate (k)",
+      type: "range",
+      min: 0.01,
+      max: 0.08,
+      step: 0.001,
+      default: 0.062,
+    },
+    diffusionU: {
+      name: "Diffusion U",
+      type: "range",
+      min: 0.5,
+      max: 2.0,
+      step: 0.1,
+      default: 1.0,
+    },
+    diffusionV: {
+      name: "Diffusion V",
+      type: "range",
+      min: 0.1,
+      max: 1.0,
+      step: 0.05,
+      default: 0.5,
+    },
+    iterations: {
+      name: "Iterations",
+      type: "range",
+      min: 1000,
+      max: 10000,
+      step: 500,
+      default: 5000,
+    },
+    pattern: {
+      name: "Initial Pattern",
+      type: "select",
+      options: ["center", "random", "stripes", "spots"],
+      default: "center",
+    },
+    colorScheme: {
+      name: "Color Scheme",
+      type: "select",
+      options: ["coral", "electric", "fire", "ocean", "neon"],
+      default: "coral",
+    },
+    seed: {
+      name: "Seed",
+      type: "range",
+      min: 1,
+      max: 10000,
+      step: 1,
+      default: 42,
+    },
+  },
+  generate: (ctx, params) => {
+    const canvas = ctx.canvas;
+    const { 
+      feedRate, 
+      killRate, 
+      diffusionU, 
+      diffusionV, 
+      iterations, 
+      pattern, 
+      colorScheme,
+      seed 
+    } = params;
+    const rng = new SeededRandom(seed as number);
 
-// Gray-Scott reaction-diffusion model
-// Simulates: A + 2B → 3B (B is autocatalytic)
-// ∂A/∂t = Dₐ∇²A - AB² + f(1-A)
-// ∂B/∂t = Dᵦ∇²B + AB² - (k+f)B
+    // Grid size - smaller for performance, scaled up for display
+    const gridSize = 128;
+    const scale = canvas.width / gridSize;
 
-class ReactionDiffusionSimulation {
-  width: number;
-  height: number;
-  gridA: Float32Array;
-  gridB: Float32Array;
-  nextA: Float32Array;
-  nextB: Float32Array;
-  
-  constructor(width: number, height: number) {
-    this.width = width;
-    this.height = height;
-    this.gridA = new Float32Array(width * height).fill(1);
-    this.gridB = new Float32Array(width * height).fill(0);
-    this.nextA = new Float32Array(width * height);
-    this.nextB = new Float32Array(width * height);
-    this.seed();
-  }
-  
-  seed() {
-    // Seed with random patches of B
-    const centerX = Math.floor(this.width / 2);
-    const centerY = Math.floor(this.height / 2);
-    const radius = Math.min(this.width, this.height) / 8;
-    
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const idx = y * this.width + x;
-        const dx = x - centerX;
-        const dy = y - centerY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        
-        // Central seed with some noise
-        if (dist < radius) {
-          this.gridB[idx] = 0.9 + Math.random() * 0.1;
-        } else if (Math.random() < 0.01) {
-          // Sparse random seeds
-          this.gridB[idx] = Math.random() * 0.5;
+    // Initialize grids
+    let u: number[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(1));
+    let v: number[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
+
+    const F = feedRate as number;
+    const k = killRate as number;
+    const Du = diffusionU as number;
+    const Dv = diffusionV as number;
+    const steps = iterations as number;
+    const initialPattern = pattern as string;
+
+    // Seed initial V concentration based on pattern
+    const center = Math.floor(gridSize / 2);
+    const radius = Math.floor(gridSize / 8);
+
+    if (initialPattern === "center") {
+      // Central square of V
+      for (let y = center - radius; y < center + radius; y++) {
+        for (let x = center - radius; x < center + radius; x++) {
+          if (y >= 0 && y < gridSize && x >= 0 && x < gridSize) {
+            v[y][x] = 1;
+            u[y][x] = 0;
+          }
+        }
+      }
+    } else if (initialPattern === "random") {
+      // Random spots
+      const numSpots = 5 + Math.floor(rng.random() * 10);
+      for (let s = 0; s < numSpots; s++) {
+        const sx = Math.floor(rng.random() * (gridSize - 20)) + 10;
+        const sy = Math.floor(rng.random() * (gridSize - 20)) + 10;
+        const sr = 3 + Math.floor(rng.random() * 5);
+        for (let y = sy - sr; y < sy + sr; y++) {
+          for (let x = sx - sr; x < sx + sr; x++) {
+            if (y >= 0 && y < gridSize && x >= 0 && x < gridSize) {
+              v[y][x] = 1;
+              u[y][x] = 0;
+            }
+          }
+        }
+      }
+    } else if (initialPattern === "stripes") {
+      // Vertical stripes
+      for (let x = 0; x < gridSize; x += 8) {
+        for (let y = 0; y < gridSize; y++) {
+          if (x < gridSize) {
+            v[y][x] = 1;
+            u[y][x] = 0;
+          }
+        }
+      }
+    } else if (initialPattern === "spots") {
+      // Grid of spots
+      for (let y = 10; y < gridSize; y += 20) {
+        for (let x = 10; x < gridSize; x += 20) {
+          for (let dy = -3; dy <= 3; dy++) {
+            for (let dx = -3; dx <= 3; dx++) {
+              const ny = y + dy;
+              const nx = x + dx;
+              if (ny >= 0 && ny < gridSize && nx >= 0 && nx < gridSize) {
+                v[ny][nx] = 1;
+                u[ny][nx] = 0;
+              }
+            }
+          }
         }
       }
     }
-  }
-  
-  laplacian(grid: Float32Array, x: number, y: number): number {
-    const w = this.width;
-    const h = this.height;
+
+    // Simulation loop
+    for (let iter = 0; iter < steps; iter++) {
+      const newU: number[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
+      const newV: number[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
+
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const uVal = u[y][x];
+          const vVal = v[y][x];
+
+          // Laplacian (diffusion) - using 5-point stencil
+          let laplaceU = -4 * uVal;
+          let laplaceV = -4 * vVal;
+
+          if (x > 0) {
+            laplaceU += u[y][x - 1];
+            laplaceV += v[y][x - 1];
+          }
+          if (x < gridSize - 1) {
+            laplaceU += u[y][x + 1];
+            laplaceV += v[y][x + 1];
+          }
+          if (y > 0) {
+            laplaceU += u[y - 1][x];
+            laplaceV += v[y - 1][x];
+          }
+          if (y < gridSize - 1) {
+            laplaceU += u[y + 1][x];
+            laplaceV += v[y + 1][x];
+          }
+
+          // Reaction: U + 2V -> 3V
+          const reaction = uVal * vVal * vVal;
+
+          // Update equations
+          newU[y][x] = uVal + Du * laplaceU - reaction + F * (1 - uVal);
+          newV[y][x] = vVal + Dv * laplaceV + reaction - (F + k) * vVal;
+
+          // Clamp values
+          newU[y][x] = Math.max(0, Math.min(1, newU[y][x]));
+          newV[y][x] = Math.max(0, Math.min(1, newV[y][x]));
+        }
+      }
+
+      u = newU;
+      v = newV;
+    }
+
+    // Render
+    fillCanvas(ctx, "#0a0a0a", canvas.width, canvas.height);
+
+    const scheme = colorScheme as string;
     
-    // Wrap around boundaries
-    const xm = (x - 1 + w) % w;
-    const xp = (x + 1) % w;
-    const ym = (y - 1 + h) % h;
-    const yp = (y + 1) % h;
-    
-    const idx = y * w + x;
-    const idxL = y * w + xm;
-    const idxR = y * w + xp;
-    const idxU = ym * w + x;
-    const idxD = yp * w + x;
-    const idxUL = ym * w + xm;
-    const idxUR = ym * w + xp;
-    const idxDL = yp * w + xm;
-    const idxDR = yp * w + xp;
-    
-    // 9-point Laplacian stencil for smoother results
-    return (
-      grid[idxUL] * 0.05 + grid[idxU] * 0.2 + grid[idxUR] * 0.05 +
-      grid[idxL] * 0.2 + grid[idx] * -1.0 + grid[idxR] * 0.2 +
-      grid[idxDL] * 0.05 + grid[idxD] * 0.2 + grid[idxDR] * 0.05
-    );
-  }
-  
-  step(f: number, k: number, dA: number, dB: number) {
-    const w = this.width;
-    const h = this.height;
-    
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const idx = y * w + x;
-        const a = this.gridA[idx];
-        const b = this.gridB[idx];
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        const vVal = v[y][x];
+        const uVal = u[y][x];
         
-        const lapA = this.laplacian(this.gridA, x, y);
-        const lapB = this.laplacian(this.gridB, x, y);
-        
-        const reaction = a * b * b;
-        
-        this.nextA[idx] = a + dA * lapA - reaction + f * (1 - a);
-        this.nextB[idx] = b + dB * lapB + reaction - (k + f) * b;
-        
-        // Clamp to valid range
-        this.nextA[idx] = Math.max(0, Math.min(1, this.nextA[idx]));
-        this.nextB[idx] = Math.max(0, Math.min(1, this.nextB[idx]));
+        // Skip empty cells
+        if (vVal < 0.01) continue;
+
+        // Color mapping based on scheme
+        let r = 0, g = 0, b = 0;
+        const intensity = Math.min(1, vVal * 2);
+
+        switch (scheme) {
+          case "coral":
+            // Pink/orange coral-like colors
+            r = Math.floor(255 * intensity);
+            g = Math.floor(100 * intensity + 50 * uVal);
+            b = Math.floor(150 * intensity * (1 - vVal));
+            break;
+          case "electric":
+            // Cyan/purple electric
+            r = Math.floor(100 * intensity);
+            g = Math.floor(200 * intensity + 55 * uVal);
+            b = Math.floor(255 * intensity);
+            break;
+          case "fire":
+            // Red/yellow flames
+            r = Math.floor(255 * intensity);
+            g = Math.floor(150 * intensity * vVal + 50);
+            b = Math.floor(50 * intensity * (1 - vVal));
+            break;
+          case "ocean":
+            // Deep blue/teal
+            r = Math.floor(50 * intensity * (1 - vVal));
+            g = Math.floor(150 * intensity + 50 * uVal);
+            b = Math.floor(200 * intensity + 55);
+            break;
+          case "neon":
+            // Green/yellow neon
+            r = Math.floor(150 * intensity * vVal);
+            g = Math.floor(255 * intensity);
+            b = Math.floor(100 * intensity * uVal);
+            break;
+        }
+
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(x * scale, y * scale, scale + 1, scale + 1);
       }
     }
-    
-    // Swap grids
-    [this.gridA, this.nextA] = [this.nextA, this.gridA];
-    [this.gridB, this.nextB] = [this.nextB, this.gridB];
-  }
-}
-
-// Preset parameter combinations for different pattern types
-const presets: Record<string, { f: number; k: number; name: string }> = {
-  coral: { f: 0.0545, k: 0.062, name: "Coral Growth" },
-  zebra: { f: 0.035, k: 0.06, name: "Zebra Stripes" },
-  bacteria: { f: 0.037, k: 0.06, name: "Bacteria Colonies" },
-  fingerprint: { f: 0.037, k: 0.064, name: "Fingerprints" },
-  waves: { f: 0.018, k: 0.05, name: "Spiral Waves" },
+  },
 };
-
-export function renderReactionDiffusion(
-  ctx: CanvasRenderingContext2D,
-  params: Partial<ReactionDiffusionParams> = {},
-  time: number = 0
-): void {
-  const config = { ...reactionDiffusionDefaultParams, ...params };
-  const { width, height } = ctx.canvas;
-  
-  // Scale down for performance (simulation resolution)
-  const scale = Math.max(1, Math.floor(config.scale));
-  const simWidth = Math.floor(width / scale);
-  const simHeight = Math.floor(height / scale);
-  
-  // Get preset or use custom parameters
-  const preset = presets[config.colorScheme];
-  const f = config.feedRate;
-  const k = config.killRate;
-  const dA = config.diffusionA;
-  const dB = config.diffusionB;
-  
-  // Create or reuse simulation
-  let sim: ReactionDiffusionSimulation;
-  const simKey = `rd_${simWidth}_${simHeight}`;
-  
-  // Use time to determine simulation state
-  // We simulate multiple steps per frame for faster evolution
-  const stepsPerFrame = config.animated ? 8 : 20;
-  const seedOffset = Math.floor(time * 0.01) % 1000;
-  
-  // Initialize simulation
-  sim = new ReactionDiffusionSimulation(simWidth, simHeight);
-  
-  // Advance simulation
-  const targetSteps = config.animated 
-    ? Math.floor(time * 0.05) * stepsPerFrame 
-    : 1000 + seedOffset * 10;
-  
-  // Run simulation steps
-  const stepsToRun = config.animated ? stepsPerFrame : Math.min(2000, targetSteps);
-  for (let i = 0; i < stepsToRun; i++) {
-    sim.step(f, k, dA, dB);
-  }
-  
-  // Create image data for rendering
-  const imageData = ctx.createImageData(width, height);
-  const data = imageData.data;
-  
-  // Color mapping based on scheme
-  const getColor = (a: number, b: number): [number, number, number] => {
-    const concentration = b; // B concentration drives the pattern
-    
-    switch (config.colorScheme) {
-      case "coral":
-        // Deep purple to bright coral
-        return [
-          Math.floor(20 + concentration * 200),
-          Math.floor(10 + concentration * 100),
-          Math.floor(40 + concentration * 150),
-        ];
-      case "zebra":
-        // Black and white stripes
-        const zebra = concentration > 0.5 ? 255 : Math.floor(concentration * 100);
-        return [zebra, zebra, zebra];
-      case "bacteria":
-        // Green-yellow colonies
-        return [
-          Math.floor(concentration * 100),
-          Math.floor(50 + concentration * 205),
-          Math.floor(concentration * 50),
-        ];
-      case "fingerprint":
-        // Sepia tones
-        return [
-          Math.floor(40 + concentration * 150),
-          Math.floor(30 + concentration * 120),
-          Math.floor(20 + concentration * 80),
-        ];
-      case "waves":
-        // Blue cyan waves
-        return [
-          Math.floor(concentration * 50),
-          Math.floor(100 + concentration * 155),
-          Math.floor(150 + concentration * 105),
-        ];
-      default:
-        return [
-          Math.floor(concentration * 255),
-          Math.floor(concentration * 255),
-          Math.floor(concentration * 255),
-        ];
-    }
-  };
-  
-  // Render simulation to canvas
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      // Sample from simulation grid
-      const simX = Math.floor(x / scale) % simWidth;
-      const simY = Math.floor(y / scale) % simHeight;
-      const simIdx = simY * simWidth + simX;
-      
-      const a = sim.gridA[simIdx];
-      const b = sim.gridB[simIdx];
-      
-      const [r, g, bl] = getColor(a, b);
-      
-      const idx = (y * width + x) * 4;
-      data[idx] = r;
-      data[idx + 1] = g;
-      data[idx + 2] = bl;
-      data[idx + 3] = 255;
-    }
-  }
-  
-  ctx.putImageData(imageData, 0, 0);
-}
-
-// Backward compatibility: ArtGenerator interface
-export const reactionDiffusion: ArtGenerator = {
-  id: "reaction-diffusion",
-  name: "Reaction-Diffusion Patterns",
-  category: "natural",
-  render: (ctx, params, time) => renderReactionDiffusion(ctx, params as ReactionDiffusionParams, time),
-  defaultParams: reactionDiffusionDefaultParams,
-};
-
-export default reactionDiffusion;

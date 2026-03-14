@@ -389,6 +389,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "voronoiOrganic",
   },
   {
+    id: "voronoi-tessellation",
+    name: "Voronoi Tessellation",
+    description: "Organic Voronoi diagrams inspired by nature — cracked earth, foam bubbles, leaf veins, giraffe patterns",
+    category: "geometric",
+    loader: () => import("./voronoi-tessellation"),
+    renderFnName: "renderVoronoiTessellation",
+    importName: "voronoiTessellation",
+  },
+  {
     id: "string-art",
     name: "String Art",
     description: "Thread wound between pins creating mathematical curves",
@@ -481,15 +490,6 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "flowField",
   },
   {
-    id: "reaction-diffusion",
-    name: "Reaction-Diffusion",
-    description: "Turing patterns - chemical morphogenesis simulation",
-    category: "abstract",
-    loader: () => import("./reaction-diffusion"),
-    renderFnName: "renderReactionDiffusion",
-    importName: "reactionDiffusion",
-  },
-  {
     id: "gray-scott-diffusion",
     name: "Gray-Scott Diffusion",
     description: "True Gray-Scott reaction-diffusion simulation - coral growth, spots, stripes, and labyrinth patterns from chemical morphogenesis",
@@ -571,7 +571,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "langtonsAnt",
   },
 
-  // === TRADITIONAL (8) ===
+  // === TRADITIONAL (9) ===
   {
     id: "digital-weave",
     name: "Digital Weave",
@@ -1166,6 +1166,15 @@ export function generateIndexContent(): string {
     loader: () => import("./boids-flocking"),
     renderFnName: "renderBoidsFlocking",
     importName: "boidsFlocking",
+  },
+  {
+    id: "pointillism",
+    name: "Pointillism",
+    description: "TODO: Add description for Pointillism",
+    category: "traditional",
+    loader: () => import("./pointillism"),
+    renderFnName: "renderPointillism",
+    importName: "pointillism",
   },
   lines.push('  };');
   lines.push('});');
