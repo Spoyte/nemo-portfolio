@@ -149,7 +149,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "cantorSet",
   },
 
-  // === NATURAL (10) ===
+  // === NATURAL (11) ===
   {
     id: "aurora-borealis",
     name: "Aurora Borealis",
@@ -1152,11 +1152,20 @@ export function generateIndexContent(): string {
   {
     id: "chromatic-aberration",
     name: "Chromatic Aberration",
-    description: "TODO: Add description for Chromatic Aberration",
+    description: "Prismatic light distortion — RGB channel separation creating lens-like color fringing and spectral dispersion",
     category: "abstract",
     loader: () => import("./chromatic-aberration"),
     renderFnName: "renderChromaticAberration",
     importName: "chromaticAberration",
+  },
+  {
+    id: "boids-flocking",
+    name: "Emergent Flocking Behavior",
+    description: "Craig Reynolds' Boids algorithm — simple rules create complex swarm intelligence with separation, alignment, and cohesion",
+    category: "natural",
+    loader: () => import("./boids-flocking"),
+    renderFnName: "renderBoidsFlocking",
+    importName: "boidsFlocking",
   },
   lines.push('  };');
   lines.push('});');
