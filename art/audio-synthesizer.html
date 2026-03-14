@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Synthesizer — Generative Ambient Drone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #050508;
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+        }
+        
+        #canvas {
+            display: block;
+        }
+        
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 8, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .overlay h1 {
+            font-size: 56px;
+            font-weight: 200;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, #00d4aa, #00a8e8, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .overlay p {
+            color: #888;
+            font-size: 16px;
+            max-width: 480px;
+            text-align: center;
+            line-height: 1.7;
+        }
+        
+        .start-btn {
+            padding: 18px 48px;
+            background: linear-gradient(135deg, #00d4aa, #00a8e8);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0, 212, 170, 0.4);
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 12, 18, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 24px 32px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 400px;
+            max-width: 90vw;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .control-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666;
+            min-width: 100px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #00d4aa, #00a8e8);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #00d4aa;
+            min-width: 40px;
+            text-align: right;
+            font-family: monospace;
+        }
+        
+        .harmonic-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .harmonic-btn {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #888;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .harmonic-btn.active {
+            background: linear-gradient(135deg, #00d4aa, #00a8e8);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        
+        .action-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: #ccc;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(135deg, #00d4aa20, #00a8e820);
+            border-color: #00d4aa40;
+        }
+        
+        .action-btn.primary:hover {
+            background: linear-gradient(135deg, #00d4aa40, #00a8e840);
+        }
+        
+        .info {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            font-size: 12px;
+            color: #444;
+            line-height: 1.8;
+        }
+        
+        .info span {
+            color: #00d4aa;
+        }
+        
+        .scale-selector {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .scale-btn {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #666;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .scale-btn.active {
+            background: rgba(0, 212, 170, 0.2);
+            color: #00d4aa;
+            border-color: #00d4aa40;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="info">
+        <div>Base: <span id="baseFreq">110.00</span> Hz</div>
+        <div>Active: <span id="activeOsc">4</span> voices</div>
+        <div>Volume: <span id="volDisplay">-12</span> dB</div>
+    </div>
+    
+    <div class="overlay" id="overlay">
+        <h1>DRONE LAB</h1>
+        <p>A generative ambient synthesizer. Create evolving harmonic textures through additive synthesis. Each oscillator contributes to a living, breathing soundscape.</p>
+        <button class="start-btn" id="startBtn">Initialize Audio</button>
+    </div>
+    
+    <div class="controls" id="controls" style="display: none;">
+        <div class="control-row">
+            <span class="control-label">Base Frequency</span>
+            <input type="range" id="baseFreqSlider" min="55" max="220" step="0.1" value="110">
+            <span class="value-display" id="baseFreqVal">110</span>
+        </div>
+        
+        <div class="control-row">
+            <span class="control-label">Drift Speed</span>
+            <input type="range" id="driftSlider" min="0" max="100" step="1" value="30">
+            <span class="value-display" id="driftVal">30%</span>
+        </div>
+        
+        <div class="control-row">
+            <span class="control-label">Harmonics</span>
+            <div class="harmonic-buttons" id="harmonicButtons">
+                <button class="harmonic-btn active" data-harmonic="1">1</button>
+                <button class="harmonic-btn active" data-harmonic="2">2</button>
+                <button class="harmonic-btn active" data-harmonic="3">3</button>
+                <button class="harmonic-btn" data-harmonic="4">4</button>
+                <button class="harmonic-btn" data-harmonic="5">5</button>
+                <button class="harmonic-btn" data-harmonic="6">6</button>
+                <button class="harmonic-btn" data-harmonic="7">7</button>
+                <button class="harmonic-btn" data-harmonic="8">8</button>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <span class="control-label">Scale</span>
+            <div class="scale-selector">
+                <button class="scale-btn active" data-scale="just">Just Intonation</button>
+                <button class="scale-btn" data-scale="equal">Equal Temperament</button>
+                <button class="scale-btn" data-scale="pythagorean">Pythagorean</button>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <span class="control-label">Master Volume</span>
+            <input type="range" id="volumeSlider" min="-60" max="-6" step="1" value="-12">
+            <span class="value-display" id="volumeVal">-12dB</span>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn" id="randomizeBtn">Randomize</button>
+            <button class="action-btn" id="clearBtn">Clear All</button>
+            <button class="action-btn primary" id="evolveBtn">Auto Evolve</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const controls = document.getElementById('controls');
+        const startBtn = document.getElementById('startBtn');
+        
+        // Audio context and nodes
+        let audioContext = null;
+        let masterGain = null;
+        let analyser = null;
+        let oscillators = [];
+        let gainNodes = [];
+        let isRunning = false;
+        let isEvolving = false;
+        
+        // Visualization
+        let time = 0;
+        let particles = [];
+        let waveformData = null;
+        let frequencyData = null;
+        
+        // Settings
+        let baseFrequency = 110;
+        let driftSpeed = 0.3;
+        let activeHarmonics = new Set([1, 2, 3]);
+        let scaleType = 'just';
+        let masterVolume = -12;
+        
+        // Scale ratios
+        const scales = {
+            just: [1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8, 2],
+            equal: [1, 1.0595, 1.1225, 1.1892, 1.2599, 1.3348, 1.4142, 1.4983, 1.5874, 1.6818, 1.7818, 1.8877, 2].map((v, i) => i === 0 ? 1 : Math.pow(2, i/12)),
+            pythagorean: [1, 256/243, 9/8, 32/27, 81/64, 4/3, 729/512, 3/2, 128/81, 27/16, 16/9, 243/128, 2]
+        };
+        
+        // Resize canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Initialize particles
+        function initParticles() {
+            particles = [];
+            const count = 150;
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    radius: Math.random() * 2 + 0.5,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: Math.random() * 0.02 + 0.01,
+                    harmonic: Math.floor(Math.random() * 8) + 1
+                });
+            }
+        }
+        initParticles();
+        
+        // Initialize audio
+        async function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Master gain
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = Math.pow(10, masterVolume / 20);
+                
+                // Analyser for visualization
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.8;
+                
+                // Connect master -> analyser -> destination
+                masterGain.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                waveformData = new Uint8Array(analyser.frequencyBinCount);
+                frequencyData = new Uint8Array(analyser.frequencyBinCount);
+                
+                // Create initial oscillators
+                updateOscillators();
+                
+                isRunning = true;
+                overlay.classList.add('hidden');
+                controls.style.display = 'flex';
+                
+                animate();
+            } catch (err) {
+                console.error('Audio init failed:', err);
+                alert('Could not initialize audio: ' + err.message);
+            }
+        }
+        
+        // Get frequency for harmonic based on scale
+        function getHarmonicFrequency(harmonic) {
+            const scale = scales[scaleType];
+            const octave = Math.floor((harmonic - 1) / scale.length);
+            const degree = (harmonic - 1) % scale.length;
+            const ratio = scale[degree] || 1;
+            return baseFrequency * ratio * Math.pow(2, octave);
+        }
+        
+        // Update oscillators based on active harmonics
+        function updateOscillators() {
+            if (!audioContext) return;
+            
+            // Stop and disconnect old oscillators
+            oscillators.forEach(osc => {
+                try {
+                    osc.stop();
+                    osc.disconnect();
+                } catch (e) {}
+            });
+            gainNodes.forEach(gain => gain.disconnect());
+            
+            oscillators = [];
+            gainNodes = [];
+            
+            // Create new oscillators for active harmonics
+            activeHarmonics.forEach(harmonic => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                // Mix of sine and triangle for richer tone
+                osc.type = harmonic === 1 ? 'sine' : (harmonic % 2 === 0 ? 'triangle' : 'sine');
+                osc.frequency.value = getHarmonicFrequency(harmonic);
+                
+                // Lower volume for higher harmonics
+                const harmonicGain = 1 / Math.sqrt(harmonic) * 0.3;
+                gain.gain.value = harmonicGain;
+                
+                // Add subtle detune for thickness
+                osc.detune.value = (Math.random() - 0.5) * 10;
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start();
+                
+                oscillators.push(osc);
+                gainNodes.push(gain);
+            });
+            
+            updateInfo();
+        }
+        
+        // Update info display
+        function updateInfo() {
+            document.getElementById('baseFreq').textContent = baseFrequency.toFixed(2);
+            document.getElementById('activeOsc').textContent = activeHarmonics.size;
+            document.getElementById('volDisplay').textContent = masterVolume;
+        }
+        
+        // Apply drift to frequencies
+        function applyDrift() {
+            if (!isRunning || driftSpeed === 0) return;
+            
+            const driftAmount = driftSpeed * 0.1;
+            oscillators.forEach((osc, i) => {
+                const harmonic = Array.from(activeHarmonics)[i];
+                if (!harmonic) return;
+                
+                const baseFreq = getHarmonicFrequency(harmonic);
+                const drift = Math.sin(time * 0.001 * (i + 1) + i) * driftAmount;
+                osc.frequency.setTargetAtTime(baseFreq + drift, audioContext.currentTime, 0.1);
+            });
+        }
+        
+        // Visualization
+        function draw() {
+            // Get audio data
+            if (analyser) {
+                analyser.getByteTimeDomainData(waveformData);
+                analyser.getByteFrequencyData(frequencyData);
+            }
+            
+            // Fade background
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            // Draw frequency rings
+            if (frequencyData) {
+                const rings = 8;
+                for (let i = 0; i < rings; i++) {
+                    const dataIndex = Math.floor((i / rings) * frequencyData.length / 4);
+                    const value = frequencyData[dataIndex] / 255;
+                    
+                    const radius = 50 + i * 40 + value * 60;
+                    const alpha = 0.1 + value * 0.4;
+                    
+                    const hue = 160 + i * 15 + value * 40;
+                    ctx.strokeStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+                    ctx.lineWidth = 2 + value * 3;
+                    
+                    ctx.beginPath();
+                    for (let angle = 0; angle < Math.PI * 2; angle += 0.05) {
+                        const r = radius + Math.sin(angle * (i + 3) + time * 0.002) * value * 20;
+                        const x = cx + Math.cos(angle) * r;
+                        const y = cy + Math.sin(angle) * r;
+                        if (angle === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw waveform spiral
+            if (waveformData) {
+                ctx.strokeStyle = 'rgba(0, 212, 170, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                for (let i = 0; i < waveformData.length; i += 2) {
+                    const value = (waveformData[i] - 128) / 128;
+                    const angle = (i / waveformData.length) * Math.PI * 4 + time * 0.001;
+                    const radius = 100 + value * 80;
+                    
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            // Draw particles
+            particles.forEach((p, i) => {
+                // Update position
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Wrap around
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+                
+                // Get frequency value for this particle's harmonic
+                let freqValue = 0;
+                if (frequencyData && activeHarmonics.has(p.harmonic)) {
+                    const dataIndex = Math.floor((p.harmonic / 8) * frequencyData.length / 8);
+                    freqValue = frequencyData[dataIndex] / 255;
+                }
+                
+                // Draw particle
+                const pulse = Math.sin(time * p.speed + p.phase) * 0.5 + 0.5;
+                const size = p.radius * (1 + freqValue * 2) * (0.5 + pulse * 0.5);
+                const alpha = 0.3 + freqValue * 0.5;
+                
+                const hue = 160 + p.harmonic * 15 + freqValue * 40;
+                ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw connections to nearby particles
+                particles.forEach((p2, j) => {
+                    if (i >= j) return;
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 120) {
+                        const connectionAlpha = (1 - dist / 120) * 0.15 * freqValue;
+                        ctx.strokeStyle = `hsla(${hue}, 60%, 50%, ${connectionAlpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                });
+            });
+            
+            // Draw harmonic indicators
+            const indicatorRadius = Math.min(canvas.width, canvas.height) * 0.42;
+            for (let h = 1; h <= 8; h++) {
+                const angle = ((h - 1) / 8) * Math.PI * 2 - Math.PI / 2;
+                const x = cx + Math.cos(angle) * indicatorRadius;
+                const y = cy + Math.sin(angle) * indicatorRadius;
+                
+                const isActive = activeHarmonics.has(h);
+                const size = isActive ? 8 : 4;
+                const alpha = isActive ? 0.8 : 0.2;
+                
+                ctx.fillStyle = isActive ? `hsla(${160 + h * 15}, 70%, 60%, ${alpha})` : 'rgba(100, 100, 100, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (isActive && frequencyData) {
+                    const dataIndex = Math.floor((h / 8) * frequencyData.length / 8);
+                    const value = frequencyData[dataIndex] / 255;
+                    ctx.strokeStyle = `hsla(${160 + h * 15}, 70%, 60%, ${value * 0.5})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size + 4 + value * 10, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Auto-evolve mode
+        function evolve() {
+            if (!isEvolving || Math.random() > 0.02) return;
+            
+            const action = Math.random();
+            const harmonics = [1, 2, 3, 4, 5, 6, 7, 8];
+            
+            if (action < 0.4 && activeHarmonics.size < 6) {
+                // Add random harmonic
+                const available = harmonics.filter(h => !activeHarmonics.has(h));
+                if (available.length > 0) {
+                    const h = available[Math.floor(Math.random() * available.length)];
+                    activeHarmonics.add(h);
+                    updateOscillators();
+                    updateHarmonicButtons();
+                }
+            } else if (action < 0.7 && activeHarmonics.size > 2) {
+                // Remove random harmonic
+                const removable = Array.from(activeHarmonics).filter(h => h !== 1);
+                if (removable.length > 0) {
+                    const h = removable[Math.floor(Math.random() * removable.length)];
+                    activeHarmonics.delete(h);
+                    updateOscillators();
+                    updateHarmonicButtons();
+                }
+            } else {
+                // Slight frequency drift
+                baseFrequency += (Math.random() - 0.5) * 5;
+                baseFrequency = Math.max(55, Math.min(220, baseFrequency));
+                document.getElementById('baseFreqSlider').value = baseFrequency;
+                document.getElementById('baseFreqVal').textContent = baseFrequency.toFixed(1);
+                updateOscillators();
+            }
+        }
+        
+        // Update harmonic button states
+        function updateHarmonicButtons() {
+            document.querySelectorAll('.harmonic-btn').forEach(btn => {
+                const h = parseInt(btn.dataset.harmonic);
+                btn.classList.toggle('active', activeHarmonics.has(h));
+            });
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!isRunning) return;
+            
+            time += 16;
+            applyDrift();
+            evolve();
+            draw();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', initAudio);
+        
+        document.getElementById('baseFreqSlider').addEventListener('input', (e) => {
+            baseFrequency = parseFloat(e.target.value);
+            document.getElementById('baseFreqVal').textContent = baseFrequency.toFixed(1);
+            updateOscillators();
+        });
+        
+        document.getElementById('driftSlider').addEventListener('input', (e) => {
+            driftSpeed = parseInt(e.target.value) / 100;
+            document.getElementById('driftVal').textContent = e.target.value + '%';
+        });
+        
+        document.getElementById('volumeSlider').addEventListener('input', (e) => {
+            masterVolume = parseInt(e.target.value);
+            document.getElementById('volumeVal').textContent = masterVolume + 'dB';
+            if (masterGain) {
+                masterGain.gain.setTargetAtTime(Math.pow(10, masterVolume / 20), audioContext.currentTime, 0.1);
+            }
+            updateInfo();
+        });
+        
+        document.querySelectorAll('.harmonic-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const h = parseInt(btn.dataset.harmonic);
+                if (activeHarmonics.has(h)) {
+                    if (activeHarmonics.size > 1) activeHarmonics.delete(h);
+                } else {
+                    activeHarmonics.add(h);
+                }
+                updateHarmonicButtons();
+                updateOscillators();
+            });
+        });
+        
+        document.querySelectorAll('.scale-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                scaleType = btn.dataset.scale;
+                updateOscillators();
+            });
+        });
+        
+        document.getElementById('randomizeBtn').addEventListener('click', () => {
+            activeHarmonics.clear();
+            const count = 2 + Math.floor(Math.random() * 4);
+            while (activeHarmonics.size < count) {
+                activeHarmonics.add(1 + Math.floor(Math.random() * 8));
+            }
+            baseFrequency = 55 + Math.random() * 110;
+            document.getElementById('baseFreqSlider').value = baseFrequency;
+            document.getElementById('baseFreqVal').textContent = baseFrequency.toFixed(1);
+            updateHarmonicButtons();
+            updateOscillators();
+        });
+        
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            activeHarmonics.clear();
+            activeHarmonics.add(1);
+            updateHarmonicButtons();
+            updateOscillators();
+        });
+        
+        document.getElementById('evolveBtn').addEventListener('click', () => {
+            isEvolving = !isEvolving;
+            document.getElementById('evolveBtn').textContent = isEvolving ? 'Stop Evolution' : 'Auto Evolve';
+            document.getElementById('evolveBtn').style.background = isEvolving 
+                ? 'linear-gradient(135deg, #00d4aa40, #00a8e840)' 
+                : '';
+        });
+        
+        // Initial draw
+        ctx.fillStyle = '#050508';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>
