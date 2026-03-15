@@ -351,7 +351,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "nBodyGravity",
   },
 
-  // === GEOMETRIC (12) ===
+  // === GEOMETRIC (13) ===
+  {
+    id: "breathing-mandala",
+    name: "Breathing Mandala",
+    description: "Meditative mandala synchronized with a 4-second breath cycle — inhale as it expands, exhale as it contracts",
+    category: "geometric",
+    loader: () => import("./breathing-mandala"),
+    renderFnName: "breathingMandala",
+    importName: "breathingMandala",
+  },
   {
     id: "geometric-mandala",
     name: "Geometric Mandala",
