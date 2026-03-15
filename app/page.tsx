@@ -52,6 +52,10 @@ import { CodeTimeCapsule } from "@/components/code-time-capsule";
 import { DeveloperHoroscope } from "@/components/developer-horoscope";
 import { PairProgrammingSimulator } from "@/components/pair-programming-simulator";
 import { BugBountyGame } from "@/components/bug-bounty-game";
+import { CodeEvolutionTheater } from "@/components/code-evolution-theater";
+import { CreativeCodingPlayground } from "@/components/creative-coding-playground";
+import { GamifiedPortfolio } from "@/components/gamified-portfolio";
+import { AICompanion } from "@/components/ai-companion";
 
 const features = [
   {
@@ -189,45 +193,45 @@ export default function Home() {
 
             <ScrollReveal delay={0.2}>
               <SpotlightCard className="h-full">
-                <Link href="/typing-race" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Keyboard className="w-6 h-6 text-white" />
+                <Link href="/code-evolution" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Code2 className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Typing Race</h3>
+                  <h3 className="text-lg font-semibold mb-2">Code Evolution</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Test your typing speed and accuracy with real-time WPM tracking.
+                    Watch code evolve from simple to production-ready with step-by-step explanations.
                   </p>
-                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500">New →</Badge>
+                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.3}>
               <SpotlightCard className="h-full">
-                <Link href="/games" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Gamepad2 className="w-6 h-6 text-white" />
+                <Link href="/creative-coding" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Palette className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Mini Game Arcade</h3>
+                  <h3 className="text-lg font-semibold mb-2">Creative Coding</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Memory match, reaction time, color sequence, and focus trainer games.
+                    Experiment with generative art and live code editing playground.
                   </p>
-                  <Badge variant="outline" className="bg-purple-500/10 text-purple-500">New →</Badge>
+                  <Badge variant="outline" className="bg-pink-500/10 text-pink-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
 
             <ScrollReveal delay={0.4}>
               <SpotlightCard className="h-full">
-                <Link href="/analytics" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <BarChart3 className="w-6 h-6 text-white" />
+                <Link href="/now" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-primary/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Clock className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Live Analytics</h3>
+                  <h3 className="text-lg font-semibold mb-2">Now Page</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Real-time dashboard showing visitor stats, goals, and activity feed.
+                    Real-time snapshot of what I'm working on, learning, and enjoying.
                   </p>
-                  <Badge variant="outline" className="bg-orange-500/10 text-orange-500">New →</Badge>
+                  <Badge variant="outline" className="bg-cyan-500/10 text-cyan-500">New →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>
@@ -272,6 +276,15 @@ export default function Home() {
       
       {/* Bug Bounty Game */}
       <BugBountyGame />
+
+      {/* NEW - Code Evolution Theater */}
+      <CodeEvolutionTheater />
+
+      {/* NEW - Creative Coding Playground */}
+      <CreativeCodingPlayground />
+
+      {/* NEW - Gamified Portfolio */}
+      <GamifiedPortfolio />
 
       {/* Interactive Resume */}
       <InteractiveResume />
@@ -492,6 +505,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* AI Companion - Floating Widget */}
+      <AICompanion />
     </>
   );
 }
