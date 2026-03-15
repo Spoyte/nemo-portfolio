@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coupled Oscillators — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.2);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        
+        .params {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 10px;
+            text-align: right;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Coupled Oscillators</div>
+    <div class="status" id="status">Click to disturb</div>
+    <div class="params" id="params"></div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="toggleTrails()" id="trailBtn">Trails: On</button>
+        <button onclick="cyclePalette()">Palette</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup with high-DPI support
+        const SIZE = 800;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Handle high-DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Grid configuration
+        const GRID_SIZE = 24;
+        const CELL_SIZE = SIZE / GRID_SIZE;
+        const NODE_RADIUS = CELL_SIZE * 0.35;
+        
+        // Physics parameters
+        let couplingStrength = 0.15;
+        let damping = 0.96;
+        let frequencySpread = 0.3;
+        let trailAlpha = 0.08;
+        
+        // Palettes
+        const palettes = [
+            { name: 'Aurora', colors: ['#00d4aa', '#00a8e8', '#7b2cbf', '#ff006e', '#fb5607'] },
+            { name: 'Ocean', colors: ['#0077be', '#0096c7', '#48cae4', '#90e0ef', '#caf0f8'] },
+            { name: 'Sunset', colors: ['#ff006e', '#fb5607', '#ffbe0b', '#8338ec', '#3a86ff'] },
+            { name: 'Forest', colors: ['#2d6a4f', '#40916c', '#52b788', '#74c69d', '#95d5b2'] },
+            { name: 'Neon', colors: ['#f72585', '#7209b7', '#3a0ca3', '#4361ee', '#4cc9f0'] },
+            { name: 'Monochrome', colors: ['#ffffff', '#cccccc', '#999999', '#666666', '#333333'] }
+        ];
+        let currentPalette = 0;
+        
+        // Oscillator grid
+        let oscillators = [];
+        let isRunning = true;
+        let showTrails = true;
+        let time = 0;
+        
+        class Oscillator {
+            constructor(x, y, baseFreq) {
+                this.x = x;
+                this.y = y;
+                this.phase = Math.random() * Math.PI * 2;
+                this.baseFreq = baseFreq;
+                this.frequency = baseFreq + (Math.random() - 0.5) * frequencySpread;
+                this.amplitude = 0;
+                this.velocity = 0;
+                this.targetPhase = this.phase;
+                this.excitation = 0;
+            }
+            
+            update(neighbors, dt) {
+                // Calculate coupling force from neighbors
+                let couplingForce = 0;
+                let neighborCount = 0;
+                
+                for (const neighbor of neighbors) {
+                    if (neighbor) {
+                        // Phase difference creates coupling force
+                        const phaseDiff = Math.sin(neighbor.phase - this.phase);
+                        couplingForce += phaseDiff * neighbor.amplitude;
+                        neighborCount++;
+                    }
+                }
+                
+                if (neighborCount > 0) {
+                    couplingForce /= neighborCount;
+                }
+                
+                // Apply coupling and natural frequency
+                this.velocity += couplingForce * couplingStrength;
+                this.velocity *= damping;
+                
+                // Natural oscillation with slight drift
+                this.phase += this.frequency * dt + this.velocity;
+                
+                // Amplitude based on phase velocity and excitation
+                const targetAmp = Math.abs(this.velocity) * 2 + 0.3 + this.excitation;
+                this.amplitude += (targetAmp - this.amplitude) * 0.1;
+                this.excitation *= 0.95; // Decay excitation
+                
+                // Wrap phase
+                this.phase = this.phase % (Math.PI * 2);
+            }
+            
+            excite(amount) {
+                this.excitation = Math.min(this.excitation + amount, 2);
+                this.velocity += (Math.random() - 0.5) * amount;
+            }
+        }
+        
+        function init() {
+            oscillators = [];
+            time = 0;
+            
+            // Create grid of oscillators
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const row = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    // Base frequency varies across the grid
+                    const distFromCenter = Math.sqrt(
+                        Math.pow(x - GRID_SIZE/2, 2) + Math.pow(y - GRID_SIZE/2, 2)
+                    );
+                    const baseFreq = 0.5 + Math.sin(distFromCenter * 0.3) * 0.3;
+                    row.push(new Oscillator(x, y, baseFreq));
+                }
+                oscillators.push(row);
+            }
+            
+            // Initial excitation at center
+            const cx = Math.floor(GRID_SIZE / 2);
+            const cy = Math.floor(GRID_SIZE / 2);
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const x = cx + dx;
+                    const y = cy + dy;
+                    if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                        oscillators[y][x].excite(1.5);
+                    }
+                }
+            }
+            
+            updateParams();
+        }
+        
+        function getNeighbors(x, y) {
+            const neighbors = [];
+            const dirs = [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [1,1], [-1,1], [1,-1]];
+            for (const [dx, dy] of dirs) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                    neighbors.push(oscillators[ny][nx]);
+                }
+            }
+            return neighbors;
+        }
+        
+        function render() {
+            if (!isRunning) return;
+            
+            const dt = 0.016; // ~60fps
+            time += dt;
+            
+            // Fade for trails
+            if (showTrails) {
+                ctx.fillStyle = `rgba(10, 10, 15, ${trailAlpha})`;
+                ctx.fillRect(0, 0, SIZE, SIZE);
+            } else {
+                // Clear completely
+                const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE);
+                bg.addColorStop(0, '#0f0a1a');
+                bg.addColorStop(0.5, '#0a0a12');
+                bg.addColorStop(1, '#050508');
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, SIZE, SIZE);
+            }
+            
+            // Update oscillators
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const neighbors = getNeighbors(x, y);
+                    oscillators[y][x].update(neighbors, dt);
+                }
+            }
+            
+            // Draw connections
+            ctx.lineWidth = 1;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const osc = oscillators[y][x];
+                    const px = x * CELL_SIZE + CELL_SIZE / 2;
+                    const py = y * CELL_SIZE + CELL_SIZE / 2;
+                    
+                    // Draw connections to right and bottom neighbors
+                    const right = x < GRID_SIZE - 1 ? oscillators[y][x + 1] : null;
+                    const bottom = y < GRID_SIZE - 1 ? oscillators[y + 1][x] : null;
+                    
+                    if (right) {
+                        const phaseDiff = Math.abs(osc.phase - right.phase);
+                        const sync = 1 - phaseDiff / Math.PI;
+                        const alpha = sync * 0.3 * osc.amplitude * right.amplitude;
+                        if (alpha > 0.01) {
+                            ctx.strokeStyle = `rgba(140, 120, 220, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.moveTo(px, py);
+                            ctx.lineTo((x + 1) * CELL_SIZE + CELL_SIZE / 2, py);
+                            ctx.stroke();
+                        }
+                    }
+                    
+                    if (bottom) {
+                        const phaseDiff = Math.abs(osc.phase - bottom.phase);
+                        const sync = 1 - phaseDiff / Math.PI;
+                        const alpha = sync * 0.3 * osc.amplitude * bottom.amplitude;
+                        if (alpha > 0.01) {
+                            ctx.strokeStyle = `rgba(140, 120, 220, ${alpha})`;
+                            ctx.beginPath();
+                            ctx.moveTo(px, py);
+                            ctx.lineTo(px, (y + 1) * CELL_SIZE + CELL_SIZE / 2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+            
+            // Draw oscillators
+            const palette = palettes[currentPalette].colors;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const osc = oscillators[y][x];
+                    const px = x * CELL_SIZE + CELL_SIZE / 2;
+                    const py = y * CELL_SIZE + CELL_SIZE / 2;
+                    
+                    // Color based on phase
+                    const colorIndex = Math.floor((osc.phase / (Math.PI * 2)) * palette.length) % palette.length;
+                    const color = palette[colorIndex];
+                    
+                    // Size based on amplitude
+                    const radius = NODE_RADIUS * (0.5 + osc.amplitude * 0.5);
+                    
+                    // Glow
+                    const gradient = ctx.createRadialGradient(px, py, 0, px, py, radius * 2);
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(0.5, color + '80');
+                    gradient.addColorStop(1, 'transparent');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.globalAlpha = Math.min(osc.amplitude, 1);
+                    ctx.beginPath();
+                    ctx.arc(px, py, radius * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Core
+                    ctx.fillStyle = '#ffffff';
+                    ctx.globalAlpha = Math.min(osc.amplitude * 0.8, 0.9);
+                    ctx.beginPath();
+                    ctx.arc(px, py, radius * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.globalAlpha = 1;
+                }
+            }
+            
+            // Occasional random excitation
+            if (Math.random() < 0.02) {
+                const rx = Math.floor(Math.random() * GRID_SIZE);
+                const ry = Math.floor(Math.random() * GRID_SIZE);
+                oscillators[ry][rx].excite(0.5);
+            }
+            
+            requestAnimationFrame(render);
+        }
+        
+        function updateParams() {
+            const p = palettes[currentPalette];
+            document.getElementById('params').innerHTML = `
+                Palette: ${p.name}<br>
+                Grid: ${GRID_SIZE}×${GRID_SIZE}<br>
+                Coupling: ${couplingStrength.toFixed(2)}<br>
+                Damping: ${damping.toFixed(2)}
+            `;
+        }
+        
+        function regenerate() {
+            couplingStrength = 0.1 + Math.random() * 0.15;
+            damping = 0.94 + Math.random() * 0.04;
+            frequencySpread = 0.2 + Math.random() * 0.4;
+            init();
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) render();
+        }
+        
+        function toggleTrails() {
+            showTrails = !showTrails;
+            document.getElementById('trailBtn').textContent = showTrails ? 'Trails: On' : 'Trails: Off';
+            trailAlpha = showTrails ? 0.08 : 1;
+        }
+        
+        function cyclePalette() {
+            currentPalette = (currentPalette + 1) % palettes.length;
+            updateParams();
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = `coupled-oscillators-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Interaction
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            const gx = Math.floor(x / CELL_SIZE);
+            const gy = Math.floor(y / CELL_SIZE);
+            
+            if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+                // Excite clicked oscillator and neighbors
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        const nx = gx + dx;
+                        const ny = gy + dy;
+                        if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            const amount = 2 * Math.max(0, 1 - dist / 3);
+                            oscillators[ny][nx].excite(amount);
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Drag to excite
+        let isDragging = false;
+        canvas.addEventListener('mousedown', () => isDragging = true);
+        canvas.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mouseleave', () => isDragging = false);
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            const gx = Math.floor(x / CELL_SIZE);
+            const gy = Math.floor(y / CELL_SIZE);
+            
+            if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+                oscillators[gy][gx].excite(0.3);
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyT') {
+                toggleTrails();
+            } else if (e.code === 'KeyC') {
+                cyclePalette();
+            }
+        });
+        
+        // Start
+        init();
+        render();
+    </script>
+</body>
+</html>
