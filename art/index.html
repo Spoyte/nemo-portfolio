@@ -242,7 +242,7 @@
         <p class="subtitle">Generative algorithms rendered in code. A collection of mathematical beauty, physics simulations, and organic forms.</p>
         <div class="stats">
             <div class="stat">
-                <span class="stat-value" id="piece-count">16</span>
+                <span class="stat-value" id="piece-count">38</span>
                 <span class="stat-label">Artworks</span>
             </div>
             <div class="stat">
@@ -405,11 +405,86 @@
                 file: 'neural-flow.html',
                 categories: ['physics', 'math', 'interactive'],
                 thumbnail: 'neuralflow'
+            },
+            {
+                id: 'morphing-core',
+                title: 'Morphing Core',
+                description: 'WebGL SDF raymarching — infinite resolution shapes that morph between sphere, cube, torus knot, gyroid, and octahedron. Real-time 3D with interactive camera.',
+                file: 'morphing-core.html',
+                categories: ['geometry', 'math', 'interactive'],
+                thumbnail: 'morphingcore'
             }
         ];
 
         // Thumbnail renderers
         const thumbnailRenderers = {
+            morphingcore(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                
+                // Dark gradient background
+                const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+                bg.addColorStop(0, '#1a1a35');
+                bg.addColorStop(1, '#0a0a15');
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, w, h);
+                
+                // Central glowing orb representing SDF shape
+                const cx = w/2, cy = h/2;
+                const time = Date.now() * 0.001;
+                
+                // Outer glow
+                const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 80);
+                glow.addColorStop(0, 'rgba(100, 150, 255, 0.8)');
+                glow.addColorStop(0.5, 'rgba(80, 120, 200, 0.3)');
+                glow.addColorStop(1, 'rgba(60, 100, 180, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Core shape (morphing between circle and square)
+                const morph = Math.sin(time) * 0.5 + 0.5;
+                ctx.strokeStyle = '#7ec8f0';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#4a9eff';
+                
+                if (morph < 0.5) {
+                    // Circle
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 30 + morph * 20, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // Square with rounded corners
+                    const size = 40 + (1-morph) * 20;
+                    const r = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - size + r, cy - size);
+                    ctx.lineTo(cx + size - r, cy - size);
+                    ctx.quadraticCurveTo(cx + size, cy - size, cx + size, cy - size + r);
+                    ctx.lineTo(cx + size, cy + size - r);
+                    ctx.quadraticCurveTo(cx + size, cy + size, cx + size - r, cy + size);
+                    ctx.lineTo(cx - size + r, cy + size);
+                    ctx.quadraticCurveTo(cx - size, cy + size, cx - size, cy + size - r);
+                    ctx.lineTo(cx - size, cy - size + r);
+                    ctx.quadraticCurveTo(cx - size, cy - size, cx - size + r, cy - size);
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+                
+                // Ray lines suggesting 3D depth
+                ctx.strokeStyle = 'rgba(100, 150, 255, 0.15)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2 + time * 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(cx + Math.cos(angle) * 50, cy + Math.sin(angle) * 50);
+                    ctx.lineTo(cx + Math.cos(angle) * 90, cy + Math.sin(angle) * 90);
+                    ctx.stroke();
+                }
+            },
+            
             harmonograph(canvas) {
                 const ctx = canvas.getContext('2d');
                 const w = canvas.width, h = canvas.height;

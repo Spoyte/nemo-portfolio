@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abelian Sandpile — Self-Organized Criticality — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0c0d0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 80px rgba(100, 150, 200, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        
+        button {
+            background: rgba(20, 30, 40, 0.9);
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            color: #a0c0d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 60, 80, 0.9);
+            border-color: rgba(120, 180, 220, 0.5);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(80, 140, 180, 0.3);
+            border-color: rgba(100, 180, 220, 0.8);
+            color: #c0e0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 192, 208, 0.6);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 192, 208, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: right;
+            line-height: 1.6;
+        }
+        
+        .palette-selector {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .palette-btn {
+            padding: 6px 12px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        
+        .palette-btn.active {
+            opacity: 1;
+            background: rgba(80, 140, 180, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Abelian Sandpile — Self-Organized Criticality</div>
+    <div class="stats" id="stats">
+        Grains: 0<br>
+        Topples: 0<br>
+        Stable: Yes
+    </div>
+    <div class="palette-selector" id="paletteSelector">
+        <button class="palette-btn active" onclick="setPalette('heat')" style="border-color: #ff5c1a;">Heat</button>
+        <button class="palette-btn" onclick="setPalette('ocean')" style="border-color: #3399ff;">Ocean</button>
+        <button class="palette-btn" onclick="setPalette('forest')" style="border-color: #65b465;">Forest</button>
+        <button class="palette-btn" onclick="setPalette('neon')" style="border-color: #9933ff;">Neon</button>
+        <button class="palette-btn" onclick="setPalette('monochrome')" style="border-color: #999999;">Mono</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="dropSand()">Drop Sand</button>
+        <button onclick="dropBatch()">Drop 100</button>
+        <button onclick="toggleAutoDrop()" id="autoBtn">Auto: OFF</button>
+        <button onclick="reset()">Reset</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup
+        const CANVAS_SIZE = 800;
+        const GRID_SIZE = 201; // Odd number for center symmetry
+        const CELL_SIZE = Math.floor(CANVAS_SIZE / GRID_SIZE);
+        const ACTUAL_SIZE = GRID_SIZE * CELL_SIZE;
+        
+        const canvas = document.getElementById('canvas');
+        canvas.width = ACTUAL_SIZE;
+        canvas.height = ACTUAL_SIZE;
+        const ctx = canvas.getContext('2d');
+        
+        // Color palettes
+        const PALETTES = {
+            heat: ['#0a0a0a', '#1a237e', '#283593', '#3949ab', '#5e35b1', '#8e24aa', '#d81b60', '#e53935', '#fb8c00', '#ffb300', '#fdd835', '#fff176', '#ffffff'],
+            ocean: ['#000510', '#001a33', '#003366', '#004c8c', '#0066b3', '#0080d9', '#3399ff', '#66b3ff', '#99ccff', '#cce5ff', '#e6f2ff', '#f0f8ff'],
+            forest: ['#0a1f0a', '#1a3d1a', '#2d5a2d', '#407840', '#529652', '#65b465', '#78c878', '#8edc8e', '#a2f0a2', '#b8ffb8', '#ceffce', '#e4ffe4'],
+            neon: ['#0a0a0a', '#1a0033', '#330066', '#4d0099', '#6600cc', '#8000ff', '#9933ff', '#b366ff', '#cc99ff', '#e6ccff', '#f5e6ff', '#faf0ff'],
+            monochrome: ['#000000', '#1a1a1a', '#333333', '#4d4d4d', '#666666', '#808080', '#999999', '#b3b3b3', '#cccccc', '#e6e6e6', '#f2f2f2', '#ffffff']
+        };
+        
+        let currentPalette = 'heat';
+        let grid = [];
+        let toTopple = new Set();
+        let totalGrains = 0;
+        let totalTopples = 0;
+        let autoDropInterval = null;
+        let isAutoDropping = false;
+        
+        // Initialize grid
+        function initGrid() {
+            grid = [];
+            toTopple = new Set();
+            totalGrains = 0;
+            totalTopples = 0;
+            
+            for (let y = 0; y < GRID_SIZE; y++) {
+                grid[y] = new Array(GRID_SIZE).fill(0);
+            }
+            
+            // Initial seed in center
+            const center = Math.floor(GRID_SIZE / 2);
+            addSand(center, center, 10000);
+            
+            updateStats();
+            draw();
+        }
+        
+        // Add sand to a cell
+        function addSand(x, y, amount) {
+            if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
+            
+            grid[y][x] += amount;
+            totalGrains += amount;
+            
+            if (grid[y][x] >= 4) {
+                toTopple.add(`${x},${y}`);
+            }
+        }
+        
+        // Topple all unstable cells (one iteration)
+        function topple() {
+            const toProcess = Array.from(toTopple);
+            toTopple.clear();
+            
+            if (toProcess.length === 0) return false;
+            
+            for (const coord of toProcess) {
+                const [x, y] = coord.split(',').map(Number);
+                const grains = grid[y][x];
+                
+                if (grains < 4) continue;
+                
+                // Distribute 4 grains to neighbors
+                const toDistribute = Math.floor(grains / 4) * 4;
+                const perNeighbor = toDistribute / 4;
+                
+                grid[y][x] -= toDistribute;
+                totalTopples += perNeighbor * 4;
+                
+                // Four neighbors (von Neumann neighborhood)
+                addSand(x, y - 1, perNeighbor); // Top
+                addSand(x + 1, y, perNeighbor); // Right
+                addSand(x, y + 1, perNeighbor); // Bottom
+                addSand(x - 1, y, perNeighbor); // Left
+            }
+            
+            return true;
+        }
+        
+        // Stabilize the grid (run until no more topples)
+        function stabilize() {
+            let iterations = 0;
+            const maxIterations = 10000;
+            
+            while (topple() && iterations < maxIterations) {
+                iterations++;
+            }
+            
+            updateStats();
+            draw();
+            
+            return iterations < maxIterations;
+        }
+        
+        // Get color for a cell based on grain count
+        function getColor(grains) {
+            const palette = PALETTES[currentPalette];
+            if (grains === 0) return palette[0];
+            if (grains >= palette.length) return palette[palette.length - 1];
+            return palette[grains];
+        }
+        
+        // Draw the grid
+        function draw() {
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, ACTUAL_SIZE, ACTUAL_SIZE);
+            
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const grains = grid[y][x];
+                    if (grains > 0) {
+                        ctx.fillStyle = getColor(grains);
+                        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+        }
+        
+        // Update statistics display
+        function updateStats() {
+            const stable = toTopple.size === 0;
+            document.getElementById('stats').innerHTML = `
+                Grains: ${totalGrains.toLocaleString()}<br>
+                Topples: ${totalTopples.toLocaleString()}<br>
+                Stable: ${stable ? 'Yes' : 'No'}
+            `;
+        }
+        
+        // Actions
+        function dropSand() {
+            const center = Math.floor(GRID_SIZE / 2);
+            addSand(center, center, 1000);
+            stabilize();
+        }
+        
+        function dropBatch() {
+            const center = Math.floor(GRID_SIZE / 2);
+            addSand(center, center, 100000);
+            stabilize();
+        }
+        
+        function toggleAutoDrop() {
+            if (isAutoDropping) {
+                clearInterval(autoDropInterval);
+                isAutoDropping = false;
+                document.getElementById('autoBtn').textContent = 'Auto: OFF';
+                document.getElementById('autoBtn').classList.remove('active');
+            } else {
+                autoDropInterval = setInterval(() => {
+                    const center = Math.floor(GRID_SIZE / 2);
+                    addSand(center, center, 500);
+                    stabilize();
+                }, 100);
+                isAutoDropping = true;
+                document.getElementById('autoBtn').textContent = 'Auto: ON';
+                document.getElementById('autoBtn').classList.add('active');
+            }
+        }
+        
+        function reset() {
+            if (autoDropInterval) {
+                clearInterval(autoDropInterval);
+                isAutoDropping = false;
+                document.getElementById('autoBtn').textContent = 'Auto: OFF';
+                document.getElementById('autoBtn').classList.remove('active');
+            }
+            initGrid();
+        }
+        
+        function setPalette(name) {
+            currentPalette = name;
+            
+            // Update button states
+            document.querySelectorAll('.palette-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            draw();
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'abelian-sandpile-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Click to add sand at specific location
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = ACTUAL_SIZE / rect.width;
+            const scaleY = ACTUAL_SIZE / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX / CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) * scaleY / CELL_SIZE);
+            
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                addSand(x, y, 1000);
+                stabilize();
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                dropSand();
+            } else if (e.code === 'KeyR') {
+                reset();
+            } else if (e.code === 'KeyA') {
+                toggleAutoDrop();
+            }
+        });
+        
+        // Initialize
+        initGrid();
+        stabilize();
+    </script>
+</body>
+</html>

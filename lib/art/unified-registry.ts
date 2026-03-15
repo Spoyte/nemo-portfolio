@@ -692,7 +692,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "poetryRain",
   },
 
-  // === 3D (8) ===
+  // === 3D (9) ===
   {
     id: "light-caverns",
     name: "Light Caverns",
@@ -1193,6 +1193,15 @@ export function generateIndexContent(): string {
     loader: () => import("./pointillism"),
     renderFnName: "renderPointillism",
     importName: "pointillism",
+  },
+  {
+    id: "mobius-strip",
+    name: "Möbius Strip",
+    description: "A surface with only one side and one edge - the topological wonder of the Möbius strip rendered in 3D with parametric mesh",
+    category: "3d",
+    loader: () => import("./mobius-strip"),
+    renderFnName: "renderMobiusStrip",
+    importName: "mobiusStrip",
   },
   lines.push('  };');
   lines.push('});');

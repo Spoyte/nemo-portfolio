@@ -30,7 +30,7 @@ export {
 
 // ============================================================================
 // STATIC IMPORTS - Auto-generated from unified-registry.ts
-// Generated: 2026-03-04 01:28:22
+// Generated: 2026-03-16 04:59:42
 // Do not edit manually - run: art-sync
 // ============================================================================
 
@@ -75,11 +75,13 @@ import { solarFlare } from "./solar-flare";
 import { doublePendulum } from "./double-pendulum";
 import { nBodyGravity } from "./n-body-gravity";
 
-// === GEOMETRIC (11) ===
+// === GEOMETRIC (13) ===
+import { breathingMandala } from "./breathing-mandala";
 import { geometricMandala } from "./geometric-mandala";
 import { kaleidoscope } from "./kaleidoscope";
 import { islamicPatterns } from "./islamic-patterns";
 import { voronoiOrganic } from "./voronoi-organic";
+import { voronoiTessellation } from "./voronoi-tessellation";
 import { stringArt } from "./string-art";
 import { phyllotaxis } from "./phyllotaxis";
 import { moirePattern } from "./moire-pattern";
@@ -92,7 +94,6 @@ import { sacredGeometry } from "./sacred-geometry";
 import { impossibleGeometry } from "./impossible-geometry";
 import { metaballs } from "./metaballs";
 import { flowField } from "./flow-field";
-import { reactionDiffusion } from "./reaction-diffusion";
 import { grayScottDiffusion } from "./gray-scott-diffusion";
 import { cellularAutomata } from "./cellular-automata";
 import { quantumField } from "./quantum-field";
@@ -187,10 +188,12 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "n-body-gravity": nBodyGravity,
 
   // === GEOMETRIC ===
+  "breathing-mandala": breathingMandala,
   "geometric-mandala": geometricMandala,
   "kaleidoscope": kaleidoscope,
   "islamic-patterns": islamicPatterns,
   "voronoi-organic": voronoiOrganic,
+  "voronoi-tessellation": voronoiTessellation,
   "string-art": stringArt,
   "phyllotaxis": phyllotaxis,
   "moire-pattern": moirePattern,
@@ -203,7 +206,6 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "impossible-geometry": impossibleGeometry,
   "metaballs": metaballs,
   "flow-field": flowField,
-  "reaction-diffusion": reactionDiffusion,
   "gray-scott-diffusion": grayScottDiffusion,
   "cellular-automata": cellularAutomata,
   "quantum-field": quantumField,
