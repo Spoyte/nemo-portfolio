@@ -1,0 +1,280 @@
+#!/bin/bash
+#
+# art-page-template - Generate interactive art pages from templates
+# Usage: art-page-template <algorithm-name>
+#
+# This script analyzes the art generator and creates a complete interactive page
+# with appropriate controls based on the algorithm's parameters.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+APP_DIR="$PROJECT_DIR/my-app"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check arguments
+if [ $# -lt 1 ]; then
+    echo -e "${RED}Error: Algorithm name required${NC}"
+    echo "Usage: art-page-template <algorithm-name>"
+    echo ""
+    echo "Examples:"
+    echo "  art-page-template flow-field"
+    echo "  art-page-template particle-network"
+    exit 1
+fi
+
+ALGORITHM_NAME="$1"
+GENERATOR_FILE="$APP_DIR/lib/art/${ALGORITHM_NAME}.ts"
+GENERATOR_ALT="$APP_DIR/lib/art/${ALGORITHM_NAME}-generator.ts"
+PAGE_DIR="$APP_DIR/app/art/${ALGORITHM_NAME}"
+PAGE_FILE="$PAGE_DIR/page.tsx"
+
+# Find the generator file
+if [ -f "$GENERATOR_FILE" ]; then
+    GENERATOR_PATH="$GENERATOR_FILE"
+elif [ -f "$GENERATOR_ALT" ]; then
+    GENERATOR_PATH="$GENERATOR_ALT"
+else
+    echo -e "${RED}Error: Generator not found for '${ALGORITHM_NAME}'${NC}"
+    echo "Checked:"
+    echo "  - $GENERATOR_FILE"
+    echo "  - $GENERATOR_ALT"
+    echo ""
+    echo -e "${YELLOW}Available algorithms:${NC}"
+    ls -1 "$APP_DIR/lib/art/"*.ts 2>/dev/null | xargs -n1 basename -s .ts | head -20
+    exit 1
+fi
+
+echo -e "${BLUE}🔧 Analyzing generator: ${ALGORITHM_NAME}${NC}"
+
+# Extract interface name and default params from the generator
+INTERFACE_NAME=$(grep -oE "export interface [A-Za-z]+Params" "$GENERATOR_PATH" | head -1 | sed 's/export interface //')
+DEFAULT_PARAMS=$(grep -oE "export const [a-z]+DefaultParams" "$GENERATOR_PATH" | head -1 | sed 's/export const //')
+FUNCTION_NAME=$(grep -oE "export function [a-zA-Z]+\(" "$GENERATOR_PATH" | head -1 | sed 's/export function //;s/($//')
+
+if [ -z "$INTERFACE_NAME" ]; then
+    echo -e "${YELLOW}⚠️  No Params interface found, using generic naming${NC}"
+    INTERFACE_NAME="${ALGORITHM_NAME//-/}Params"
+    INTERFACE_NAME=$(echo "$INTERFACE_NAME" | sed -E 's/(^|-)([a-z])/\U\2/g')"Params"
+fi
+
+if [ -z "$DEFAULT_PARAMS" ]; then
+    echo -e "${YELLOW}⚠️  No default params found, will need manual configuration${NC}"
+    DEFAULT_PARAMS="defaultParams"
+fi
+
+echo -e "  Interface: ${GREEN}$INTERFACE_NAME${NC}"
+echo -e "  Defaults:  ${GREEN}$DEFAULT_PARAMS${NC}"
+echo -e "  Function:  ${GREEN}$FUNCTION_NAME${NC}"
+
+# Create page directory
+mkdir -p "$PAGE_DIR"
+
+# Generate the page component
+cat > "$PAGE_FILE" << 'TEMPLATE_EOF'
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+import { %%FUNCTION_NAME%%, %%DEFAULT_PARAMS%% } from "@/lib/art/%%GENERATOR_IMPORT%%";
+import { Play, Pause, Sparkles, RotateCcw, Palette, SlidersHorizontal } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+
+// Parameter definitions - customize these based on your algorithm
+const PARAM_CONFIGS: Record<string, { min: number; max: number; step: number; icon: string }> = {
+  // Add your parameter configs here
+  // Example:
+  // count: { min: 1, max: 100, step: 1, icon: "Layers" },
+  // speed: { min: 0.1, max: 5, step: 0.1, icon: "Zap" },
+};
+
+export default function %%COMPONENT_NAME%%Page() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  
+  // Initialize params from defaults
+  const [params, setParams] = useState(%%DEFAULT_PARAMS%%);
+
+  // Animation loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let time = 0;
+
+    const animate = () => {
+      if (isPlaying) {
+        time += 16; // ~60fps
+        %%FUNCTION_NAME%%(ctx, canvas.width, canvas.height, time, params);
+      }
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+    };
+  }, [isPlaying, params]);
+
+  // Handle canvas resize
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resize = () => {
+      const container = canvas.parentElement;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const width = Math.min(rect.width, 900);
+        const height = Math.min(window.innerHeight * 0.65, 650);
+        canvas.width = width * window.devicePixelRatio;
+        canvas.height = height * window.devicePixelRatio;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+      }
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
+
+  const randomize = useCallback(() => {
+    // Customize randomization based on your params
+    setParams((prev: typeof %%DEFAULT_PARAMS%%) => ({
+      ...prev,
+      // Add randomization logic for each parameter
+    }));
+  }, []);
+
+  const reset = useCallback(() => {
+    setParams({ ...%%DEFAULT_PARAMS%% });
+  }, []);
+
+  const updateParam = useCallback(<K extends keyof typeof %%DEFAULT_PARAMS%%>(
+    key: K,
+    value: (typeof %%DEFAULT_PARAMS%%)[K]
+  ) => {
+    setParams((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const title = "%%TITLE%%";
+  const description = "%%DESCRIPTION%%";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-light tracking-tight mb-2">{title}</h1>
+          <p className="text-slate-400 max-w-lg mx-auto">{description}</p>
+        </div>
+
+        <div className="grid lg:grid-cols-[1fr,340px] gap-8 items-start">
+          {/* Canvas Container */}
+          <div className="flex flex-col items-center">
+            <div className="relative w-full flex justify-center">
+              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-slate-800/50">
+                <canvas ref={canvasRef} className="block" />
+              </div>
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-3 mt-6 flex-wrap justify-center">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={togglePlay}
+                className="w-12 h-12 rounded-full border-slate-700 hover:bg-slate-800"
+              >
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={randomize}
+                className="rounded-full border-slate-700 hover:bg-slate-800"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Randomize
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={reset}
+                className="rounded-full text-slate-500 hover:text-slate-300"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+            </div>
+          </div>
+
+          {/* Controls Panel */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-800">
+            <h2 className="text-lg font-medium mb-6 flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-emerald-400" />
+              Parameters
+            </h2>
+
+            {/* TODO: Add parameter controls based on your algorithm */}
+            <div className="text-sm text-slate-500 italic">
+              Customize the controls based on your algorithm&apos;s parameters.
+              See other art pages for examples.
+            </div>
+
+            {/* Info */}
+            <div className="mt-6 pt-6 border-t border-slate-800 text-xs text-slate-500 space-y-2">
+              <p>
+                Add educational content about your algorithm here.
+                Explain the mathematical or natural concepts behind the visualization.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+TEMPLATE_EOF
+
+# Replace placeholders
+COMPONENT_NAME=$(echo "$ALGORITHM_NAME" | sed -E 's/(^|-)([a-z])/\U\2/g')
+TITLE=$(echo "$ALGORITHM_NAME" | sed 's/-/ /g' | sed -E 's/(^| )([a-z])/\U\2/g')
+GENERATOR_IMPORT=$(basename "$GENERATOR_PATH" .ts)
+
+sed -i "s/%%COMPONENT_NAME%%/$COMPONENT_NAME/g" "$PAGE_FILE"
+sed -i "s/%%TITLE%%/$TITLE/g" "$PAGE_FILE"
+sed -i "s/%%FUNCTION_NAME%%/$FUNCTION_NAME/g" "$PAGE_FILE"
+sed -i "s/%%DEFAULT_PARAMS%%/$DEFAULT_PARAMS/g" "$PAGE_FILE"
+sed -i "s/%%GENERATOR_IMPORT%%/$GENERATOR_IMPORT/g" "$PAGE_FILE"
+sed -i "s/%%INTERFACE_NAME%%/$INTERFACE_NAME/g" "$PAGE_FILE"
+
+echo ""
+echo -e "${GREEN}✅ Created interactive page:${NC}"
+echo "  $PAGE_FILE"
+echo ""
+echo -e "${YELLOW}⚠️  Next steps:${NC}"
+echo "  1. Customize the parameter controls in the page"
+echo "  2. Add a description for the algorithm"
+echo "  3. Add educational content about the visualization"
+echo "  4. Test the page at: http://localhost:3000/art/$ALGORITHM_NAME"
+echo ""
+echo -e "${BLUE}💡 Tip:${NC} Look at existing pages for control patterns:"
+echo "  - app/art/light-caverns/page.tsx (sliders + select)"
+echo "  - app/art/aurora-borealis/page.tsx (multiple sliders)"
+echo "  - app/art/moire-pattern/page.tsx (complex controls)"
