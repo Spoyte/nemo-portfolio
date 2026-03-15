@@ -470,7 +470,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sacredGeometry",
   },
 
-  // === ABSTRACT (13) ===
+  // === ABSTRACT (14) ===
   {
     id: "impossible-geometry",
     name: "Impossible Geometry",
@@ -560,6 +560,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./lenia"),
     renderFnName: "renderLenia",
     importName: "lenia",
+  },
+  {
+    id: "multi-scale-turing",
+    name: "Multi-Scale Turing Patterns",
+    description: "Nested reaction-diffusion patterns at multiple scales — the mathematics behind animal coat patterns",
+    category: "abstract",
+    loader: () => import("./multi-scale-turing"),
+    renderFnName: "renderMultiScaleTuring",
+    importName: "multiScaleTuring",
   },
   {
     id: "self-organizing-map",

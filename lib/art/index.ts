@@ -100,6 +100,7 @@ import { fractalFlame } from "./fractal-flame";
 import { neuralDreams } from "./neural-dreams";
 import { turingPatterns } from "./turing-patterns";
 import { lenia } from "./lenia";
+import { multiScaleTuring } from "./multi-scale-turing";
 import { selfOrganizingMap } from "./self-organizing-map";
 import { langtonsAnt } from "./langtons-ant";
 
@@ -210,6 +211,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "neural-dreams": neuralDreams,
   "turing-patterns": turingPatterns,
   "lenia": lenia,
+  "multi-scale-turing": multiScaleTuring,
   "self-organizing-map": selfOrganizingMap,
   "langtons-ant": langtonsAnt,
 

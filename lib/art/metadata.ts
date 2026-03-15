@@ -446,6 +446,13 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     created: "2024-02-27",
     dependsOn: ["reaction-diffusion"],
   },
+  "multi-scale-turing": {
+    category: "abstract",
+    complexity: "complex",
+    tags: ["animated", "organic", "nature", "detailed", "colorful"],
+    created: "2026-03-15",
+    dependsOn: ["turing-patterns"],
+  },
   "n-body-gravity": {
     category: "physics",
     complexity: "complex",
