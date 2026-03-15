@@ -432,6 +432,14 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./neural-cellular-automata"),
     renderFnName: "renderNeuralCA",
   },
+  {
+    id: "lenia",
+    name: "Lenia",
+    description: "Continuous cellular automata - smooth, lifelike patterns from floating-point states and kernel-based growth",
+    category: "abstract",
+    loader: () => import("./lenia"),
+    renderFnName: "renderLenia",
+  },
 
   // === TRADITIONAL (6) ===
   {

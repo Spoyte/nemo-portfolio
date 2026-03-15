@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physarum Transport Networks — Generative Art</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+        }
+
+        canvas {
+            box-shadow: 
+                0 0 60px rgba(100, 150, 200, 0.15),
+                0 0 120px rgba(100, 150, 200, 0.05);
+            border-radius: 4px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+
+        button {
+            background: rgba(20, 30, 40, 0.9);
+            border: 1px solid rgba(100, 150, 200, 0.4);
+            color: #a0c0d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        button:hover {
+            background: rgba(40, 60, 80, 0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(100, 150, 200, 0.2);
+        }
+
+        button.active {
+            background: rgba(100, 150, 200, 0.3);
+            border-color: rgba(100, 150, 200, 0.8);
+            color: #d0e0f0;
+        }
+
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 180, 200, 0.6);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 180, 200, 0.8);
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .param-display {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            color: rgba(160, 180, 200, 0.5);
+            font-size: 10px;
+            text-align: right;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="info">Physarum Transport Networks — Generative Art</div>
+    <div class="status" id="status">Click to add food source</div>
+    <div class="param-display" id="params"></div>
+    <div class="controls">
+        <button onclick="regenerate()">New Colony</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="cyclePalette()">Palette</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Canvas setup
+        const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 800);
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Offscreen canvas for trail map
+        const trailCanvas = document.createElement('canvas');
+        trailCanvas.width = size;
+        trailCanvas.height = size;
+        const trailCtx = trailCanvas.getContext('2d');
+        
+        // Animation state
+        let isRunning = true;
+        let animationId = null;
+        let frameCount = 0;
+        
+        // Color palettes
+        const palettes = [
+            { name: 'Mycelium', hue: 120, sat: 60, light: 50 },      // Green fungal
+            { name: 'Neural', hue: 280, sat: 70, light: 55 },        // Purple neural
+            { name: 'Coral', hue: 15, sat: 80, light: 55 },          // Orange coral
+            { name: 'Cyber', hue: 190, sat: 90, light: 60 },         // Cyan tech
+            { name: 'Gold', hue: 45, sat: 90, light: 55 },           // Gold organic
+        ];
+        let currentPalette = 0;
+        
+        // Physarum parameters
+        const params = {
+            agentCount: 2000,
+            sensorAngle: Math.PI / 4,      // 45 degrees
+            sensorDist: 9,
+            turnSpeed: 0.3,
+            moveSpeed: 1.5,
+            decayRate: 0.98,
+            depositAmount: 30,
+            randomTurn: 0.1,
+        };
+        
+        // Agents
+        let agents = [];
+        let foodSources = [];
+        
+        class Agent {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                // Start from random position or food source
+                if (foodSources.length > 0 && Math.random() < 0.3) {
+                    const source = foodSources[Math.floor(Math.random() * foodSources.length)];
+                    this.x = source.x + (Math.random() - 0.5) * 20;
+                    this.y = source.y + (Math.random() - 0.5) * 20;
+                } else {
+                    this.x = Math.random() * size;
+                    this.y = Math.random() * size;
+                }
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = params.moveSpeed * (0.8 + Math.random() * 0.4);
+            }
+            
+            sense(angleOffset) {
+                const sensorAngle = this.angle + angleOffset;
+                const sx = this.x + Math.cos(sensorAngle) * params.sensorDist;
+                const sy = this.y + Math.sin(sensorAngle) * params.sensorDist;
+                
+                // Wrap around edges
+                const wx = ((sx % size) + size) % size;
+                const wy = ((sy % size) + size) % size;
+                
+                // Sample trail density
+                const data = trailCtx.getImageData(Math.floor(wx), Math.floor(wy), 1, 1).data;
+                return data[0] + data[1] + data[2]; // Sum RGB
+            }
+            
+            update() {
+                // Sense left, center, right
+                const left = this.sense(-params.sensorAngle);
+                const center = this.sense(0);
+                const right = this.sense(params.sensorAngle);
+                
+                // Steering behavior based on trail concentration
+                if (center > left && center > right) {
+                    // Continue straight
+                } else if (center < left && center < right) {
+                    // Random turn when no signal
+                    this.angle += (Math.random() - 0.5) * 2 * params.turnSpeed;
+                } else if (left > right) {
+                    // Turn left toward trail
+                    this.angle -= params.turnSpeed;
+                } else if (right > left) {
+                    // Turn right toward trail
+                    this.angle += params.turnSpeed;
+                }
+                
+                // Add randomness
+                this.angle += (Math.random() - 0.5) * params.randomTurn;
+                
+                // Move
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                
+                // Wrap around edges
+                this.x = ((this.x % size) + size) % size;
+                this.y = ((this.y % size) + size) % size;
+                
+                // Deposit trail
+                const px = Math.floor(this.x);
+                const py = Math.floor(this.y);
+                
+                const pal = palettes[currentPalette];
+                const color = `hsla(${pal.hue + Math.random() * 20 - 10}, ${pal.sat}%, ${pal.light}%, ${params.depositAmount / 255})`;
+                
+                trailCtx.fillStyle = color;
+                trailCtx.fillRect(px, py, 2, 2);
+            }
+        }
+        
+        function init() {
+            // Clear trail canvas
+            trailCtx.fillStyle = '#000000';
+            trailCtx.fillRect(0, 0, size, size);
+            
+            // Clear display canvas
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Create agents
+            agents = [];
+            for (let i = 0; i < params.agentCount; i++) {
+                agents.push(new Agent());
+            }
+            
+            // Create initial food sources
+            foodSources = [];
+            const numSources = 3 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < numSources; i++) {
+                foodSources.push({
+                    x: size * 0.2 + Math.random() * size * 0.6,
+                    y: size * 0.2 + Math.random() * size * 0.6
+            });
+            }
+            
+            frameCount = 0;
+            updateParamDisplay();
+        }
+        
+        function updateParamDisplay() {
+            const pal = palettes[currentPalette];
+            document.getElementById('params').innerHTML = `
+                Palette: ${pal.name}<br>
+                Agents: ${params.agentCount}<br>
+                Food Sources: ${foodSources.length}<br>
+                Frame: ${frameCount}
+            `;
+        }
+        
+        function draw() {
+            if (!isRunning) return;
+            
+            // Update all agents
+            for (const agent of agents) {
+                agent.update();
+            }
+            
+            // Apply decay to trail map
+            if (frameCount % 3 === 0) {
+                const imageData = trailCtx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] *= params.decayRate;     // R
+                    data[i + 1] *= params.decayRate; // G
+                    data[i + 2] *= params.decayRate; // B
+                }
+                
+                trailCtx.putImageData(imageData, 0, 0);
+            }
+            
+            // Draw trail map to display canvas with glow effect
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw food sources
+            for (const source of foodSources) {
+                const pal = palettes[currentPalette];
+                const gradient = ctx.createRadialGradient(source.x, source.y, 0, source.x, source.y, 15);
+                gradient.addColorStop(0, `hsla(${pal.hue}, ${pal.sat}%, 80%, 0.8)`);
+                gradient.addColorStop(1, `hsla(${pal.hue}, ${pal.sat}%, 60%, 0)`);
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(source.x, source.y, 15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Composite trail map with glow
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.filter = 'blur(0.5px)';
+            ctx.drawImage(trailCanvas, 0, 0);
+            ctx.restore();
+            
+            // Draw trail again without blur for crispness
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.7;
+            ctx.drawImage(trailCanvas, 0, 0);
+            ctx.restore();
+            
+            frameCount++;
+            if (frameCount % 30 === 0) {
+                updateParamDisplay();
+            }
+            
+            animationId = requestAnimationFrame(draw);
+        }
+        
+        function regenerate() {
+            cancelAnimationFrame(animationId);
+            init();
+            draw();
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) draw();
+        }
+        
+        function clearCanvas() {
+            trailCtx.fillStyle = '#000000';
+            trailCtx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, size, size);
+            frameCount = 0;
+            updateParamDisplay();
+        }
+        
+        function cyclePalette() {
+            currentPalette = (currentPalette + 1) % palettes.length;
+            updateParamDisplay();
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const newSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 800);
+            if (Math.abs(newSize - size) > 50) {
+                location.reload();
+            }
+        });
+        
+        // Click to add food source
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            
+            foodSources.push({ x, y });
+            
+            // Attract nearby agents to new food source
+            for (const agent of agents) {
+                const dx = x - agent.x;
+                const dy = y - agent.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 100) {
+                    agent.angle = Math.atan2(dy, dx);
+                }
+            }
+            
+            updateParamDisplay();
+        });
+        
+        // Initialize
+        init();
+        draw();
+    </script>
+</body>
+</html>
