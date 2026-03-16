@@ -651,6 +651,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "3d", "detailed", "futuristic"],
     created: "2026-03-16",
   },
+  "celestial-mechanics": {
+    category: "geometric",
+    complexity: "moderate",
+    tags: ["animated", "geometric", "ordered"],
+    created: "2026-03-16",
+  },
 };
 
 // Helper function to get metadata for a generator
