@@ -1,375 +1,371 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Palette, 
   Copy, 
+  Check, 
   RefreshCw, 
-  Lock, 
+  Lock,
   Unlock,
   Sparkles,
   Download,
-  Shuffle
+  Share2,
+  Heart,
+  Shuffle,
+  Sliders
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ColorPalette {
   id: string;
   name: string;
   colors: string[];
   tags: string[];
+  likes: number;
 }
 
-function generateRandomColor(hue?: number, saturation?: number, lightness?: number): string {
-  const h = hue ?? Math.floor(Math.random() * 360);
-  const s = saturation ?? Math.floor(Math.random() * 40) + 50;
-  const l = lightness ?? Math.floor(Math.random() * 40) + 30;
-  return `hsl(${h}, ${s}%, ${l}%)`;
-}
+const generateRandomColor = () => {
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = Math.floor(Math.random() * 30) + 60; // 60-90%
+  const lightness = Math.floor(Math.random() * 40) + 30; // 30-70%
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
 
-function generateComplementaryPalette(): string[] {
-  const baseHue = Math.floor(Math.random() * 360);
+const generateHarmoniousPalette = (baseHue?: number) => {
+  const hue = baseHue ?? Math.floor(Math.random() * 360);
+  const saturation = Math.floor(Math.random() * 20) + 70;
+  const lightness = Math.floor(Math.random() * 20) + 40;
+  
   return [
-    `hsl(${baseHue}, 70%, 50%)`,
-    `hsl(${(baseHue + 180) % 360}, 70%, 50%)`,
-    `hsl(${baseHue}, 50%, 70%)`,
-    `hsl(${(baseHue + 180) % 360}, 50%, 70%)`,
-    `hsl(${baseHue}, 30%, 90%)`,
+    `hsl(${hue}, ${saturation}%, ${lightness + 30}%)`,
+    `hsl(${hue}, ${saturation}%, ${lightness + 15}%)`,
+    `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    `hsl(${(hue + 30) % 360}, ${saturation}%, ${lightness}%)`,
+    `hsl(${(hue + 60) % 360}, ${saturation - 10}%, ${lightness - 10}%)`,
   ];
-}
+};
 
-function generateAnalogousPalette(): string[] {
-  const baseHue = Math.floor(Math.random() * 360);
+const generateComplementaryPalette = () => {
+  const hue = Math.floor(Math.random() * 360);
   return [
-    `hsl(${(baseHue - 30 + 360) % 360}, 60%, 50%)`,
-    `hsl(${(baseHue - 15 + 360) % 360}, 60%, 50%)`,
-    `hsl(${baseHue}, 70%, 50%)`,
-    `hsl(${(baseHue + 15) % 360}, 60%, 50%)`,
-    `hsl(${(baseHue + 30) % 360}, 60%, 50%)`,
+    `hsl(${hue}, 70%, 85%)`,
+    `hsl(${hue}, 60%, 60%)`,
+    `hsl(${hue}, 80%, 45%)`,
+    `hsl(${(hue + 180) % 360}, 70%, 50%)`,
+    `hsl(${(hue + 180) % 360}, 60%, 30%)`,
   ];
-}
+};
 
-function generateTriadicPalette(): string[] {
-  const baseHue = Math.floor(Math.random() * 360);
+const generateTriadicPalette = () => {
+  const hue = Math.floor(Math.random() * 360);
   return [
-    `hsl(${baseHue}, 70%, 50%)`,
-    `hsl(${(baseHue + 120) % 360}, 70%, 50%)`,
-    `hsl(${(baseHue + 240) % 360}, 70%, 50%)`,
-    `hsl(${baseHue}, 50%, 70%)`,
-    `hsl(${(baseHue + 120) % 360}, 50%, 70%)`,
+    `hsl(${hue}, 75%, 80%)`,
+    `hsl(${hue}, 65%, 55%)`,
+    `hsl(${(hue + 120) % 360}, 70%, 50%)`,
+    `hsl(${(hue + 240) % 360}, 65%, 55%)`,
+    `hsl(${hue}, 50%, 25%)`,
   ];
-}
+};
 
-function generateMonochromaticPalette(): string[] {
-  const baseHue = Math.floor(Math.random() * 360);
-  return [
-    `hsl(${baseHue}, 70%, 20%)`,
-    `hsl(${baseHue}, 70%, 35%)`,
-    `hsl(${baseHue}, 70%, 50%)`,
-    `hsl(${baseHue}, 70%, 65%)`,
-    `hsl(${baseHue}, 70%, 85%)`,
-  ];
-}
-
-function hslToHex(hsl: string): string {
-  const match = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-  if (!match) return hsl;
-  
-  const h = parseInt(match[1]) / 360;
-  const s = parseInt(match[2]) / 100;
-  const l = parseInt(match[3]) / 100;
-  
-  let r, g, b;
-  
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const hue2rgb = (p: number, q: number, t: number) => {
-      if (t < 0) t += 1;
-      if (t > 1) t -= 1;
-      if (t < 1/6) return p + (q - p) * 6 * t;
-      if (t < 1/2) return q;
-      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-      return p;
-    };
-    
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1/3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1/3);
-  }
-  
-  const toHex = (x: number) => {
-    const hex = Math.round(x * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
-}
-
-function getContrastColor(hsl: string): string {
-  const match = hsl.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-  if (!match) return '#000000';
-  
-  const l = parseInt(match[3]);
-  return l > 50 ? '#000000' : '#FFFFFF';
-}
+const initialPalettes: ColorPalette[] = [
+  {
+    id: "1",
+    name: "Ocean Breeze",
+    colors: ["#e0f7fa", "#80deea", "#26c6da", "#0097a7", "#006064"],
+    tags: ["cool", "calm", "nature"],
+    likes: 128,
+  },
+  {
+    id: "2",
+    name: "Sunset Glow",
+    colors: ["#fff3e0", "#ffcc80", "#ff9800", "#f57c00", "#e65100"],
+    tags: ["warm", "energetic", "vibrant"],
+    likes: 256,
+  },
+  {
+    id: "3",
+    name: "Forest Mist",
+    colors: ["#e8f5e9", "#a5d6a7", "#66bb6a", "#43a047", "#2e7d32"],
+    tags: ["nature", "fresh", "organic"],
+    likes: 189,
+  },
+  {
+    id: "4",
+    name: "Berry Smoothie",
+    colors: ["#f3e5f5", "#ce93d8", "#ab47bc", "#8e24aa", "#6a1b9a"],
+    tags: ["playful", "creative", "bold"],
+    likes: 312,
+  },
+  {
+    id: "5",
+    name: "Midnight City",
+    colors: ["#e8eaf6", "#9fa8da", "#5c6bc0", "#3949ab", "#1a237e"],
+    tags: ["dark", "professional", "tech"],
+    likes: 445,
+  },
+  {
+    id: "6",
+    name: "Coral Reef",
+    colors: ["#fce4ec", "#f48fb1", "#ec407a", "#d81b60", "#ad1457"],
+    tags: ["warm", "feminine", "soft"],
+    likes: 234,
+  },
+];
 
 export function ColorPaletteGenerator() {
-  const [palettes, setPalettes] = useState<ColorPalette[]>([]);
-  const [lockedColors, setLockedColors] = useState<Set<number>>(new Set());
-  const [baseHue, setBaseHue] = useState(180);
-  const [saturation, setSaturation] = useState(60);
-  const [lightness, setLightness] = useState(50);
+  const [palettes, setPalettes] = useState<ColorPalette[]>(initialPalettes);
+  const [selectedPalette, setSelectedPalette] = useState<ColorPalette | null>(null);
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
+  const [lockedColors, setLockedColors] = useState<Set<number>>(new Set());
+  const [generationMode, setGenerationMode] = useState<"harmonious" | "complementary" | "triadic" | "random">("harmonious");
+  const [customPalette, setCustomPalette] = useState<string[]>(generateHarmoniousPalette());
 
-  const generatePalettes = useCallback(() => {
-    const newPalettes: ColorPalette[] = [
-      {
-        id: "complementary",
-        name: "Complementary",
-        colors: generateComplementaryPalette(),
-        tags: ["bold", "contrast"]
-      },
-      {
-        id: "analogous",
-        name: "Analogous",
-        colors: generateAnalogousPalette(),
-        tags: ["harmonious", "natural"]
-      },
-      {
-        id: "triadic",
-        name: "Triadic",
-        colors: generateTriadicPalette(),
-        tags: ["vibrant", "balanced"]
-      },
-      {
-        id: "monochromatic",
-        name: "Monochromatic",
-        colors: generateMonochromaticPalette(),
-        tags: ["elegant", "minimal"]
-      }
-    ];
-    setPalettes(newPalettes);
-  }, []);
-
-  useEffect(() => {
-    generatePalettes();
-  }, [generatePalettes]);
-
-  const copyToClipboard = async (color: string) => {
-    try {
-      await navigator.clipboard.writeText(color);
-      setCopiedColor(color);
-      setTimeout(() => setCopiedColor(null), 1500);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
+  const copyToClipboard = (color: string) => {
+    navigator.clipboard.writeText(color);
+    setCopiedColor(color);
+    setTimeout(() => setCopiedColor(null), 2000);
   };
 
-  const exportPalette = (palette: ColorPalette) => {
-    const data = {
-      name: palette.name,
-      colors: palette.colors.map(c => ({
-        hsl: c,
-        hex: hslToHex(c),
-        rgb: "rgb conversion here"
-      }))
-    };
+  const generateNewPalette = () => {
+    let newColors: string[];
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    switch (generationMode) {
+      case "complementary":
+        newColors = generateComplementaryPalette();
+        break;
+      case "triadic":
+        newColors = generateTriadicPalette();
+        break;
+      case "random":
+        newColors = Array.from({ length: 5 }, generateRandomColor);
+        break;
+      case "harmonious":
+      default:
+        newColors = generateHarmoniousPalette();
+    }
+
+    // Preserve locked colors
+    setCustomPalette((prev) =>
+      prev.map((color, index) => (lockedColors.has(index) ? color : newColors[index]))
+    );
+  };
+
+  const toggleLock = (index: number) => {
+    setLockedColors((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const likePalette = (id: string) => {
+    setPalettes((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, likes: p.likes + 1 } : p))
+    );
+  };
+
+  const exportPalette = () => {
+    const data = {
+      name: "Custom Palette",
+      colors: customPalette,
+      timestamp: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${palette.name.toLowerCase().replace(/\s+/g, '-')}-palette.json`;
+    a.download = "palette.json";
     a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Palette className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Color Palette Generator</CardTitle>
-              <p className="text-sm text-muted-foreground">Generate beautiful color palettes for your projects</p>
-            </div>
+    <section className="py-24 border-y border-border/50 bg-muted/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+            <Palette className="h-4 w-4" />
+            <span className="text-sm font-medium">Color Studio</span>
           </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div className="flex flex-wrap gap-4">
-            <Button onClick={generatePalettes} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Generate New
-            </Button>
-            <Button onClick={() => setLockedColors(new Set())} variant="outline">
-              <Unlock className="h-4 w-4 mr-2" />
-              Unlock All
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Palette{" "}
+            <span className="text-gradient-animated">Generator</span>
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Create, explore, and export beautiful color palettes for your projects.
+          </p>
+        </motion.div>
 
-      {/* Palettes Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AnimatePresence>
-          {palettes.map((palette, index) => (
-            <motion.div
-              key={palette.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="overflow-hidden group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-lg">{palette.name}</CardTitle>
-                      <div className="flex gap-1">
-                        {palette.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => exportPalette(palette)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="p-0">
-                  <div className="flex h-32">
-                    {palette.colors.map((color, colorIndex) => (
-                      <motion.div
-                        key={colorIndex}
-                        className="flex-1 relative group/color cursor-pointer"
-                        style={{ backgroundColor: color }}
-                        whileHover={{ flex: 1.5 }}
-                        onClick={() => copyToClipboard(hslToHex(color))}
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/color:opacity-100 transition-opacity">
-                          <div 
-                            className="text-center"
-                            style={{ color: getContrastColor(color) }}
-                          >
-                            <p className="font-mono text-sm font-bold">
-                              {copiedColor === hslToHex(color) ? "Copied!" : hslToHex(color)}
-                            </p>
-                            <p className="text-xs opacity-80">{color}</p>
-                          </div>
-                        </div>
-                        
-                        <button
-                          className="absolute top-2 right-2 p-1 rounded bg-black/20 opacity-0 group-hover/color:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyToClipboard(hslToHex(color));
-                          }}
-                        >
-                          <Copy className="h-3 w-3" style={{ color: getContrastColor(color) }} />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Custom Palette Builder */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Custom Palette Builder
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-sm font-medium">Hue</label>
-                <span className="text-sm text-muted-foreground">{baseHue}°</span>
-              </div>
-              <Slider
-                value={[baseHue]}
-                onValueChange={([v]) => setBaseHue(v)}
-                max={360}
-                step={1}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-sm font-medium">Saturation</label>
-                <span className="text-sm text-muted-foreground">{saturation}%</span>
-              </div>
-              <Slider
-                value={[saturation]}
-                onValueChange={([v]) => setSaturation(v)}
-                max={100}
-                step={1}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-sm font-medium">Lightness</label>
-                <span className="text-sm text-muted-foreground">{lightness}%</span>
-              </div>
-              <Slider
-                value={[lightness]}
-                onValueChange={([v]) => setLightness(v)}
-                max={100}
-                step={1}
-              />
-            </div>
-          </div>
-          
-          <div className="flex gap-2 h-24 rounded-lg overflow-hidden">
-            {[0.3, 0.5, 0.7, 0.85, 0.95].map((l, i) => {
-              const color = `hsl(${baseHue}, ${saturation}%, ${Math.round(lightness * l)}%)`;
-              return (
+        {/* Generator */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12"
+        >
+          <Card className="overflow-hidden">
+            {/* Custom Palette Display */}
+            <div className="flex h-48 md:h-64">
+              {customPalette.map((color, index) => (
                 <motion.div
-                  key={i}
-                  className="flex-1 cursor-pointer relative group"
-                  style={{ backgroundColor: color }}
-                  whileHover={{ scale: 1.05, zIndex: 10 }}
-                  onClick={() => copyToClipboard(hslToHex(color))}
+                  key={index}
+                  initial={false}
+                  animate={{ backgroundColor: color }}
+                  className="flex-1 relative group cursor-pointer"
+                  onClick={() => copyToClipboard(color)}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span 
-                      className="font-mono text-sm font-bold"
-                      style={{ color: getContrastColor(color) }}
-                    >
-                      {copiedColor === hslToHex(color) ? "Copied!" : hslToHex(color)}
-                    </span>
+                  {/* Lock Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLock(index);
+                    }}
+                    className={cn(
+                      "absolute top-4 left-1/2 -translate-x-1/2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity",
+                      lockedColors.has(index)
+                        ? "bg-white/90 text-foreground opacity-100"
+                        : "bg-white/50 text-foreground hover:bg-white/90"
+                    )}
+                  >
+                    {lockedColors.has(index) ? (
+                      <Lock className="w-4 h-4" />
+                    ) : (
+                      <Unlock className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* Color Code */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 px-3 py-1.5 rounded-lg text-sm font-mono flex items-center gap-2">
+                      {copiedColor === color ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-500" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>{color}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* Controls */}
+            <div className="p-6 border-t">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  {(["harmonious", "complementary", "triadic", "random"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setGenerationMode(mode)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors",
+                        generationMode === mode
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={exportPalette}>
+                    <Download className="w-4 h-4 mr-1" />
+                    Export
+                  </Button>
+                  <Button onClick={generateNewPalette} className="gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    Generate
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Preset Palettes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h3 className="text-xl font-semibold mb-6">Curated Palettes</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {palettes.map((palette, index) => (
+              <motion.div
+                key={palette.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="overflow-hidden group hover:shadow-lg transition-all">
+                  {/* Palette Preview */}
+                  <div className="flex h-32">
+                    {palette.colors.map((color, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 relative cursor-pointer"
+                        style={{ backgroundColor: color }}
+                        onClick={() => copyToClipboard(color)}
+                      >
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                            <span className="text-white text-xs font-mono">{color}</span>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold">{palette.name}</h4>
+                      <button
+                        onClick={() => likePalette(palette.id)}
+                        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Heart className="w-4 h-4" />
+                        <span>{palette.likes}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      {palette.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </motion.div>
+      </div>
+    </section>
   );
 }

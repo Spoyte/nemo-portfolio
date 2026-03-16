@@ -56,6 +56,7 @@ import { CodeEvolutionTheater } from "@/components/code-evolution-theater";
 import { CreativeCodingPlayground } from "@/components/creative-coding-playground";
 import { GamifiedPortfolio } from "@/components/gamified-portfolio";
 import { AICompanion } from "@/components/ai-companion";
+import { AIChatAssistant } from "@/components/ai-chat-assistant";
 
 const features = [
   {
