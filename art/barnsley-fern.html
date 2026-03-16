@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barnsley Fern — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0f0a 0%, #0d1a0d 50%, #051005 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0c0a0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(80, 160, 80, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: rgba(10, 25, 15, 0.9);
+            border: 1px solid rgba(80, 160, 80, 0.4);
+            color: #a0c0a0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(20, 45, 30, 0.9);
+            transform: translateY(-1px);
+            border-color: rgba(100, 200, 100, 0.6);
+        }
+        
+        button.active {
+            background: rgba(80, 160, 80, 0.3);
+            border-color: rgba(120, 200, 120, 0.8);
+            color: #d0f0d0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 192, 160, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 192, 160, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: right;
+        }
+
+        .param-controls {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: rgba(5, 15, 8, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(80, 160, 80, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .param {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .param label {
+            font-size: 10px;
+            color: rgba(160, 192, 160, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .param input[type="range"] {
+            width: 120px;
+            accent-color: #60a060;
+        }
+
+        .param span {
+            font-size: 10px;
+            color: #80c080;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Barnsley Fern — Iterated Function System</div>
+    <div class="status" id="status">Points: 0</div>
+    <canvas id="canvas"></canvas>
+    
+    <div class="param-controls">
+        <div class="param">
+            <label>Points per frame</label>
+            <input type="range" id="speedSlider" min="100" max="5000" value="1000" step="100">
+            <span id="speedValue">1000</span>
+        </div>
+        <div class="param">
+            <label>Color shift</label>
+            <input type="range" id="hueSlider" min="0" max="360" value="120" step="10">
+            <span id="hueValue">120°</span>
+        </div>
+        <div class="param">
+            <label>Glow intensity</label>
+            <input type="range" id="glowSlider" min="0" max="20" value="8" step="1">
+            <span id="glowValue">8</span>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="toggleVariant()" id="variantBtn">Variant: Classic</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup with high-DPI support
+        const SIZE = 800;
+        const canvas = document.getElementById('canvas');
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        
+        // State
+        let isRunning = true;
+        let points = [];
+        let currentX = 0, currentY = 0;
+        let totalPoints = 0;
+        let variant = 'classic'; // classic, cyclosorus, culcita, tree
+        
+        // Parameters
+        let pointsPerFrame = 1000;
+        let baseHue = 120;
+        let glowIntensity = 8;
+        
+        // IFS Transformations for Barnsley Fern
+        // Each: [a, b, c, d, e, f, probability]
+        const transforms = {
+            classic: [
+                { a: 0, b: 0, c: 0, d: 0.16, e: 0, f: 0, prob: 0.01, name: 'stem' },
+                { a: 0.85, b: 0.04, c: -0.04, d: 0.85, e: 0, f: 1.6, prob: 0.85, name: 'successive' },
+                { a: 0.2, b: -0.26, c: 0.23, d: 0.22, e: 0, f: 1.6, prob: 0.07, name: 'left' },
+                { a: -0.15, b: 0.28, c: 0.26, d: 0.24, e: 0, f: 0.44, prob: 0.07, name: 'right' }
+            ],
+            cyclosorus: [
+                { a: 0, b: 0, c: 0, d: 0.25, e: 0, f: -0.4, prob: 0.02, name: 'stem' },
+                { a: 0.95, b: 0.005, c: -0.005, d: 0.93, e: -0.002, f: 0.5, prob: 0.84, name: 'successive' },
+                { a: 0.035, b: -0.2, c: 0.16, d: 0.04, e: -0.09, f: 0.02, prob: 0.07, name: 'left' },
+                { a: -0.04, b: 0.2, c: 0.16, d: 0.04, e: 0.083, f: 0.12, prob: 0.07, name: 'right' }
+            ],
+            culcita: [
+                { a: 0, b: 0, c: 0, d: 0.25, e: 0, f: -0.14, prob: 0.02, name: 'stem' },
+                { a: 0.85, b: 0.02, c: -0.02, d: 0.83, e: 0, f: 1, prob: 0.84, name: 'successive' },
+                { a: 0.09, b: -0.28, c: 0.3, d: 0.11, e: 0, f: 0.6, prob: 0.07, name: 'left' },
+                { a: -0.09, b: 0.28, c: 0.3, d: 0.09, e: 0, f: 0.7, prob: 0.07, name: 'right' }
+            ],
+            tree: [
+                { a: 0, b: 0, c: 0, d: 0.5, e: 0, f: 0, prob: 0.05, name: 'trunk' },
+                { a: 0.42, b: -0.42, c: 0.42, d: 0.42, e: 0, f: 0.2, prob: 0.4, name: 'left' },
+                { a: 0.42, b: 0.42, c: -0.42, d: 0.42, e: 0, f: 0.2, prob: 0.4, name: 'right' },
+                { a: 0.1, b: 0, c: 0, d: 0.1, e: 0, f: 0.2, prob: 0.15, name: 'center' }
+            ]
+        };
+        
+        function init() {
+            // Clear with gradient background
+            const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE);
+            bg.addColorStop(0, '#0a1a0a');
+            bg.addColorStop(0.5, '#051005');
+            bg.addColorStop(1, '#020802');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Reset state
+            currentX = 0;
+            currentY = 0;
+            totalPoints = 0;
+            points = [];
+            
+            // Initial warmup (skip first 100 points to avoid outliers)
+            for (let i = 0; i < 100; i++) {
+                iterateIFS();
+            }
+            
+            updateStatus();
+        }
+        
+        function iterateIFS() {
+            const tSet = transforms[variant];
+            const r = Math.random();
+            let cumulative = 0;
+            let selected = tSet[0];
+            
+            for (const t of tSet) {
+                cumulative += t.prob;
+                if (r <= cumulative) {
+                    selected = t;
+                    break;
+                }
+            }
+            
+            const x = selected.a * currentX + selected.b * currentY + selected.e;
+            const y = selected.c * currentX + selected.d * currentY + selected.f;
+            
+            currentX = x;
+            currentY = y;
+            
+            return { x, y, transform: selected.name };
+        }
+        
+        function mapToCanvas(x, y) {
+            // Map IFS coordinates to canvas
+            // Classic fern: x in [-2.5, 2.5], y in [0, 10]
+            let scale, offsetX, offsetY;
+            
+            if (variant === 'tree') {
+                scale = SIZE / 3;
+                offsetX = SIZE / 2;
+                offsetY = SIZE * 0.85;
+            } else {
+                scale = SIZE / 12;
+                offsetX = SIZE / 2;
+                offsetY = SIZE * 0.95;
+            }
+            
+            return {
+                x: offsetX + x * scale,
+                y: offsetY - y * scale
+            };
+        }
+        
+        function getColor(transformName, y) {
+            // Color based on transform type and height
+            const hueShift = (y / 10) * 40; // Gradual shift with height
+            let hue = baseHue + hueShift;
+            let saturation = 60;
+            let lightness = 40;
+            
+            switch (transformName) {
+                case 'stem':
+                case 'trunk':
+                    hue = baseHue - 30;
+                    saturation = 40;
+                    lightness = 25;
+                    break;
+                case 'successive':
+                    saturation = 70;
+                    lightness = 45 + (y / 10) * 15;
+                    break;
+                case 'left':
+                case 'right':
+                    hue = baseHue + 15;
+                    saturation = 65;
+                    lightness = 50;
+                    break;
+                case 'center':
+                    hue = baseHue - 10;
+                    lightness = 35;
+                    break;
+            }
+            
+            return `hsl(${hue % 360}, ${saturation}%, ${lightness}%)`;
+        }
+        
+        function render() {
+            if (!isRunning) return;
+            
+            // Draw points with glow effect
+            ctx.globalCompositeOperation = 'screen';
+            
+            for (let i = 0; i < pointsPerFrame; i++) {
+                const point = iterateIFS();
+                const pos = mapToCanvas(point.x, point.y);
+                
+                // Skip if out of bounds
+                if (pos.x < 0 || pos.x > SIZE || pos.y < 0 || pos.y > SIZE) continue;
+                
+                const color = getColor(point.transform, point.y);
+                
+                // Draw with subtle glow
+                const size = point.transform === 'stem' || point.transform === 'trunk' ? 1.5 : 1;
+                
+                if (glowIntensity > 0) {
+                    ctx.shadowBlur = glowIntensity;
+                    ctx.shadowColor = color;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                totalPoints++;
+            }
+            
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.shadowBlur = 0;
+            
+            updateStatus();
+            requestAnimationFrame(render);
+        }
+        
+        function updateStatus() {
+            document.getElementById('status').textContent = 
+                `Points: ${totalPoints.toLocaleString()} | Variant: ${variant}`;
+        }
+        
+        function regenerate() {
+            init();
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = 
+                isRunning ? 'Pause' : 'Resume';
+            if (isRunning) render();
+        }
+        
+        function toggleVariant() {
+            const variants = ['classic', 'cyclosorus', 'culcita', 'tree'];
+            const currentIndex = variants.indexOf(variant);
+            variant = variants[(currentIndex + 1) % variants.length];
+            document.getElementById('variantBtn').textContent = 
+                `Variant: ${variant.charAt(0).toUpperCase() + variant.slice(1)}`;
+            regenerate();
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = `barnsley-fern-${variant}-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Parameter controls
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            pointsPerFrame = parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = pointsPerFrame;
+        });
+        
+        document.getElementById('hueSlider').addEventListener('input', (e) => {
+            baseHue = parseInt(e.target.value);
+            document.getElementById('hueValue').textContent = baseHue + '°';
+            // Clear and restart with new colors
+            init();
+        });
+        
+        document.getElementById('glowSlider').addEventListener('input', (e) => {
+            glowIntensity = parseInt(e.target.value);
+            document.getElementById('glowValue').textContent = glowIntensity;
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyV') {
+                toggleVariant();
+            }
+        });
+        
+        // Start
+        init();
+        render();
+    </script>
+</body>
+</html>

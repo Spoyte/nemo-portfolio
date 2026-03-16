@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Learning — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        .container {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.2);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: right;
+            line-height: 1.8;
+        }
+        
+        .legend {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            font-size: 10px;
+            color: rgba(160, 160, 192, 0.5);
+            text-align: right;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .network-viz {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #networkCanvas {
+            box-shadow: 0 0 40px rgba(80, 60, 180, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Neural Network Learning — Real-time Training Visualization</div>
+    <div class="stats" id="stats">
+        Epoch: 0<br>
+        Loss: 0.000<br>
+        Accuracy: 0%<br>
+        Learning Rate: 0.1
+    </div>
+    <div class="legend">
+        <div class="legend-item"><span>Class A</span><div class="legend-dot" style="background: #ff6b6b;"></div></div>
+        <div class="legend-item"><span>Class B</span><div class="legend-dot" style="background: #4ecdc4;"></div></div>
+        <div class="legend-item"><span>Decision Boundary</span><div class="legend-dot" style="background: rgba(255,255,255,0.3);"></div></div>
+    </div>
+    
+    <div class="container">
+        <canvas id="mainCanvas" width="600" height="600"></canvas>
+        <div class="network-viz">
+            <canvas id="networkCanvas" width="200" height="400"></canvas>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="resetNetwork()">Reset Network</button>
+        <button onclick="toggleTraining()" id="trainBtn">Pause Training</button>
+        <button onclick="changePattern()">New Pattern</button>
+        <button onclick="toggleSpeed()" id="speedBtn">Speed: 1x</button>
+        <button onclick="exportFrame()">Export</button>
+    </div>
+
+    <script>
+        // Neural Network Implementation
+        class NeuralNetwork {
+            constructor(inputSize, hiddenSize, outputSize) {
+                this.inputSize = inputSize;
+                this.hiddenSize = hiddenSize;
+                this.outputSize = outputSize;
+                
+                // Xavier initialization
+                this.W1 = this.randomMatrix(inputSize, hiddenSize, Math.sqrt(2.0 / inputSize));
+                this.b1 = new Array(hiddenSize).fill(0);
+                this.W2 = this.randomMatrix(hiddenSize, outputSize, Math.sqrt(2.0 / hiddenSize));
+                this.b2 = new Array(outputSize).fill(0);
+                
+                this.learningRate = 0.1;
+                this.loss = 0;
+            }
+            
+            randomMatrix(rows, cols, scale) {
+                return Array(rows).fill(null).map(() => 
+                    Array(cols).fill(null).map(() => (Math.random() - 0.5) * 2 * scale)
+                );
+            }
+            
+            sigmoid(x) {
+                return 1 / (1 + Math.exp(-Math.max(-500, Math.min(500, x))));
+            }
+            
+            sigmoidDerivative(x) {
+                return x * (1 - x);
+            }
+            
+            forward(x) {
+                // Hidden layer
+                this.z1 = this.b1.map((b, i) => 
+                    x.reduce((sum, xi, j) => sum + xi * this.W1[j][i], 0) + b
+                );
+                this.a1 = this.z1.map(z => this.sigmoid(z));
+                
+                // Output layer
+                this.z2 = this.b2.map((b, i) => 
+                    this.a1.reduce((sum, a, j) => sum + a * this.W2[j][i], 0) + b
+                );
+                this.a2 = this.z2.map(z => this.sigmoid(z));
+                
+                return this.a2;
+            }
+            
+            backward(x, y) {
+                // Output layer gradients
+                const dL_dz2 = this.a2.map((a, i) => a - y[i]);
+                
+                // Hidden layer gradients
+                const dL_da1 = this.W2[0].map((_, i) => 
+                    dL_dz2.reduce((sum, dz, j) => sum + dz * this.W2[i][j], 0)
+                );
+                const dL_dz1 = dL_da1.map((da, i) => da * this.sigmoidDerivative(this.a1[i]));
+                
+                // Weight gradients
+                const dL_dW2 = this.a1.map(a => dL_dz2.map(dz => a * dz));
+                const dL_db2 = dL_dz2;
+                const dL_dW1 = x.map(xi => dL_dz1.map(dz => xi * dz));
+                const dL_db1 = dL_dz1;
+                
+                // Update weights
+                for (let i = 0; i < this.hiddenSize; i++) {
+                    for (let j = 0; j < this.outputSize; j++) {
+                        this.W2[i][j] -= this.learningRate * dL_dW2[i][j];
+                    }
+                }
+                for (let i = 0; i < this.outputSize; i++) {
+                    this.b2[i] -= this.learningRate * dL_db2[i];
+                }
+                for (let i = 0; i < this.inputSize; i++) {
+                    for (let j = 0; j < this.hiddenSize; j++) {
+                        this.W1[i][j] -= this.learningRate * dL_dW1[i][j];
+                    }
+                }
+                for (let i = 0; i < this.hiddenSize; i++) {
+                    this.b1[i] -= this.learningRate * dL_db1[i];
+                }
+                
+                // Calculate loss
+                this.loss = y.reduce((sum, yi, i) => 
+                    sum + 0.5 * Math.pow(yi - this.a2[i], 2), 0);
+            }
+            
+            train(x, y) {
+                this.forward(x);
+                this.backward(x, y);
+                return this.loss;
+            }
+            
+            predict(x) {
+                return this.forward(x);
+            }
+        }
+        
+        // Visualization
+        const mainCanvas = document.getElementById('mainCanvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        const networkCanvas = document.getElementById('networkCanvas');
+        const networkCtx = networkCanvas.getContext('2d');
+        
+        // Grid resolution for decision boundary
+        const GRID_SIZE = 60;
+        const CELL_SIZE = mainCanvas.width / GRID_SIZE;
+        
+        // Network architecture
+        const nn = new NeuralNetwork(2, 8, 1);
+        
+        // Training data
+        let trainingData = [];
+        let epoch = 0;
+        let isTraining = true;
+        let speedMultiplier = 1;
+        let patternType = 0;
+        
+        // Generate training patterns
+        function generatePattern(type) {
+            trainingData = [];
+            const count = 200;
+            
+            for (let i = 0; i < count; i++) {
+                let x, y, label;
+                const t = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * 0.4;
+                
+                switch(type % 4) {
+                    case 0: // XOR-like
+                        x = Math.random() * 2 - 1;
+                        y = Math.random() * 2 - 1;
+                        label = (x * y > 0) ? 1 : 0;
+                        break;
+                    case 1: // Spiral
+                        const spiralT = Math.random() * Math.PI * 4;
+                        const spiralR = spiralT / (Math.PI * 4) * 0.8;
+                        x = Math.cos(spiralT) * spiralR + (Math.random() - 0.5) * 0.1;
+                        y = Math.sin(spiralT) * spiralR + (Math.random() - 0.5) * 0.1;
+                        label = (spiralT % (Math.PI * 2) < Math.PI) ? 1 : 0;
+                        break;
+                    case 2: // Concentric circles
+                        const circleR = Math.sqrt(Math.random());
+                        x = Math.cos(t) * circleR;
+                        y = Math.sin(t) * circleR;
+                        label = (circleR > 0.5) ? 1 : 0;
+                        break;
+                    case 3: // Moon shapes
+                        const moonOffset = 0.3;
+                        if (Math.random() > 0.5) {
+                            x = Math.cos(t) * r - moonOffset;
+                            y = Math.sin(t) * r;
+                        } else {
+                            x = Math.cos(t) * r + moonOffset;
+                            y = Math.sin(t) * r - 0.2;
+                        }
+                        label = (x < 0) ? 1 : 0;
+                        break;
+                }
+                
+                trainingData.push({ x, y, label });
+            }
+        }
+        
+        // Coordinate transforms
+        function toCanvas(x, y) {
+            return {
+                x: (x + 1) * mainCanvas.width / 2,
+                y: (1 - y) * mainCanvas.height / 2
+            };
+        }
+        
+        function toNetwork(x, y) {
+            return { x, y };
+        }
+        
+        // Draw decision boundary
+        function drawDecisionBoundary() {
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const nx = (i / GRID_SIZE) * 2 - 1;
+                    const ny = 1 - (j / GRID_SIZE) * 2;
+                    
+                    const prediction = nn.predict([nx, ny])[0];
+                    const intensity = prediction;
+                    
+                    // Color based on prediction confidence
+                    const r = Math.floor(255 * intensity * 0.42 + 10);
+                    const g = Math.floor(255 * (1 - intensity) * 0.31 + 10);
+                    const b = Math.floor(255 * 0.18 + 10);
+                    
+                    mainCtx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.3)`;
+                    mainCtx.fillRect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE + 1, CELL_SIZE + 1);
+                }
+            }
+        }
+        
+        // Draw training points
+        function drawTrainingPoints() {
+            trainingData.forEach(point => {
+                const pos = toCanvas(point.x, point.y);
+                const color = point.label === 1 ? '#ff6b6b' : '#4ecdc4';
+                
+                mainCtx.beginPath();
+                mainCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+                mainCtx.fillStyle = color;
+                mainCtx.fill();
+                
+                // Glow effect
+                mainCtx.beginPath();
+                mainCtx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                mainCtx.fillStyle = color + '20';
+                mainCtx.fill();
+            });
+        }
+        
+        // Draw network visualization
+        function drawNetwork() {
+            networkCtx.fillStyle = '#0a0a0f';
+            networkCtx.fillRect(0, 0, networkCanvas.width, networkCanvas.height);
+            
+            const layers = [
+                { neurons: 2, x: 50 },
+                { neurons: 8, x: 100 },
+                { neurons: 1, x: 150 }
+            ];
+            
+            // Draw connections with weight-based opacity
+            for (let i = 0; i < layers.length - 1; i++) {
+                const layer1 = layers[i];
+                const layer2 = layers[i + 1];
+                
+                for (let j = 0; j < layer1.neurons; j++) {
+                    for (let k = 0; k < layer2.neurons; k++) {
+                        const y1 = networkCanvas.height / 2 + (j - (layer1.neurons - 1) / 2) * 40;
+                        const y2 = networkCanvas.height / 2 + (k - (layer2.neurons - 1) / 2) * 40;
+                        
+                        let weight = 0;
+                        if (i === 0) weight = nn.W1[j][k];
+                        else weight = nn.W2[j][k];
+                        
+                        const opacity = Math.min(1, Math.abs(weight) * 2);
+                        const color = weight > 0 ? `255, 100, 100` : `100, 200, 255`;
+                        
+                        networkCtx.beginPath();
+                        networkCtx.moveTo(layer1.x, y1);
+                        networkCtx.lineTo(layer2.x, y2);
+                        networkCtx.strokeStyle = `rgba(${color}, ${opacity * 0.5})`;
+                        networkCtx.lineWidth = Math.abs(weight) * 2;
+                        networkCtx.stroke();
+                    }
+                }
+            }
+            
+            // Draw neurons
+            layers.forEach((layer, li) => {
+                for (let i = 0; i < layer.neurons; i++) {
+                    const y = networkCanvas.height / 2 + (i - (layer.neurons - 1) / 2) * 40;
+                    
+                    // Activation glow
+                    let activation = 0.5;
+                    if (li === 1 && nn.a1) activation = nn.a1[i];
+                    if (li === 2 && nn.a2) activation = nn.a2[i];
+                    
+                    const glowSize = 10 + activation * 15;
+                    const gradient = networkCtx.createRadialGradient(
+                        layer.x, y, 0, layer.x, y, glowSize
+                    );
+                    gradient.addColorStop(0, `rgba(140, 120, 220, ${0.3 + activation * 0.5})`);
+                    gradient.addColorStop(1, 'rgba(140, 120, 220, 0)');
+                    
+                    networkCtx.beginPath();
+                    networkCtx.arc(layer.x, y, glowSize, 0, Math.PI * 2);
+                    networkCtx.fillStyle = gradient;
+                    networkCtx.fill();
+                    
+                    // Neuron body
+                    networkCtx.beginPath();
+                    networkCtx.arc(layer.x, y, 8, 0, Math.PI * 2);
+                    networkCtx.fillStyle = '#1a1a2e';
+                    networkCtx.fill();
+                    networkCtx.strokeStyle = 'rgba(140, 120, 220, 0.8)';
+                    networkCtx.lineWidth = 2;
+                    networkCtx.stroke();
+                }
+            });
+        }
+        
+        // Training step
+        function trainStep() {
+            if (!isTraining) return;
+            
+            const batchSize = 10 * speedMultiplier;
+            let totalLoss = 0;
+            
+            for (let i = 0; i < batchSize; i++) {
+                const sample = trainingData[Math.floor(Math.random() * trainingData.length)];
+                const loss = nn.train([sample.x, sample.y], [sample.label]);
+                totalLoss += loss;
+            }
+            
+            epoch += batchSize;
+            nn.loss = totalLoss / batchSize;
+        }
+        
+        // Calculate accuracy
+        function calculateAccuracy() {
+            let correct = 0;
+            trainingData.forEach(point => {
+                const prediction = nn.predict([point.x, point.y])[0];
+                const predictedLabel = prediction > 0.5 ? 1 : 0;
+                if (predictedLabel === point.label) correct++;
+            });
+            return (correct / trainingData.length * 100).toFixed(1);
+        }
+        
+        // Update stats
+        function updateStats() {
+            const accuracy = calculateAccuracy();
+            document.getElementById('stats').innerHTML = `
+                Epoch: ${epoch}<br>
+                Loss: ${nn.loss.toFixed(4)}<br>
+                Accuracy: ${accuracy}%<br>
+                Learning Rate: ${nn.learningRate}
+            `;
+        }
+        
+        // Main render loop
+        function render() {
+            // Clear main canvas with gradient
+            const bg = mainCtx.createRadialGradient(
+                mainCanvas.width/2, mainCanvas.height/2, 0,
+                mainCanvas.width/2, mainCanvas.height/2, mainCanvas.width
+            );
+            bg.addColorStop(0, '#1a0a2e');
+            bg.addColorStop(0.5, '#0d0d1a');
+            bg.addColorStop(1, '#050508');
+            mainCtx.fillStyle = bg;
+            mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+            
+            // Draw everything
+            drawDecisionBoundary();
+            drawTrainingPoints();
+            drawNetwork();
+            
+            // Training and stats
+            trainStep();
+            if (epoch % 10 === 0) updateStats();
+            
+            requestAnimationFrame(render);
+        }
+        
+        // Controls
+        function resetNetwork() {
+            // Reinitialize weights
+            nn.W1 = nn.randomMatrix(nn.inputSize, nn.hiddenSize, Math.sqrt(2.0 / nn.inputSize));
+            nn.b1 = new Array(nn.hiddenSize).fill(0);
+            nn.W2 = nn.randomMatrix(nn.hiddenSize, nn.outputSize, Math.sqrt(2.0 / nn.hiddenSize));
+            nn.b2 = new Array(nn.outputSize).fill(0);
+            epoch = 0;
+            nn.loss = 0;
+        }
+        
+        function toggleTraining() {
+            isTraining = !isTraining;
+            document.getElementById('trainBtn').textContent = isTraining ? 'Pause Training' : 'Resume';
+        }
+        
+        function changePattern() {
+            patternType++;
+            generatePattern(patternType);
+            resetNetwork();
+        }
+        
+        function toggleSpeed() {
+            speedMultiplier = speedMultiplier === 1 ? 5 : speedMultiplier === 5 ? 10 : 1;
+            document.getElementById('speedBtn').textContent = `Speed: ${speedMultiplier}x`;
+        }
+        
+        function exportFrame() {
+            const link = document.createElement('a');
+            link.download = `neural-network-${Date.now()}.png`;
+            link.href = mainCanvas.toDataURL();
+            link.click();
+        }
+        
+        // Click to add training point
+        mainCanvas.addEventListener('click', (e) => {
+            const rect = mainCanvas.getBoundingClientRect();
+            const cx = (e.clientX - rect.left) * (mainCanvas.width / rect.width);
+            const cy = (e.clientY - rect.top) * (mainCanvas.height / rect.height);
+            
+            const nx = (cx / mainCanvas.width) * 2 - 1;
+            const ny = 1 - (cy / mainCanvas.height) * 2;
+            
+            // Alternate between classes
+            const label = trainingData.length % 2;
+            trainingData.push({ x: nx, y: ny, label });
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleTraining();
+            } else if (e.code === 'KeyR') {
+                resetNetwork();
+            } else if (e.code === 'KeyP') {
+                changePattern();
+            }
+        });
+        
+        // Initialize
+        generatePattern(0);
+        render();
+    </script>
+</body>
+</html>
