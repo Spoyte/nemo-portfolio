@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shader Forge — Generative Art</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050508;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'SF Mono', Monaco, monospace;
+      overflow: hidden;
+    }
+    #canvas-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px #1a1a2e;
+    }
+    canvas {
+      display: block;
+    }
+    .overlay {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      color: rgba(255,255,255,0.6);
+      font-size: 11px;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .title {
+      color: #e0e0e0;
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .title span {
+      color: #ff6b6b;
+      font-weight: bold;
+    }
+    .mode-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .mode-btn {
+      background: #0f0f1a;
+      color: #666;
+      border: 1px solid #1a1a2e;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .mode-btn:hover {
+      background: #1a1a2a;
+      color: #888;
+    }
+    .mode-btn.active {
+      background: #ff6b6b20;
+      color: #ff6b6b;
+      border-color: #ff6b6b40;
+    }
+    .param-sliders {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .slider-group label {
+      color: #444;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    input[type="range"] {
+      width: 120px;
+      height: 4px;
+      background: #1a1a2e;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #ff6b6b;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: #ff6b6b;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    .info {
+      color: #333;
+      font-size: 10px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="glCanvas" width="800" height="600"></canvas>
+    <div class="overlay">
+      <div>FPS: <span id="fps">60</span></div>
+      <div>MODE: <span id="mode-display">PLASMA</span></div>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <div class="title">Shader <span>Forge</span></div>
+    
+    <div class="mode-selector">
+      <button class="mode-btn active" data-mode="plasma">Plasma</button>
+      <button class="mode-btn" data-mode="fractal">Fractal</button>
+      <button class="mode-btn" data-mode="noise">Noise Field</button>
+      <button class="mode-btn" data-mode="waves">Interference</button>
+      <button class="mode-btn" data-mode="domain">Domain Warp</button>
+    </div>
+    
+    <div class="param-sliders">
+      <div class="slider-group">
+        <label>Speed</label>
+        <input type="range" id="speed" min="0" max="200" value="100">
+      </div>
+      <div class="slider-group">
+        <label>Scale</label>
+        <input type="range" id="scale" min="10" max="300" value="100">
+      </div>
+      <div class="slider-group">
+        <label>Intensity</label>
+        <input type="range" id="intensity" min="0" max="200" value="100">
+      </div>
+    </div>
+    
+    <div class="info">WebGL Fragment Shader • Real-time Rendering</div>
+  </div>
+
+<script>
+// Vertex shader - full screen quad
+const vertexShaderSource = `#
+version 300 es
+in vec2 a_position;
+out vec2 v_uv;
+void main() {
+  v_uv = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}
+`;
+
+// Plasma shader
+const plasmaShader = `#
+version 300 es
+precision highp float;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_speed;
+uniform float u_scale;
+uniform float u_intensity;
+
+vec3 palette(float t) {
+  vec3 a = vec3(0.5, 0.5, 0.5);
+  vec3 b = vec3(0.5, 0.5, 0.5);
+  vec3 c = vec3(1.0, 1.0, 1.0);
+  vec3 d = vec3(0.263, 0.416, 0.557);
+  return a + b * cos(6.28318 * (c * t + d));
+}
+
+void main() {
+  vec2 uv = v_uv * 2.0 - 1.0;
+  uv.x *= u_resolution.x / u_resolution.y;
+  
+  float t = u_time * u_speed * 0.01;
+  vec2 uv0 = uv * u_scale * 0.5;
+  vec3 finalColor = vec3(0.0);
+  
+  for(float i = 0.0; i < 3.0; i++) {
+    uv = fract(uv * 1.5) - 0.5;
+    float d = length(uv) * exp(-length(uv0));
+    vec3 col = palette(length(uv0) + i * 0.4 + t * 0.4);
+    d = sin(d * 8.0 + t) / 8.0;
+    d = abs(d);
+    d = pow(0.01 / d, 1.2);
+    finalColor += col * d * u_intensity * 0.01;
+  }
+  
+  fragColor = vec4(finalColor, 1.0);
+}
+`;
+
+// Fractal shader
+const fractalShader = `#
+version 300 es
+precision highp float;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_speed;
+uniform float u_scale;
+uniform float u_intensity;
+
+vec2 complexMul(vec2 a, vec2 b) {
+  return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+void main() {
+  vec2 uv = v_uv * 2.0 - 1.0;
+  uv.x *= u_resolution.x / u_resolution.y;
+  
+  float t = u_time * u_speed * 0.01;
+  vec2 c = vec2(sin(t * 0.3) * 0.5, cos(t * 0.2) * 0.5);
+  vec2 z = uv * u_scale * 0.5;
+  
+  float iter = 0.0;
+  for(float i = 0.0; i < 100.0; i++) {
+    if(dot(z, z) > 4.0) break;
+    z = complexMul(z, z) + c;
+    iter++;
+  }
+  
+  float smoothIter = iter - log2(log2(dot(z, z))) + 4.0;
+  float hue = smoothIter * 0.02 + t * 0.1;
+  
+  vec3 col = 0.5 + 0.5 * cos(6.28318 * (vec3(0.0, 0.33, 0.67) + hue));
+  col *= u_intensity * 0.01;
+  
+  fragColor = vec4(col, 1.0);
+}
+`;
+
+// Noise field shader
+const noiseShader = `#
+version 300 es
+precision highp float;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_speed;
+uniform float u_scale;
+uniform float u_intensity;
+
+// Simplex noise functions
+vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+float snoise(vec2 v) {
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                      -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy));
+  vec2 x0 = v - i + dot(i, C.xx);
+  vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod289(i);
+  vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                   + i.x + vec3(0.0, i1.x, 1.0));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+                          dot(x12.zw,x12.zw)), 0.0);
+  m = m*m; m = m*m;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+  vec3 g;
+  g.x = a0.x * x0.x + h.x * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
+void main() {
+  vec2 uv = v_uv;
+  float t = u_time * u_speed * 0.01;
+  
+  float scale = u_scale * 0.01;
+  float n1 = snoise(uv * scale + t * 0.5);
+  float n2 = snoise(uv * scale * 2.0 - t * 0.3);
+  float n3 = snoise(uv * scale * 0.5 + vec2(n1, n2) * 0.5);
+  
+  float pattern = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
+  pattern = pattern * 0.5 + 0.5;
+  
+  vec3 col1 = vec3(0.1, 0.2, 0.4);
+  vec3 col2 = vec3(0.8, 0.3, 0.2);
+  vec3 col3 = vec3(1.0, 0.8, 0.4);
+  
+  vec3 color = mix(col1, col2, pattern);
+  color = mix(color, col3, pow(pattern, 3.0));
+  
+  color *= u_intensity * 0.01;
+  
+  fragColor = vec4(color, 1.0);
+}
+`;
+
+// Wave interference shader
+const wavesShader = `#
+version 300 es
+precision highp float;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_speed;
+uniform float u_scale;
+uniform float u_intensity;
+
+void main() {
+  vec2 uv = v_uv * 2.0 - 1.0;
+  uv.x *= u_resolution.x / u_resolution.y;
+  
+  float t = u_time * u_speed * 0.01;
+  float scale = u_scale * 0.02;
+  
+  float wave = 0.0;
+  vec3 color = vec3(0.0);
+  
+  for(float i = 0.0; i < 5.0; i++) {
+    float fi = i + 1.0;
+    vec2 center = vec2(
+      sin(t * 0.5 + i * 1.3) * 0.7,
+      cos(t * 0.3 + i * 0.7) * 0.5
+    );
+    float dist = length(uv - center);
+    float w = sin(dist * scale - t * fi * 0.5) / (dist + 0.1);
+    wave += w * 0.2;
+    
+    vec3 hue = 0.5 + 0.5 * cos(vec3(0.0, 0.33, 0.67) + fi * 0.5 + t * 0.2);
+    color += hue * abs(w) * 0.3;
+  }
+  
+  color *= u_intensity * 0.01;
+  color = pow(color, vec3(0.8));
+  
+  fragColor = vec4(color, 1.0);
+}
+`;
+
+// Domain warping shader
+const domainShader = `#
+version 300 es
+precision highp float;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_speed;
+uniform float u_scale;
+uniform float u_intensity;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+    f.y
+  );
+}
+
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for(int i = 0; i < 5; i++) {
+    value += amplitude * noise(p);
+    p *= 2.0;
+    amplitude *= 0.5;
+  }
+  return value;
+}
+
+void main() {
+  vec2 uv = v_uv * 2.0 - 1.0;
+  uv.x *= u_resolution.x / u_resolution.y;
+  
+  float t = u_time * u_speed * 0.01;
+  float scale = u_scale * 0.01;
+  
+  // Domain warping
+  vec2 q = vec2(fbm(uv * scale + t * 0.3), fbm(uv * scale + vec2(1.0)));
+  vec2 r = vec2(fbm(uv * scale + 4.0 * q + vec2(1.7, 9.2) + 0.15 * t),
+                fbm(uv * scale + 4.0 * q + vec2(8.3, 2.8) + 0.126 * t));
+  
+  float f = fbm(uv * scale + 2.0 * r);
+  
+  vec3 col1 = vec3(0.02, 0.02, 0.05);
+  vec3 col2 = vec3(0.1, 0.4, 0.6);
+  vec3 col3 = vec3(0.9, 0.3, 0.4);
+  vec3 col4 = vec3(1.0, 0.9, 0.7);
+  
+  vec3 color = mix(col1, col2, clamp(f * 2.0, 0.0, 1.0));
+  color = mix(color, col3, clamp(length(q) * 0.5, 0.0, 1.0));
+  color = mix(color, col4, clamp(length(r.x) * 0.3, 0.0, 1.0));
+  
+  color *= u_intensity * 0.01;
+  
+  fragColor = vec4(color, 1.0);
+}
+`;
+
+const shaders = {
+  plasma: plasmaShader,
+  fractal: fractalShader,
+  noise: noiseShader,
+  waves: wavesShader,
+  domain: domainShader
+};
+
+// WebGL setup
+const canvas = document.getElementById('glCanvas');
+const gl = canvas.getContext('webgl2');
+
+if (!gl) {
+  alert('WebGL2 not supported');
+}
+
+function createShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+function createProgram(gl, vertexShader, fragmentShader) {
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+    return null;
+  }
+  return program;
+}
+
+// Create fullscreen quad
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+  -1, -1, 1, -1, -1, 1,
+  -1, 1, 1, -1, 1, 1
+]), gl.STATIC_DRAW);
+
+let currentMode = 'plasma';
+let program = null;
+
+function setShader(mode) {
+  const vs = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+  const fs = createShader(gl, gl.FRAGMENT_SHADER, shaders[mode]);
+  if (program) gl.deleteProgram(program);
+  program = createProgram(gl, vs, fs);
+  currentMode = mode;
+  document.getElementById('mode-display').textContent = mode.toUpperCase();
+}
+
+setShader('plasma');
+
+// Uniform locations
+const uniforms = {};
+
+function getUniforms() {
+  uniforms.time = gl.getUniformLocation(program, 'u_time');
+  uniforms.resolution = gl.getUniformLocation(program, 'u_resolution');
+  uniforms.speed = gl.getUniformLocation(program, 'u_speed');
+  uniforms.scale = gl.getUniformLocation(program, 'u_scale');
+  uniforms.intensity = gl.getUniformLocation(program, 'u_intensity');
+}
+
+// Animation loop
+let startTime = performance.now();
+let frameCount = 0;
+let lastFpsUpdate = startTime;
+
+function render() {
+  const time = (performance.now() - startTime) * 0.001;
+  
+  // Update FPS
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsUpdate > 500) {
+    document.getElementById('fps').textContent = 
+      Math.round(frameCount * 1000 / (now - lastFpsUpdate));
+    frameCount = 0;
+    lastFpsUpdate = now;
+  }
+  
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.useProgram(program);
+  
+  getUniforms();
+  
+  // Set uniforms
+  gl.uniform1f(uniforms.time, time);
+  gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
+  gl.uniform1f(uniforms.speed, parseFloat(document.getElementById('speed').value));
+  gl.uniform1f(uniforms.scale, parseFloat(document.getElementById('scale').value));
+  gl.uniform1f(uniforms.intensity, parseFloat(document.getElementById('intensity').value));
+  
+  // Bind position attribute
+  const positionLocation = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(positionLocation);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+  
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  
+  requestAnimationFrame(render);
+}
+
+render();
+
+// UI controls
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setShader(btn.dataset.mode);
+  });
+});
+</script>
+</body>
+</html>
