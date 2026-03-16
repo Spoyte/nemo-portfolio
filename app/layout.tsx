@@ -24,6 +24,7 @@ import { MagicTerminal } from "@/components/magic-terminal";
 import { ParticleConstellation } from "@/components/particle-constellation";
 import { KeyboardNavigator } from "@/components/keyboard-navigator";
 import { DynamicFavicon } from "@/components/dynamic-favicon";
+import { VoiceInterface } from "@/components/voice-interface";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -104,6 +105,9 @@ export default function RootLayout({
           <ParticleConstellation />
           <KeyboardNavigator />
           <DynamicFavicon />
+          
+          {/* Voice Control Interface */}
+          <VoiceInterface />
         </ThemeProvider>
       </body>
     </html>

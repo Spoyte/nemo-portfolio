@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrogram Waterfall — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0c0d0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 80px rgba(100, 200, 255, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        
+        button {
+            background: rgba(20, 30, 40, 0.9);
+            border: 1px solid rgba(100, 180, 220, 0.3);
+            color: #a0c0d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 60, 80, 0.9);
+            transform: translateY(-1px);
+            border-color: rgba(100, 200, 255, 0.5);
+        }
+        
+        button.active {
+            background: rgba(100, 180, 220, 0.25);
+            border-color: rgba(100, 200, 255, 0.8);
+            color: #d0f0ff;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 192, 208, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 192, 208, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        
+        .params {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            color: rgba(160, 192, 208, 0.4);
+            font-size: 10px;
+            text-align: right;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Spectrogram Waterfall</div>
+    <div class="status" id="status">Audio-reactive frequency visualization</div>
+    <div class="params" id="params"></div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="cyclePalette()">Palette</button>
+        <button onclick="toggleAudio()" id="audioBtn">Audio: Off</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const SIZE = 800;
+        const dpr = window.devicePixelRatio || 1;
+        
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = Math.min(SIZE, window.innerWidth * 0.9) + 'px';
+        canvas.style.height = Math.min(SIZE, window.innerHeight * 0.8) + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Spectrogram configuration
+        const BANDS = 128; // Number of frequency bands
+        const HISTORY = 200; // Number of scanlines to keep
+        const SCANLINE_HEIGHT = 4;
+        
+        // State
+        let spectrogram = []; // Array of frequency arrays
+        let time = 0;
+        let isRunning = true;
+        let animationId;
+        let audioEnabled = false;
+        let audioContext = null;
+        let analyser = null;
+        let dataArray = null;
+        
+        // Palettes
+        const palettes = [
+            {
+                name: 'Ocean',
+                colors: ['#000428', '#004e92', '#009ffd', '#00d2ff', '#ffffff']
+            },
+            {
+                name: 'Fire',
+                colors: ['#1a0a00', '#4a1a00', '#8b2500', '#ff4500', '#ffaa00', '#ffffcc']
+            },
+            {
+                name: 'Neon',
+                colors: ['#0a001a', '#2d004d', '#5c0099', '#9900ff', '#cc44ff', '#ff88ff', '#ffffff']
+            },
+            {
+                name: 'Forest',
+                colors: ['#0a1a0a', '#1a3a1a', '#2d5a2d', '#4a8a4a', '#7aca7a', '#caffca']
+            },
+            {
+                name: 'Sunset',
+                colors: ['#1a0a1a', '#4a1a3a', '#8b2d5c', '#ff6b6b', '#ffa500', '#ffff88']
+            }
+        ];
+        let currentPalette = 0;
+        
+        // Signal generators
+        const generators = {
+            // Sine wave sweeping across frequencies
+            sweep: (t, band) => {
+                const freq = 2 + Math.sin(t * 0.5) * 1.5;
+                const center = (Math.sin(t * 0.3) * 0.5 + 0.5) * BANDS;
+                const width = 10 + Math.sin(t * 0.7) * 5;
+                return Math.exp(-Math.pow(band - center, 2) / (2 * width * width)) * 
+                       (0.5 + 0.5 * Math.sin(t * freq + band * 0.1));
+            },
+            
+            // Multiple harmonic peaks
+            harmonics: (t, band) => {
+                let sum = 0;
+                const fundamental = 10 + Math.sin(t * 0.2) * 5;
+                for (let h = 1; h <= 4; h++) {
+                    const center = fundamental * h;
+                    const width = 3 + h;
+                    sum += Math.exp(-Math.pow(band - center, 2) / (2 * width * width)) * 
+                           (1 / h) * (0.7 + 0.3 * Math.sin(t * 2 + h));
+                }
+                return sum;
+            },
+            
+            // Noise with structure
+            structured: (t, band) => {
+                const noise = Math.sin(band * 0.5 + t) * Math.sin(band * 0.3 - t * 0.5);
+                const envelope = Math.exp(-band / 40) * (1 + 0.5 * Math.sin(t * 0.4));
+                return Math.abs(noise) * envelope;
+            },
+            
+            // Rhythmic pulses
+            pulse: (t, band) => {
+                const beat = Math.floor(t * 2) % 4;
+                const pulsePos = [20, 40, 60, 30][beat];
+                const width = 8;
+                return Math.exp(-Math.pow(band - pulsePos, 2) / (2 * width * width)) * 
+                       (0.5 + 0.5 * Math.sin(t * 10));
+            },
+            
+            // Chladni-like patterns
+            chladni: (t, band) => {
+                const m = 3 + Math.floor(Math.sin(t * 0.1) * 2);
+                const n = 2 + Math.floor(Math.cos(t * 0.15) * 2);
+                const x = (band / BANDS) * Math.PI;
+                return Math.abs(Math.sin(m * x) * Math.sin(n * x) * 
+                               Math.sin(t + band * 0.05));
+            }
+        };
+        
+        let currentGenerator = 'harmonics';
+        const generatorNames = Object.keys(generators);
+        
+        function init() {
+            spectrogram = [];
+            time = 0;
+            
+            // Fill initial history with zeros
+            for (let i = 0; i < HISTORY; i++) {
+                spectrogram.push(new Array(BANDS).fill(0));
+            }
+            
+            updateParams();
+        }
+        
+        function generateScanline() {
+            const scanline = new Array(BANDS);
+            const gen = generators[currentGenerator];
+            
+            if (audioEnabled && analyser) {
+                // Use real audio data
+                analyser.getByteFrequencyData(dataArray);
+                const binSize = Math.floor(dataArray.length / BANDS);
+                for (let i = 0; i < BANDS; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < binSize; j++) {
+                        sum += dataArray[i * binSize + j] || 0;
+                    }
+                    scanline[i] = (sum / binSize) / 255;
+                }
+            } else {
+                // Use generated signal
+                for (let i = 0; i < BANDS; i++) {
+                    scanline[i] = gen(time, i);
+                }
+            }
+            
+            return scanline;
+        }
+        
+        function getColor(value) {
+            const palette = palettes[currentPalette].colors;
+            const idx = Math.min(Math.floor(value * palette.length), palette.length - 1);
+            return palette[idx];
+        }
+        
+        function interpolateColor(value) {
+            const palette = palettes[currentPalette].colors;
+            const scaled = value * (palette.length - 1);
+            const idx = Math.floor(scaled);
+            const frac = scaled - idx;
+            
+            if (idx >= palette.length - 1) return palette[palette.length - 1];
+            
+            const c1 = hexToRgb(palette[idx]);
+            const c2 = hexToRgb(palette[idx + 1]);
+            
+            return rgbToHex(
+                Math.round(c1.r + (c2.r - c1.r) * frac),
+                Math.round(c1.g + (c2.g - c1.g) * frac),
+                Math.round(c1.b + (c2.b - c1.b) * frac)
+            );
+        }
+        
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+        
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = Math.max(0, Math.min(255, x)).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+        
+        function render() {
+            // Generate new scanline
+            const scanline = generateScanline();
+            spectrogram.push(scanline);
+            if (spectrogram.length > HISTORY) {
+                spectrogram.shift();
+            }
+            
+            // Clear with gradient background
+            const bg = ctx.createLinearGradient(0, 0, 0, SIZE);
+            bg.addColorStop(0, '#0a0a12');
+            bg.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Draw spectrogram
+            const bandWidth = SIZE / BANDS;
+            const rowHeight = SIZE / HISTORY;
+            
+            for (let row = 0; row < spectrogram.length; row++) {
+                const y = SIZE - (row + 1) * rowHeight;
+                const scanline = spectrogram[spectrogram.length - 1 - row];
+                
+                for (let band = 0; band < BANDS; band++) {
+                    const value = Math.min(Math.max(scanline[band], 0), 1);
+                    if (value > 0.02) { // Threshold for performance
+                        ctx.fillStyle = interpolateColor(value);
+                        ctx.fillRect(band * bandWidth, y, bandWidth + 0.5, rowHeight + 0.5);
+                    }
+                }
+            }
+            
+            // Draw frequency labels
+            ctx.fillStyle = 'rgba(160, 192, 208, 0.3)';
+            ctx.font = '10px SF Mono, monospace';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 4; i++) {
+                const x = (i / 4) * SIZE;
+                const freq = Math.round((i / 4) * 22050);
+                ctx.fillText(freq + 'Hz', x, SIZE - 10);
+            }
+            
+            // Draw time indicator
+            ctx.fillStyle = 'rgba(160, 192, 208, 0.5)';
+            ctx.fillRect(0, 0, SIZE, 2);
+            
+            time += 0.016;
+        }
+        
+        function animate() {
+            if (!isRunning) return;
+            render();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function regenerate() {
+            // Cycle through generators
+            const idx = generatorNames.indexOf(currentGenerator);
+            currentGenerator = generatorNames[(idx + 1) % generatorNames.length];
+            init();
+            updateParams();
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) animate();
+        }
+        
+        function cyclePalette() {
+            currentPalette = (currentPalette + 1) % palettes.length;
+            updateParams();
+        }
+        
+        async function toggleAudio() {
+            if (!audioEnabled) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 512;
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const source = audioContext.createMediaStreamSource(stream);
+                    source.connect(analyser);
+                    
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    audioEnabled = true;
+                    document.getElementById('audioBtn').textContent = 'Audio: On';
+                    document.getElementById('audioBtn').classList.add('active');
+                    document.getElementById('status').textContent = 'Listening to microphone...';
+                } catch (err) {
+                    console.error('Audio access denied:', err);
+                    document.getElementById('status').textContent = 'Audio access denied - using generated signals';
+                }
+            } else {
+                if (audioContext) audioContext.close();
+                audioEnabled = false;
+                document.getElementById('audioBtn').textContent = 'Audio: Off';
+                document.getElementById('audioBtn').classList.remove('active');
+                document.getElementById('status').textContent = 'Audio-reactive frequency visualization';
+            }
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'spectrogram-waterfall-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        function updateParams() {
+            document.getElementById('params').innerHTML = `
+                Generator: ${currentGenerator}<br>
+                Palette: ${palettes[currentPalette].name}<br>
+                Bands: ${BANDS}<br>
+                History: ${HISTORY}
+            `;
+        }
+        
+        // Click to change generator at that frequency
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const band = Math.floor((x / SIZE) * BANDS);
+            
+            // Add a burst at this frequency
+            if (spectrogram.length > 0) {
+                const scanline = spectrogram[spectrogram.length - 1];
+                for (let i = -5; i <= 5; i++) {
+                    const idx = band + i;
+                    if (idx >= 0 && idx < BANDS) {
+                        scanline[idx] = Math.min(1, scanline[idx] + 0.5 * Math.exp(-i*i/10));
+                    }
+                }
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyC') {
+                cyclePalette();
+            }
+        });
+        
+        // Start
+        init();
+        animate();
+    </script>
+</body>
+</html>

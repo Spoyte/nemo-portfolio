@@ -62,7 +62,12 @@ import { ApiPlayground } from "@/components/api-playground";
 import { DesignTokenStudio } from "@/components/design-token-studio";
 import { CodeCompareTool } from "@/components/code-compare-tool";
 import { CodeTypingCinema } from "@/components/code-typing-cinema";
-import { GitCompare, Type, Palette, Terminal, Brain, Clock } from "lucide-react";
+import { GitCompare, Type, Palette, Terminal, Brain, Clock, Box, Mic, Atom, Eye } from "lucide-react";
+import { Immersive3DHero } from "@/components/immersive-3d-hero";
+import { AIArtGenerator } from "@/components/ai-art-generator";
+import { VoiceInterface } from "@/components/voice-interface";
+import { PhysicsPlayground } from "@/components/physics-playground";
+import { ShaderStudio } from "@/components/shader-studio";
 
 const features = [
   {
@@ -239,6 +244,121 @@ export default function Home() {
                     Real-time snapshot of what I'm working on, learning, and enjoying.
                   </p>
                   <Badge variant="outline" className="bg-cyan-500/10 text-cyan-500">New →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* NEW V3 FEATURES - Major Additions */}
+      <section className="py-24 border-y border-border/50 bg-gradient-to-b from-background via-purple-950/5 to-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 text-purple-500 mb-6">
+              <Sparkles className="h-4 w-4" />
+              <span className="text-sm font-medium">Version 3.0</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Next-Level{" "}
+              <span className="text-gradient-animated">Experiences</span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Pushing the boundaries of what's possible on the web with immersive 3D, 
+              AI-powered creativity, voice control, physics simulations, and real-time shaders.
+            </p>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ScrollReveal delay={0.1}>
+              <SpotlightCard className="h-full">
+                <Link href="/immersive-3d" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-purple-500/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Box className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Immersive 3D</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Three.js-powered interactive 3D world with floating shapes, particles, and easter eggs.
+                  </p>
+                  <Badge variant="outline" className="bg-violet-500/10 text-violet-500">Three.js →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.2}>
+              <SpotlightCard className="h-full">
+                <Link href="/ai-art" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-pink-500/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">AI Art Generator</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Create unique generative art with AI-powered algorithms. Customize styles and parameters.
+                  </p>
+                  <Badge variant="outline" className="bg-pink-500/10 text-pink-500">AI Powered →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.3}>
+              <SpotlightCard className="h-full">
+                <Link href="/physics" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-indigo-500/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Atom className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Physics Playground</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Interactive physics simulation powered by Matter.js. Spawn shapes and watch them interact.
+                  </p>
+                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500">Physics →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.4}>
+              <SpotlightCard className="h-full">
+                <Link href="/shader-studio" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-cyan-500/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Eye className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Shader Studio</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Real-time WebGL fragment shader editor. Create stunning visual effects with GLSL.
+                  </p>
+                  <Badge variant="outline" className="bg-cyan-500/10 text-cyan-500">WebGL →</Badge>
+                </Link>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.5}>
+              <SpotlightCard className="h-full">
+                <div className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-amber-500/50 transition-colors group cursor-pointer" onClick={() => {
+                  const btn = document.querySelector('[data-voice-trigger]') as HTMLButtonElement;
+                  btn?.click();
+                }}>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Mic className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Voice Navigation</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Control the portfolio with your voice! Try saying "go home" or "show projects".
+                  </p>
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-500">Voice AI →</Badge>
+                </div>
+              </SpotlightCard>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.6}>
+              <SpotlightCard className="h-full">
+                <Link href="/games" className="block p-6 rounded-2xl bg-card border border-border h-full hover:border-green-500/50 transition-colors group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Gamepad2 className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Mini Games</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Play interactive games including typing race, bug bounty, and more fun challenges.
+                  </p>
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500">Play Now →</Badge>
                 </Link>
               </SpotlightCard>
             </ScrollReveal>

@@ -30,6 +30,10 @@ const newNavItems = [
 const moreNavItems = [
   { href: "/analytics", label: "Analytics", badge: "New" },
   { href: "/games", label: "Mini Games", badge: "New" },
+  { href: "/immersive-3d", label: "3D Experience", badge: "V3" },
+  { href: "/ai-art", label: "AI Art Gen", badge: "V3" },
+  { href: "/physics", label: "Physics", badge: "V3" },
+  { href: "/shader-studio", label: "Shaders", badge: "V3" },
   { href: "/v2-features", label: "V2 Features", badge: "New" },
   { href: "/labs", label: "Labs", badge: "New" },
   { href: "/guestbook", label: "Guestbook", badge: "New" },
