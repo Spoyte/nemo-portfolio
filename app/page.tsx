@@ -57,6 +57,12 @@ import { CreativeCodingPlayground } from "@/components/creative-coding-playgroun
 import { GamifiedPortfolio } from "@/components/gamified-portfolio";
 import { AICompanion } from "@/components/ai-companion";
 import { AIChatAssistant } from "@/components/ai-chat-assistant";
+import { DeveloperFocusMode } from "@/components/developer-focus-mode";
+import { ApiPlayground } from "@/components/api-playground";
+import { DesignTokenStudio } from "@/components/design-token-studio";
+import { CodeCompareTool } from "@/components/code-compare-tool";
+import { CodeTypingCinema } from "@/components/code-typing-cinema";
+import { GitCompare, Type, Palette, Terminal, Brain, Clock } from "lucide-react";
 
 const features = [
   {
