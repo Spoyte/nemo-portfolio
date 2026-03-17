@@ -5,282 +5,203 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Play, 
   Pause, 
-  Volume2, 
-  VolumeX, 
+  RotateCcw, 
   Music, 
   Code2, 
+  Volume2, 
+  VolumeX,
   Sparkles,
-  RefreshCw,
-  Download,
-  Settings2,
-  Wand2
+  Wand2,
+  Settings2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 
-// Musical scales
-const SCALES = {
-  pentatonic: [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24],
-  major: [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24],
-  minor: [0, 2, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 20, 22, 24],
-  blues: [0, 3, 5, 6, 7, 10, 12, 15, 17, 18, 19, 22, 24],
-  chromatic: Array.from({ length: 25 }, (_, i) => i),
-};
-
-// Base frequencies for notes (C4 = 261.63)
-const BASE_FREQ = 261.63;
-
 interface Note {
-  freq: number;
-  time: number;
+  id: string;
+  frequency: number;
   duration: number;
-  amplitude: number;
+  type: OscillatorType;
+  x: number;
+  y: number;
   color: string;
-  code: string;
+  symbol: string;
 }
 
-interface CodePattern {
+interface CodeInstrument {
+  id: string;
   name: string;
-  code: string;
-  pattern: number[];
-  rhythm: number[];
+  symbol: string;
   color: string;
+  baseFreq: number;
+  type: OscillatorType;
+  pattern: string[];
 }
 
-const CODE_PATTERNS: CodePattern[] = [
-  {
-    name: "Fibonacci Loop",
-    code: "for (let i = 0; i < n; i++) { sum += fib(i); }",
-    pattern: [0, 1, 1, 2, 3, 5, 8, 5, 3, 2, 1, 1],
-    rhythm: [0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 1, 0.5, 0.25, 0.25, 0.5, 0.5],
-    color: "#f59e0b",
-  },
-  {
-    name: "Recursive Call",
-    code: "function recurse(n) { return n <= 1 ? 1 : n * recurse(n-1); }",
-    pattern: [0, 2, 4, 7, 4, 2, 0, -2, 0, 2, 4, 7],
-    rhythm: [0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25],
-    color: "#8b5cf6",
-  },
-  {
-    name: "Async Await",
-    code: "async function fetch() { const data = await api.get(); return data; }",
-    pattern: [4, 4, 7, 7, 9, 9, 7, 5, 5, 4, 4, 2],
-    rhythm: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 0.5, 0.5, 0.5, 0.5, 1],
-    color: "#06b6d4",
-  },
-  {
-    name: "Map Reduce",
-    code: "const sum = items.map(x => x * 2).reduce((a, b) => a + b, 0);",
-    pattern: [7, 5, 4, 2, 0, 2, 4, 5, 7, 9, 7, 5],
-    rhythm: [0.25, 0.25, 0.25, 0.25, 0.5, 0.25, 0.25, 0.25, 0.25, 0.5, 0.25, 0.25],
-    color: "#ec4899",
-  },
-  {
-    name: "Binary Search",
-    code: "while (low <= high) { mid = (low + high) / 2; if (arr[mid] === target) return mid; }",
-    pattern: [0, 12, 6, 9, 7, 8, 7, 6, 4, 2, 1, 0],
-    rhythm: [0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5],
-    color: "#10b981",
-  },
+const instruments: CodeInstrument[] = [
+  { id: "functions", name: "Functions", symbol: "ƒ", color: "#60a5fa", baseFreq: 261.63, type: "sine", pattern: ["function", "=>", "()", "return"] },
+  { id: "variables", name: "Variables", symbol: "var", color: "#f472b6", baseFreq: 329.63, type: "triangle", pattern: ["const", "let", "var", "="] },
+  { id: "loops", name: "Loops", symbol: "∞", color: "#a78bfa", baseFreq: 392.00, type: "sawtooth", pattern: ["for", "while", "map", "forEach"] },
+  { id: "conditions", name: "Conditions", symbol: "if", color: "#fbbf24", baseFreq: 523.25, type: "square", pattern: ["if", "else", "?", ":"] },
+  { id: "objects", name: "Objects", symbol: "{}", color: "#34d399", baseFreq: 440.00, type: "sine", pattern: ["{", "}", ":", "."] },
+  { id: "arrays", name: "Arrays", symbol: "[]", color: "#fb923c", baseFreq: 493.88, type: "triangle", pattern: ["[", "]", "push", "filter"] },
+];
+
+const codeSnippets = [
+  "const symphony = () => {",
+  "  const notes = [];",
+  "  for (let i = 0; i < 8; i++) {",
+  "    if (i % 2 === 0) {",
+  "      notes.push({ freq: 440 });",
+  "    } else {",
+  "      notes.push({ freq: 880 });",
+  "    }",
+  "  }",
+  "  return notes.map(n => n.freq);",
+  "};",
 ];
 
 export function CodeSymphony() {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(0.5);
-  const [bpm, setBpm] = useState(120);
-  const [scale, setScale] = useState<keyof typeof SCALES>("pentatonic");
-  const [currentPattern, setCurrentPattern] = useState(0);
+  const [currentLine, setCurrentLine] = useState(0);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
-  const [generatedCode, setGeneratedCode] = useState("");
-  
+  const [volume, setVolume] = useState(0.3);
+  const [isMuted, setIsMuted] = useState(false);
+  const [activeInstrument, setActiveInstrument] = useState<string | null>(null);
+  const [bpm, setBpm] = useState(120);
+  const [showParticles, setShowParticles] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize audio context
   const initAudio = useCallback(() => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
   }, []);
 
-  // Play a note
-  const playNote = useCallback((freq: number, duration: number, amplitude: number) => {
+  const playNote = useCallback((instrument: CodeInstrument, time: number) => {
     if (!audioContextRef.current || isMuted) return;
 
     const ctx = audioContextRef.current;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
 
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+    oscillator.type = instrument.type;
+    oscillator.frequency.setValueAtTime(instrument.baseFreq, time);
+    
+    // Add some randomness to frequency for variety
+    const detune = (Math.random() - 0.5) * 100;
+    oscillator.detune.setValueAtTime(detune, time);
 
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(freq * 4, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(volume * 0.3, time + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
 
-    gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(amplitude * volume * 0.3, ctx.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-    oscillator.connect(filter);
-    filter.connect(gainNode);
+    oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + duration);
+    oscillator.start(time);
+    oscillator.stop(time + 0.5);
 
-    // Add harmonics for richer sound
-    const harmonic = ctx.createOscillator();
-    const harmonicGain = ctx.createGain();
-    harmonic.type = "triangle";
-    harmonic.frequency.setValueAtTime(freq * 2, ctx.currentTime);
-    harmonicGain.gain.setValueAtTime(0, ctx.currentTime);
-    harmonicGain.gain.linearRampToValueAtTime(amplitude * volume * 0.1, ctx.currentTime + 0.01);
-    harmonicGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration * 0.5);
-
-    harmonic.connect(harmonicGain);
-    harmonicGain.connect(ctx.destination);
-    harmonic.start(ctx.currentTime);
-    harmonic.stop(ctx.currentTime + duration);
-  }, [isMuted, volume]);
-
-  // Generate notes from code pattern
-  const generateNotes = useCallback((pattern: CodePattern): Note[] => {
-    const scaleNotes = SCALES[scale];
-    const notes: Note[] = [];
-    let currentTime = 0;
-
-    pattern.pattern.forEach((noteIndex, i) => {
-      const scaleIndex = Math.abs(noteIndex) % scaleNotes.length;
-      const octave = Math.floor(Math.abs(noteIndex) / scaleNotes.length) + 4;
-      const semitones = scaleNotes[scaleIndex] + (octave - 4) * 12;
-      const freq = BASE_FREQ * Math.pow(2, semitones / 12);
+    // Create visual note
+    const container = containerRef.current;
+    if (container && showParticles) {
+      const rect = container.getBoundingClientRect();
+      const x = Math.random() * rect.width;
+      const y = Math.random() * rect.height * 0.6 + rect.height * 0.2;
       
-      notes.push({
-        freq,
-        time: currentTime,
-        duration: pattern.rhythm[i] * (60 / bpm),
-        amplitude: 0.5 + Math.random() * 0.3,
-        color: pattern.color,
-        code: pattern.code.slice(i * 3, i * 3 + 10),
-      });
-
-      currentTime += pattern.rhythm[i] * (60 / bpm);
-    });
-
-    return notes;
-  }, [scale, bpm]);
-
-  // Animation loop
-  const animate = useCallback(() => {
-    if (!audioContextRef.current) return;
-
-    const currentTime = audioContextRef.current.currentTime - startTimeRef.current;
-    const pattern = CODE_PATTERNS[currentPattern];
-    const patternDuration = pattern.rhythm.reduce((a, b) => a + b, 0) * (60 / bpm);
-    
-    const loopTime = currentTime % patternDuration;
-    const currentNotes = generateNotes(pattern);
-    
-    const newActiveNotes = new Set<number>();
-    currentNotes.forEach((note, index) => {
-      if (loopTime >= note.time && loopTime < note.time + note.duration) {
-        newActiveNotes.add(index);
-        if (!activeNotes.has(index)) {
-          playNote(note.freq, note.duration, note.amplitude);
-        }
-      }
-    });
-    
-    setActiveNotes(newActiveNotes);
-    setNotes(currentNotes);
-
-    // Update generated code visualization
-    const codeProgress = Math.floor((loopTime / patternDuration) * pattern.code.length);
-    setGeneratedCode(pattern.code.slice(0, codeProgress) + "|");
-
-    if (isPlaying) {
-      animationRef.current = requestAnimationFrame(animate);
+      const newNote: Note = {
+        id: Math.random().toString(36).substr(2, 9),
+        frequency: instrument.baseFreq,
+        duration: 0.5,
+        type: instrument.type,
+        x,
+        y,
+        color: instrument.color,
+        symbol: instrument.symbol,
+      };
+      
+      setNotes(prev => [...prev.slice(-20), newNote]);
     }
-  }, [isPlaying, currentPattern, bpm, scale, activeNotes, playNote, generateNotes]);
+  }, [volume, isMuted, showParticles]);
 
-  useEffect(() => {
-    if (isPlaying) {
-      initAudio();
-      startTimeRef.current = audioContextRef.current?.currentTime || 0;
-      animationRef.current = requestAnimationFrame(animate);
-    } else {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    }
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying, animate, initAudio]);
-
-  // Canvas visualization
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const draw = () => {
-      const width = canvas.offsetWidth;
-      const height = canvas.offsetHeight;
-
-      ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-      ctx.fillRect(0, 0, width, height);
-
-      notes.forEach((note, index) => {
-        const x = (note.time / (notes[notes.length - 1]?.time || 1)) * width;
-        const y = height - (note.freq / 1000) * height * 0.8;
-        const isActive = activeNotes.has(index);
-
-        ctx.beginPath();
-        ctx.arc(x, y, isActive ? 8 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? note.color : `${note.color}40`;
-        ctx.fill();
-
-        if (isActive) {
-          ctx.beginPath();
-          ctx.arc(x, y, 20, 0, Math.PI * 2);
-          ctx.strokeStyle = `${note.color}40`;
-          ctx.stroke();
+  const analyzeCode = useCallback((line: string) => {
+    const detectedInstruments: CodeInstrument[] = [];
+    
+    instruments.forEach(inst => {
+      inst.pattern.forEach(pattern => {
+        if (line.includes(pattern)) {
+          detectedInstruments.push(inst);
         }
       });
+    });
 
-      requestAnimationFrame(draw);
+    return detectedInstruments;
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    initAudio();
+    const interval = (60 / bpm) * 1000;
+
+    const playSequence = () => {
+      const line = codeSnippets[currentLine];
+      const detectedInstruments = analyzeCode(line);
+      
+      if (audioContextRef.current && detectedInstruments.length > 0) {
+        const now = audioContextRef.current.currentTime;
+        detectedInstruments.forEach((inst, i) => {
+          playNote(inst, now + i * 0.1);
+        });
+      }
+
+      setCurrentLine(prev => (prev + 1) % codeSnippets.length);
     };
 
-    draw();
+    const timer = setInterval(playSequence, interval);
+    return () => clearInterval(timer);
+  }, [isPlaying, currentLine, bpm, analyzeCode, playNote, initAudio]);
 
-    return () => window.removeEventListener("resize", resize);
-  }, [notes, activeNotes]);
+  // Cleanup notes animation
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      setNotes(prev => prev.filter(note => {
+        const age = Date.now() - parseInt(note.id, 36);
+        return age < 2000;
+      }));
+    }, 100);
+    return () => clearInterval(cleanup);
+  }, []);
 
-  const pattern = CODE_PATTERNS[currentPattern];
+  const handlePlay = () => {
+    initAudio();
+    if (audioContextRef.current?.state === "suspended") {
+      audioContextRef.current.resume();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleReset = () => {
+    setIsPlaying(false);
+    setCurrentLine(0);
+    setNotes([]);
+  };
+
+  const playInstrument = (instrument: CodeInstrument) => {
+    initAudio();
+    if (audioContextRef.current?.state === "suspended") {
+      audioContextRef.current.resume();
+    }
+    setActiveInstrument(instrument.id);
+    playNote(instrument, audioContextRef.current!.currentTime);
+    setTimeout(() => setActiveInstrument(null), 200);
+  };
 
   return (
-    <section className="py-24 border-y border-border/50">
+    <section className="py-24 border-y border-border/50 bg-gradient-to-b from-background via-purple-950/5 to-background overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -293,190 +214,266 @@ export function CodeSymphony() {
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
             transition={{ type: "spring", stiffness: 200 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 text-purple-500 mb-6"
           >
             <Music className="h-4 w-4" />
-            <span className="text-sm font-medium">Code Symphony</span>
+            <span className="text-sm font-medium">Interactive Audio</span>
           </motion.div>
 
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Where Code Becomes{" "}
-            <span className="text-gradient-animated">Music</span>
+            Code{" "}
+            <span className="text-gradient-animated">Symphony</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Experience algorithms as melodies. Each code pattern generates unique musical sequences.
+            Experience code as music. Each syntax element plays a unique sound, 
+            creating a symphony from programming patterns.
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Player */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Visualization Canvas */}
-            <div className="relative aspect-video rounded-2xl bg-black/90 overflow-hidden border border-border">
-              <canvas
-                ref={canvasRef}
-                className="absolute inset-0 w-full h-full"
-              />
-              
-              {/* Overlay Info */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-4 left-4">
-                  <Badge variant="outline" className="bg-black/50 text-white border-white/20">
-                    {pattern.name}
-                  </Badge>
-                </div>
-                
-                {/* Active Notes Indicator */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="flex items-center gap-1">
-                    {notes.map((note, index) => (
-                      <motion.div
-                        key={index}
-                        className="h-8 flex-1 rounded-sm"
-                        animate={{
-                          backgroundColor: activeNotes.has(index) ? note.color : "#333",
-                          scaleY: activeNotes.has(index) ? 1 : 0.3,
-                        }}
-                        transition={{ duration: 0.1 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Code Display */}
-            <div className="p-6 rounded-2xl bg-card border border-border font-mono text-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <Code2 className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">Source Code</span>
-              </div>
-              <pre className="text-foreground overflow-x-auto">
-                <code>{generatedCode || pattern.code}</code>
-              </pre>
-            </div>
-
-            {/* Controls */}
-            <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-card border border-border">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="h-12 w-12"
-              >
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsMuted(!isMuted)}
-              >
-                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-              </Button>
-
-              <div className="flex-1 min-w-[120px]">
-                <label className="text-xs text-muted-foreground mb-1 block">Volume</label>
-                <Slider
-                  value={[volume * 100]}
-                  onValueChange={([v]) => setVolume(v / 100)}
-                  max={100}
-                  step={1}
-                />
+          {/* Code Display */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="lg:col-span-2"
+          >
+            <div 
+              ref={containerRef}
+              className="relative rounded-2xl bg-slate-950 border border-slate-800 p-6 min-h-[400px] overflow-hidden"
+            >
+              {/* Background Effects */}
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(rgba(139,92,246,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
               </div>
 
-              <div className="flex-1 min-w-[120px]">
-                <label className="text-xs text-muted-foreground mb-1 block">BPM</label>
-                <Slider
-                  value={[bpm]}
-                  onValueChange={([v]) => setBpm(v)}
-                  min={60}
-                  max={200}
-                  step={5}
-                />
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentPattern((prev) => (prev + 1) % CODE_PATTERNS.length)}
-              >
-                <RefreshCw className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Pattern Selector */}
-          <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Code Patterns
-            </h3>
-            
-            <div className="space-y-2">
-              {CODE_PATTERNS.map((p, index) => (
-                <button
-                  key={p.name}
-                  onClick={() => setCurrentPattern(index)}
-                  className={`w-full p-4 rounded-xl border text-left transition-all ${
-                    currentPattern === index
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: p.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{p.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {p.code.slice(0, 40)}...
-                      </p>
+              {/* Floating Notes */}
+              <AnimatePresence>
+                {notes.map((note) => (
+                  <motion.div
+                    key={note.id}
+                    initial={{ opacity: 0, scale: 0, y: 0 }}
+                    animate={{ 
+                      opacity: [0, 1, 0],
+                      scale: [0.5, 1.5, 0.5],
+                      y: -100,
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="absolute pointer-events-none"
+                    style={{ left: note.x, top: note.y }}
+                  >
+                    <div 
+                      className="text-2xl font-bold"
+                      style={{ 
+                        color: note.color,
+                        textShadow: `0 0 20px ${note.color}`,
+                      }}
+                    >
+                      {note.symbol}
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {/* Code Lines */}
+              <div className="relative z-10 font-mono text-sm md:text-base space-y-2">
+                {codeSnippets.map((line, index) => {
+                  const isActive = index === currentLine;
+                  const detectedInstruments = isActive ? analyzeCode(line) : [];
+                  
+                  return (
+                    <motion.div
+                      key={index}
+                      animate={{
+                        backgroundColor: isActive ? "rgba(139, 92, 246, 0.2)" : "transparent",
+                        x: isActive ? 10 : 0,
+                      }}
+                      className="flex items-center gap-4 p-2 rounded-lg transition-colors"
+                    >
+                      <span className="text-slate-600 w-8 text-right select-none">
+                        {index + 1}
+                      </span>
+                      <span className={`${isActive ? "text-purple-300" : "text-slate-400"}`}>
+                        {line.split(/(\s+)/).map((part, i) => {
+                          const instrument = instruments.find(inst => 
+                            inst.pattern.some(p => part.includes(p))
+                          );
+                          return instrument ? (
+                            <motion.span
+                              key={i}
+                              animate={isActive ? { 
+                                color: [instrument.color, "#fff", instrument.color],
+                              } : {}}
+                              transition={{ duration: 0.5 }}
+                              style={{ color: instrument.color }}
+                              className="font-semibold"
+                            >
+                              {part}
+                            </motion.span>
+                          ) : (
+                            <span key={i}>{part}</span>
+                          );
+                        })}
+                      </span>
+                      {detectedInstruments.map(inst => (
+                        <motion.span
+                          key={inst.id}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="text-xs px-2 py-1 rounded-full"
+                          style={{ 
+                            backgroundColor: `${inst.color}20`,
+                            color: inst.color,
+                          }}
+                        >
+                          ♪ {inst.name}
+                        </motion.span>
+                      ))}
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Visualizer Bars */}
+              <div className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center gap-1 px-4 pb-4">
+                {Array.from({ length: 30 }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-2 bg-gradient-to-t from-purple-500 to-pink-500 rounded-t"
+                    animate={{
+                      height: isPlaying 
+                        ? [20, Math.random() * 60 + 20, 20]
+                        : 4,
+                    }}
+                    transition={{
+                      duration: 0.5,
+                      repeat: Infinity,
+                      delay: i * 0.05,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Controls */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-6"
+          >
+            {/* Playback Controls */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                Playback
+              </h3>
+              
+              <div className="flex items-center gap-2 mb-6">
+                <Button
+                  variant={isPlaying ? "default" : "outline"}
+                  size="icon"
+                  onClick={handlePlay}
+                  className="h-12 w-12"
+                >
+                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleReset}
+                  className="h-12 w-12"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="h-12 w-12"
+                >
+                  {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">
+                    Tempo (BPM): {bpm}
+                  </label>
+                  <Slider
+                    value={[bpm]}
+                    onValueChange={([v]) => setBpm(v)}
+                    min={60}
+                    max={200}
+                    step={10}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">
+                    Volume: {Math.round(volume * 100)}%
+                  </label>
+                  <Slider
+                    value={[volume * 100]}
+                    onValueChange={([v]) => setVolume(v / 100)}
+                    min={0}
+                    max={100}
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Scale Selector */}
-            <div className="pt-4 border-t border-border">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Settings2 className="h-4 w-4 text-primary" />
-                Musical Scale
+            {/* Instrument Palette */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Wand2 className="h-4 w-4" />
+                Instruments
               </h3>
+              
               <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(SCALES) as Array<keyof typeof SCALES>).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setScale(s)}
-                    className={`px-3 py-2 rounded-lg text-sm capitalize transition-colors ${
-                      scale === s
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary hover:bg-secondary/80"
+                {instruments.map((instrument) => (
+                  <motion.button
+                    key={instrument.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => playInstrument(instrument)}
+                    className={`p-3 rounded-xl border transition-all text-left ${
+                      activeInstrument === instrument.id
+                        ? "border-purple-500 bg-purple-500/10"
+                        : "border-border hover:border-purple-500/50"
                     }`}
                   >
-                    {s}
-                  </button>
+                    <div 
+                      className="text-2xl mb-1"
+                      style={{ color: instrument.color }}
+                    >
+                      {instrument.symbol}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {instrument.name}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/60">
+                      {instrument.baseFreq.toFixed(0)}Hz
+                    </div>
+                  </motion.button>
                 ))}
               </div>
             </div>
 
-            {/* Fun Fact */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-orange-500/10 border border-primary/20">
-              <div className="flex items-start gap-3">
-                <Wand2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm mb-1">Did you know?</p>
-                  <p className="text-xs text-muted-foreground">
-                    The Fibonacci sequence appears in music through the golden ratio. 
-                    Many classical compositions follow these mathematical patterns!
-                  </p>
-                </div>
-              </div>
+            {/* Legend */}
+            <div className="p-4 rounded-xl bg-muted/50 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <span>Click instruments to play manually</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Code2 className="h-4 w-4 text-purple-500" />
+                <span>Code elements trigger sounds automatically</span>
+              </p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

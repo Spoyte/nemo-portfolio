@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falling Words — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.2);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Falling Words</div>
+    <div class="status" id="status">Click to interact</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script src="lib/nemo-art-kit.js"></script>
+    <script>
+        // Canvas setup with high-DPI support
+        const SIZE = 800;
+        const { canvas, ctx } = NemoArt.wrapCanvas('canvas', SIZE, SIZE);
+        
+        // Animation loop
+        const loop = NemoArt.createLoop(render, { fps: 60 });
+        
+        // State
+        let particles = [];
+        
+        // Palette
+        const palette = NemoArt.Palette.ethereal;
+        
+        function init() {
+            // Clear with background
+            const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE);
+            bg.addColorStop(0, '#1a0a2e');
+            bg.addColorStop(0.5, '#0d0d1a');
+            bg.addColorStop(1, '#050508');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // TODO: Initialize your algorithm
+            particles = [];
+        }
+        
+        function render({ time, deltaTime, frameCount }) {
+            // TODO: Implement your generative art algorithm
+            // Example: subtle fade for trails
+            // ctx.fillStyle = 'rgba(5, 5, 8, 0.02)';
+            // ctx.fillRect(0, 0, SIZE, SIZE);
+        }
+        
+        function regenerate() {
+            loop.stop();
+            init();
+            loop.start();
+        }
+        
+        function togglePause() {
+            loop.toggle();
+            document.getElementById('pauseBtn').textContent = 
+                loop.isRunning ? 'Pause' : 'Resume';
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'falling-words-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Interaction
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            // TODO: Add click interaction
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            }
+        });
+        
+        // Start
+        init();
+        loop.start();
+    </script>
+</body>
+</html>

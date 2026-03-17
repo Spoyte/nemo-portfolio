@@ -68,6 +68,11 @@ import { AIArtGenerator } from "@/components/ai-art-generator";
 import { VoiceInterface } from "@/components/voice-interface";
 import { PhysicsPlayground } from "@/components/physics-playground";
 import { ShaderStudio } from "@/components/shader-studio";
+import { CodeSymphony } from "@/components/code-symphony";
+import { NeuralNetworkVisualizer } from "@/components/neural-network-visualizer";
+import { TimeTravelDebugger } from "@/components/time-travel-debugger";
+import { CollaborativeCanvas } from "@/components/collaborative-canvas";
+import { Music, Network, Bug, Users } from "lucide-react";
 
 const features = [
   {

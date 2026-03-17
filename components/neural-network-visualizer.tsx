@@ -3,24 +3,24 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Brain, 
   Play, 
   Pause, 
   RotateCcw, 
-  Settings,
+  Brain,
   Zap,
   Layers,
-  GitBranch,
-  Sparkles,
-  Info
+  Activity,
+  Settings2,
+  Plus,
+  Minus,
+  MousePointer2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 
 interface Neuron {
-  id: number;
+  id: string;
   x: number;
   y: number;
   layer: number;
@@ -29,8 +29,8 @@ interface Neuron {
 }
 
 interface Connection {
-  from: number;
-  to: number;
+  from: string;
+  to: string;
   weight: number;
 }
 
@@ -41,289 +41,169 @@ interface NetworkConfig {
 }
 
 export function NeuralNetworkVisualizer() {
-  const [config, setConfig] = useState<NetworkConfig>({
-    layers: [3, 5, 4, 2],
-    learningRate: 0.1,
-    activationFunction: "sigmoid",
-  });
-  
   const [neurons, setNeurons] = useState<Neuron[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isTraining, setIsTraining] = useState(false);
   const [epoch, setEpoch] = useState(0);
-  const [loss, setLoss] = useState(1);
-  const [showWeights, setShowWeights] = useState(true);
-  const [selectedNeuron, setSelectedNeuron] = useState<Neuron | null>(null);
-  const [inputData, setInputData] = useState([0.5, 0.3, 0.8]);
-  
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loss, setLoss] = useState(1.0);
+  const [config, setConfig] = useState<NetworkConfig>({
+    layers: [4, 6, 6, 3],
+    learningRate: 0.1,
+    activationFunction: "sigmoid",
+  });
+  const [hoveredNeuron, setHoveredNeuron] = useState<string | null>(null);
+  const [selectedPattern, setSelectedPattern] = useState(0);
+  const svgRef = useRef<SVGSVGElement>(null);
   const animationRef = useRef<number | null>(null);
-
-  // Activation functions
-  const activate = useCallback((x: number, type: string): number => {
-    switch (type) {
-      case "sigmoid":
-        return 1 / (1 + Math.exp(-x));
-      case "relu":
-        return Math.max(0, x);
-      case "tanh":
-        return Math.tanh(x);
-      default:
-        return x;
-    }
-  }, []);
 
   // Initialize network
   const initializeNetwork = useCallback(() => {
     const newNeurons: Neuron[] = [];
     const newConnections: Connection[] = [];
+
     let neuronId = 0;
+    const layerSpacing = 200;
+    const neuronSpacing = 80;
 
     config.layers.forEach((layerSize, layerIndex) => {
+      const layerX = layerIndex * layerSpacing + 100;
+      const startY = 250 - (layerSize * neuronSpacing) / 2 + neuronSpacing / 2;
+
       for (let i = 0; i < layerSize; i++) {
-        newNeurons.push({
-          id: neuronId,
-          x: 0,
-          y: 0,
+        const neuron: Neuron = {
+          id: `n-${neuronId++}`,
+          x: layerX,
+          y: startY + i * neuronSpacing,
           layer: layerIndex,
           activation: Math.random(),
-          bias: (Math.random() - 0.5) * 2,
-        });
-        neuronId++;
-      }
-    });
+          bias: (Math.random() - 0.5) * 0.5,
+        };
+        newNeurons.push(neuron);
 
-    // Create connections between layers
-    let neuronIndex = 0;
-    config.layers.forEach((layerSize, layerIndex) => {
-      if (layerIndex < config.layers.length - 1) {
-        const nextLayerSize = config.layers[layerIndex + 1];
-        const nextLayerStart = neuronIndex + layerSize;
-        
-        for (let i = 0; i < layerSize; i++) {
-          for (let j = 0; j < nextLayerSize; j++) {
+        // Connect to previous layer
+        if (layerIndex > 0) {
+          const prevLayerStart = newNeurons.findIndex(n => n.layer === layerIndex - 1);
+          const prevLayerSize = config.layers[layerIndex - 1];
+          
+          for (let j = 0; j < prevLayerSize; j++) {
+            const prevNeuron = newNeurons[prevLayerStart + j];
             newConnections.push({
-              from: neuronIndex + i,
-              to: nextLayerStart + j,
+              from: prevNeuron.id,
+              to: neuron.id,
               weight: (Math.random() - 0.5) * 2,
             });
           }
         }
       }
-      neuronIndex += layerSize;
     });
 
     setNeurons(newNeurons);
     setConnections(newConnections);
     setEpoch(0);
-    setLoss(1);
+    setLoss(1.0);
   }, [config.layers]);
-
-  // Calculate neuron positions
-  const calculatePositions = useCallback((width: number, height: number) => {
-    const layerWidth = width / (config.layers.length + 1);
-    
-    return neurons.map((neuron) => {
-      const layerX = (neuron.layer + 1) * layerWidth;
-      const layerSize = config.layers[neuron.layer];
-      const neuronSpacing = height / (layerSize + 1);
-      const layerY = (neuron.id % layerSize + 1) * neuronSpacing;
-      
-      return { ...neuron, x: layerX, y: layerY };
-    });
-  }, [neurons, config.layers]);
-
-  // Forward propagation
-  const forwardProp = useCallback(() => {
-    setNeurons((prevNeurons) => {
-      const newNeurons = [...prevNeurons];
-      
-      // Set input layer
-      inputData.forEach((value, i) => {
-        if (newNeurons[i]) {
-          newNeurons[i].activation = value;
-        }
-      });
-
-      // Propagate through layers
-      for (let layer = 1; layer < config.layers.length; layer++) {
-        const layerNeurons = newNeurons.filter((n) => n.layer === layer);
-        const prevLayerNeurons = newNeurons.filter((n) => n.layer === layer - 1);
-        
-        layerNeurons.forEach((neuron) => {
-          let sum = neuron.bias;
-          
-          prevLayerNeurons.forEach((prevNeuron) => {
-            const conn = connections.find(
-              (c) => c.from === prevNeuron.id && c.to === neuron.id
-            );
-            if (conn) {
-              sum += prevNeuron.activation * conn.weight;
-            }
-          });
-          
-          neuron.activation = activate(sum, config.activationFunction);
-        });
-      }
-      
-      return newNeurons;
-    });
-  }, [connections, inputData, config.activationFunction, activate, config.layers.length]);
-
-  // Training simulation
-  const train = useCallback(() => {
-    setConnections((prevConnections) => {
-      return prevConnections.map((conn) => ({
-        ...conn,
-        weight: conn.weight + (Math.random() - 0.5) * config.learningRate * 0.1,
-      }));
-    });
-    
-    setLoss((prev) => Math.max(0.01, prev * 0.99));
-    setEpoch((prev) => prev + 1);
-    forwardProp();
-  }, [config.learningRate, forwardProp]);
-
-  // Animation loop
-  useEffect(() => {
-    if (isTraining) {
-      const interval = setInterval(train, 100);
-      return () => clearInterval(interval);
-    }
-  }, [isTraining, train]);
-
-  // Canvas drawing
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const draw = () => {
-      const width = canvas.offsetWidth;
-      const height = canvas.offsetHeight;
-
-      ctx.clearRect(0, 0, width, height);
-
-      const positionedNeurons = calculatePositions(width, height);
-
-      // Draw connections
-      connections.forEach((conn) => {
-        const fromNeuron = positionedNeurons.find((n) => n.id === conn.from);
-        const toNeuron = positionedNeurons.find((n) => n.id === conn.to);
-        
-        if (fromNeuron && toNeuron) {
-          const gradient = ctx.createLinearGradient(
-            fromNeuron.x, fromNeuron.y, toNeuron.x, toNeuron.y
-          );
-          
-          const alpha = Math.abs(conn.weight) * 0.5 + 0.1;
-          const color = conn.weight > 0 ? "34, 197, 94" : "239, 68, 68";
-          
-          gradient.addColorStop(0, `rgba(${color}, ${alpha})`);
-          gradient.addColorStop(1, `rgba(${color}, ${alpha})`);
-          
-          ctx.beginPath();
-          ctx.moveTo(fromNeuron.x, fromNeuron.y);
-          ctx.lineTo(toNeuron.x, toNeuron.y);
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = Math.abs(conn.weight) * 2;
-          ctx.stroke();
-
-          // Draw weight value if enabled
-          if (showWeights) {
-            const midX = (fromNeuron.x + toNeuron.x) / 2;
-            const midY = (fromNeuron.y + toNeuron.y) / 2;
-            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-            ctx.font = "10px monospace";
-            ctx.textAlign = "center";
-            ctx.fillText(conn.weight.toFixed(2), midX, midY);
-          }
-        }
-      });
-
-      // Draw neurons
-      positionedNeurons.forEach((neuron) => {
-        const radius = 20;
-        const isSelected = selectedNeuron?.id === neuron.id;
-        
-        // Glow effect
-        if (neuron.activation > 0.5 || isSelected) {
-          const gradient = ctx.createRadialGradient(
-            neuron.x, neuron.y, 0,
-            neuron.x, neuron.y, radius * 2
-          );
-          gradient.addColorStop(0, `rgba(99, 102, 241, ${neuron.activation * 0.5})`);
-          gradient.addColorStop(1, "transparent");
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(neuron.x, neuron.y, radius * 2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Neuron body
-        ctx.beginPath();
-        ctx.arc(neuron.x, neuron.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(99, 102, 241, ${0.2 + neuron.activation * 0.8})`;
-        ctx.fill();
-        ctx.strokeStyle = isSelected ? "#f59e0b" : "#6366f1";
-        ctx.lineWidth = isSelected ? 3 : 2;
-        ctx.stroke();
-
-        // Activation value
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(neuron.activation.toFixed(2), neuron.x, neuron.y);
-      });
-
-      animationRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [neurons, connections, calculatePositions, showWeights, selectedNeuron]);
 
   useEffect(() => {
     initializeNetwork();
   }, [initializeNetwork]);
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Training simulation
+  useEffect(() => {
+    if (!isTraining) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * window.devicePixelRatio;
-    const y = (e.clientY - rect.top) * window.devicePixelRatio;
+    const train = () => {
+      setNeurons(prevNeurons => {
+        return prevNeurons.map(neuron => {
+          if (neuron.layer === 0) {
+            // Input layer - simulate data patterns
+            const patterns = [
+              [0.2, 0.8, 0.3, 0.6],
+              [0.9, 0.1, 0.7, 0.4],
+              [0.5, 0.5, 0.5, 0.5],
+              [0.1, 0.9, 0.2, 0.8],
+            ];
+            const pattern = patterns[selectedPattern % patterns.length];
+            const index = prevNeurons.filter(n => n.layer === 0).indexOf(neuron);
+            return {
+              ...neuron,
+              activation: pattern[index] || Math.random(),
+            };
+          }
+          
+          // Hidden and output layers
+          const incomingConnections = connections.filter(c => c.to === neuron.id);
+          let sum = neuron.bias;
+          
+          incomingConnections.forEach(conn => {
+            const fromNeuron = prevNeurons.find(n => n.id === conn.from);
+            if (fromNeuron) {
+              sum += fromNeuron.activation * conn.weight;
+            }
+          });
 
-    const positionedNeurons = calculatePositions(canvas.offsetWidth, canvas.offsetHeight);
-    const clickedNeuron = positionedNeurons.find((n) => {
-      const dx = n.x - x;
-      const dy = n.y - y;
-      return Math.sqrt(dx * dx + dy * dy) < 20;
-    });
+          // Apply activation function
+          let activation: number;
+          switch (config.activationFunction) {
+            case "relu":
+              activation = Math.max(0, sum);
+              break;
+            case "tanh":
+              activation = Math.tanh(sum);
+              break;
+            case "sigmoid":
+            default:
+              activation = 1 / (1 + Math.exp(-sum));
+          }
 
-    setSelectedNeuron(clickedNeuron || null);
+          return {
+            ...neuron,
+            activation: Math.max(0, Math.min(1, activation)),
+          };
+        });
+      });
+
+      setEpoch(e => e + 1);
+      setLoss(l => Math.max(0.01, l * 0.999 + Math.random() * 0.01));
+      setSelectedPattern(p => (p + 1) % 4);
+    };
+
+    const interval = setInterval(train, 200);
+    return () => clearInterval(interval);
+  }, [isTraining, connections, config.activationFunction, selectedPattern]);
+
+  const getNeuronColor = (activation: number) => {
+    const hue = 200 + activation * 60; // Blue to purple
+    const saturation = 70 + activation * 30;
+    const lightness = 40 + activation * 40;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  const getConnectionColor = (weight: number) => {
+    const intensity = Math.abs(weight);
+    if (weight > 0) {
+      return `rgba(34, 197, 94, ${intensity * 0.6})`; // Green for positive
+    }
+    return `rgba(239, 68, 68, ${intensity * 0.6})`; // Red for negative
+  };
+
+  const addLayer = () => {
+    if (config.layers.length < 6) {
+      const newLayers = [...config.layers];
+      newLayers.splice(newLayers.length - 1, 0, 4);
+      setConfig({ ...config, layers: newLayers });
+    }
+  };
+
+  const removeLayer = () => {
+    if (config.layers.length > 2) {
+      const newLayers = [...config.layers];
+      newLayers.splice(newLayers.length - 2, 1);
+      setConfig({ ...config, layers: newLayers });
+    }
   };
 
   return (
-    <section className="py-24 border-y border-border/50 bg-muted/30">
+    <section className="py-24 border-y border-border/50 bg-gradient-to-b from-background via-blue-950/5 to-background overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -336,217 +216,342 @@ export function NeuralNetworkVisualizer() {
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
             transition={{ type: "spring", stiffness: 200 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 text-blue-500 mb-6"
           >
             <Brain className="h-4 w-4" />
-            <span className="text-sm font-medium">Neural Network Playground</span>
+            <span className="text-sm font-medium">AI Visualization</span>
           </motion.div>
 
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Visualize Machine{" "}
-            <span className="text-gradient-animated">Learning</span>
+            Neural Network{" "}
+            <span className="text-gradient-animated">Playground</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Interactive neural network visualization. Watch how data flows through layers and weights adjust during training.
+            Watch a neural network learn in real-time. Visualize activations, 
+            weights, and the flow of information through connected neurons.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Network Visualization */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="relative aspect-[16/10] rounded-2xl bg-black/90 overflow-hidden border border-border">
-              <canvas
-                ref={canvasRef}
-                onClick={handleCanvasClick}
-                className="absolute inset-0 w-full h-full cursor-crosshair"
-              />
-              
-              {/* Overlay Stats */}
-              <div className="absolute top-4 left-4 flex gap-2">
-                <Badge variant="outline" className="bg-black/50 text-white border-white/20">
-                  <Layers className="h-3 w-3 mr-1" />
-                  {config.layers.join(" → ")}
-                </Badge>
-                <Badge variant="outline" className="bg-black/50 text-white border-white/20">
-                  <GitBranch className="h-3 w-3 mr-1" />
-                  Epoch {epoch}
-                </Badge>
-              </div>
-
-              <div className="absolute top-4 right-4">
-                <Badge 
-                  variant="outline" 
-                  className={`border-white/20 ${
-                    loss < 0.1 ? "bg-green-500/50 text-white" : "bg-black/50 text-white"
-                  }`}
-                >
-                  Loss: {loss.toFixed(4)}
-                </Badge>
-              </div>
-
-              {/* Legend */}
-              <div className="absolute bottom-4 left-4 flex gap-4 text-xs text-white/70">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span>Positive Weight</span>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="lg:col-span-3"
+          >
+            <div className="relative rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden">
+              {/* Stats Overlay */}
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+                <div className="flex items-center gap-4">
+                  <Badge variant="outline" className="bg-slate-900/80">
+                    <Activity className="h-3 w-3 mr-1" />
+                    Epoch: {epoch.toLocaleString()}
+                  </Badge>
+                  <Badge variant="outline" className="bg-slate-900/80">
+                    <Layers className="h-3 w-3 mr-1" />
+                    Loss: {loss.toFixed(4)}
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <span>Negative Weight</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Input Controls */}
-            <div className="p-4 rounded-2xl bg-card border border-border">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                Input Values
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                {inputData.map((value, index) => (
-                  <div key={index}>
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      Input {index + 1}
-                    </label>
-                    <Slider
-                      value={[value * 100]}
-                      onValueChange={([v]) => {
-                        const newInput = [...inputData];
-                        newInput[index] = v / 100;
-                        setInputData(newInput);
-                        forwardProp();
-                      }}
-                      max={100}
-                      step={1}
-                    />
-                    <span className="text-xs text-muted-foreground">{value.toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 text-xs text-green-500">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    Positive
                   </div>
-                ))}
+                  <div className="flex items-center gap-1 text-xs text-red-500">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    Negative
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Controls Panel */}
-          <div className="space-y-6">
+              {/* SVG Network */}
+              <svg
+                ref={svgRef}
+                viewBox="0 0 800 500"
+                className="w-full h-[500px]"
+              >
+                {/* Background Grid */}
+                <defs>
+                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148, 163, 184, 0.1)" strokeWidth="1"/>
+                  </pattern>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                {/* Connections */}
+                <g className="connections">
+                  {connections.map((conn, i) => {
+                    const fromNeuron = neurons.find(n => n.id === conn.from);
+                    const toNeuron = neurons.find(n => n.id === conn.to);
+                    if (!fromNeuron || !toNeuron) return null;
+
+                    const isHighlighted = hoveredNeuron === conn.from || hoveredNeuron === conn.to;
+                    
+                    return (
+                      <motion.line
+                        key={`${conn.from}-${conn.to}`}
+                        x1={fromNeuron.x}
+                        y1={fromNeuron.y}
+                        x2={toNeuron.x}
+                        y2={toNeuron.y}
+                        stroke={getConnectionColor(conn.weight)}
+                        strokeWidth={Math.abs(conn.weight) * 3}
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ 
+                          pathLength: 1, 
+                          opacity: isHighlighted ? 1 : 0.3,
+                          strokeWidth: isHighlighted ? Math.abs(conn.weight) * 5 : Math.abs(conn.weight) * 2,
+                        }}
+                        transition={{ duration: 0.5, delay: i * 0.001 }}
+                      />
+                    );
+                  })}
+                </g>
+
+                {/* Neurons */}
+                <g className="neurons">
+                  {neurons.map((neuron, i) => (
+                    <motion.g
+                      key={neuron.id}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: i * 0.02, type: "spring" }}
+                      onMouseEnter={() => setHoveredNeuron(neuron.id)}
+                      onMouseLeave={() => setHoveredNeuron(null)}
+                      className="cursor-pointer"
+                    >
+                      {/* Glow Effect */}
+                      <circle
+                        cx={neuron.x}
+                        cy={neuron.y}
+                        r={25 + neuron.activation * 10}
+                        fill={getNeuronColor(neuron.activation)}
+                        opacity={0.2}
+                        filter="url(#glow)"
+                      />
+                      
+                      {/* Main Circle */}
+                      <motion.circle
+                        cx={neuron.x}
+                        cy={neuron.y}
+                        r={20}
+                        fill={getNeuronColor(neuron.activation)}
+                        stroke="white"
+                        strokeWidth={hoveredNeuron === neuron.id ? 3 : 1}
+                        animate={{
+                          r: 15 + neuron.activation * 10,
+                        }}
+                        transition={{ duration: 0.2 }}
+                      />
+                      
+                      {/* Activation Value */}
+                      <text
+                        x={neuron.x}
+                        y={neuron.y}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="white"
+                        fontSize="10"
+                        fontWeight="bold"
+                      >
+                        {neuron.activation.toFixed(2)}
+                      </text>
+
+                      {/* Layer Label */}
+                      {neuron.layer === 0 && neurons.filter(n => n.layer === 0).indexOf(neuron) === 0 && (
+                        <text
+                          x={neuron.x}
+                          y={neuron.y - 50}
+                          textAnchor="middle"
+                          fill="#94a3b8"
+                          fontSize="12"
+                        >
+                          Input
+                        </text>
+                      )}
+                      {neuron.layer === config.layers.length - 1 && neurons.filter(n => n.layer === config.layers.length - 1).indexOf(neuron) === 0 && (
+                        <text
+                          x={neuron.x}
+                          y={neuron.y - 50}
+                          textAnchor="middle"
+                          fill="#94a3b8"
+                          fontSize="12"
+                        >
+                          Output
+                        </text>
+                      )}
+                    </motion.g>
+                  ))}
+                </g>
+
+                {/* Data Flow Animation */}
+                {isTraining && connections.slice(0, 20).map((conn, i) => {
+                  const fromNeuron = neurons.find(n => n.id === conn.from);
+                  const toNeuron = neurons.find(n => n.id === conn.to);
+                  if (!fromNeuron || !toNeuron) return null;
+
+                  return (
+                    <motion.circle
+                      key={`pulse-${i}`}
+                      r={4}
+                      fill="#fbbf24"
+                      filter="url(#glow)"
+                      animate={{
+                        cx: [fromNeuron.x, toNeuron.x],
+                        cy: [fromNeuron.y, toNeuron.y],
+                      }}
+                      transition={{
+                        duration: 0.5,
+                        repeat: Infinity,
+                        delay: i * 0.1,
+                        ease: "linear",
+                      }}
+                    />
+                  );
+                })}
+              </svg>
+            </div>
+          </motion.div>
+
+          {/* Controls */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-6"
+          >
             {/* Training Controls */}
             <div className="p-6 rounded-2xl bg-card border border-border">
-              <h3 className="font-semibold mb-4">Training</h3>
-              <div className="flex gap-2">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Training
+              </h3>
+              
+              <div className="flex items-center gap-2 mb-6">
                 <Button
+                  variant={isTraining ? "default" : "outline"}
                   onClick={() => setIsTraining(!isTraining)}
                   className="flex-1"
-                  variant={isTraining ? "destructive" : "default"}
                 >
-                  {isTraining ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                  {isTraining ? "Stop" : "Train"}
+                  {isTraining ? (
+                    <><Pause className="h-4 w-4 mr-2" /> Pause</>
+                  ) : (
+                    <><Play className="h-4 w-4 mr-2" /> Train</>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
+                  size="icon"
                   onClick={() => {
-                    initializeNetwork();
                     setIsTraining(false);
+                    initializeNetwork();
                   }}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
 
-            {/* Network Settings */}
-            <div className="p-6 rounded-2xl bg-card border border-border">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Configuration
-              </h3>
-              
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Learning Rate</label>
+                  <label className="text-sm text-muted-foreground mb-2 block">
+                    Learning Rate: {config.learningRate}
+                  </label>
                   <Slider
                     value={[config.learningRate * 100]}
                     onValueChange={([v]) => setConfig({ ...config, learningRate: v / 100 })}
+                    min={1}
                     max={50}
-                    step={1}
                   />
-                  <span className="text-xs text-muted-foreground">{config.learningRate.toFixed(2)}</span>
                 </div>
+              </div>
+            </div>
 
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Activation</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {["sigmoid", "relu", "tanh"].map((fn) => (
-                      <button
-                        key={fn}
-                        onClick={() => setConfig({ ...config, activationFunction: fn as any })}
-                        className={`px-3 py-2 rounded-lg text-xs capitalize transition-colors ${
-                          config.activationFunction === fn
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary"
-                        }`}
-                      >
-                        {fn}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
+            {/* Architecture */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                Architecture
+              </h3>
+              
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Show Weights</span>
-                  <Switch checked={showWeights} onCheckedChange={setShowWeights} />
-                </div>
-              </div>
-            </div>
-
-            {/* Selected Neuron Info */}
-            <AnimatePresence>
-              {selectedNeuron && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/10 border border-primary/20"
-                >
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Info className="h-4 w-4 text-primary" />
-                    Neuron Details
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">ID</span>
-                      <span>#{selectedNeuron.id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Layer</span>
-                      <span>{selectedNeuron.layer + 1}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Activation</span>
-                      <span>{selectedNeuron.activation.toFixed(4)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Bias</span>
-                      <span>{selectedNeuron.bias.toFixed(4)}</span>
-                    </div>
+                  <span className="text-sm text-muted-foreground">Hidden Layers</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={removeLayer}
+                      disabled={config.layers.length <= 2}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-8 text-center font-mono">
+                      {config.layers.length - 2}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={addLayer}
+                      disabled={config.layers.length >= 6}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
 
-            {/* Fun Fact */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-200 dark:border-purple-800">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm mb-1">Neural networks are inspired by brains!</p>
-                  <p className="text-xs text-muted-foreground">
-                    Each artificial neuron mimics how biological neurons fire signals. 
-                    The connections (synapses) strengthen with training, just like learning!
-                  </p>
+                <div className="flex flex-wrap gap-2">
+                  {config.layers.map((size, i) => (
+                    <Badge 
+                      key={i} 
+                      variant={i === 0 ? "default" : i === config.layers.length - 1 ? "secondary" : "outline"}
+                    >
+                      {i === 0 ? "In" : i === config.layers.length - 1 ? "Out" : `H${i}`}: {size}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* Activation Function */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h3 className="font-semibold mb-4">Activation</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {(["sigmoid", "relu", "tanh"] as const).map((fn) => (
+                  <Button
+                    key={fn}
+                    variant={config.activationFunction === fn ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setConfig({ ...config, activationFunction: fn })}
+                    className="text-xs"
+                  >
+                    {fn.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="p-4 rounded-xl bg-muted/50 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2 mb-2">
+                <MousePointer2 className="h-4 w-4" />
+                <span>Hover over neurons to highlight connections</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                <span>Watch activations flow through the network</span>
+              </p>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
