@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Less, But Better — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        
+        .quote {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(160, 160, 192, 0.4);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Less, But Better</div>
+    <div class="status" id="status">Click to breathe</div>
+    <canvas id="canvas"></canvas>
+    <div class="quote">"Weniger, aber besser" — Dieter Rams</div>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script src="lib/nemo-art-kit.js"></script>
+    <script>
+        // Canvas setup with high-DPI support
+        const SIZE = 800;
+        const { canvas, ctx } = NemoArt.wrapCanvas('canvas', SIZE, SIZE);
+        
+        // Animation loop
+        const loop = NemoArt.createLoop(render, { fps: 60 });
+        
+        // State — minimal, focused
+        let config = {
+            baseRadius: 180,
+            breatheSpeed: 0.0008,
+            hueBase: 220,
+            hueRange: 40,
+            segments: 360,
+            noiseAmount: 0.03,
+            trailFade: 0.08
+        };
+        
+        let time = 0;
+        let breathPhase = 0;
+        let mouseInfluence = { x: 0, y: 0, active: false };
+        let clickPulse = 0;
+        
+        // One perfect circle — the only element
+        function init() {
+            // Deep, calm background
+            const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE * 0.8);
+            bg.addColorStop(0, '#0d0d14');
+            bg.addColorStop(0.5, '#08080c');
+            bg.addColorStop(1, '#050508');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Reset state
+            time = 0;
+            breathPhase = Math.random() * Math.PI * 2;
+            clickPulse = 0;
+            
+            // Randomize palette slightly for variety
+            config.hueBase = 200 + Math.random() * 60;
+            config.breatheSpeed = 0.0005 + Math.random() * 0.001;
+        }
+        
+        function render({ time: t, deltaTime, frameCount }) {
+            time += deltaTime;
+            
+            // Subtle trail fade — just enough for motion
+            ctx.fillStyle = `rgba(5, 5, 8, ${config.trailFade})`;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Breathing rhythm — organic, slow
+            breathPhase += config.breatheSpeed * deltaTime;
+            const breathe = Math.sin(breathPhase) * 0.5 + 0.5; // 0 to 1
+            const breathe2 = Math.sin(breathPhase * 0.7 + 1) * 0.5 + 0.5; // Secondary rhythm
+            
+            // Click pulse decays
+            clickPulse *= 0.95;
+            
+            // Calculate radius with all influences
+            const breatheRadius = config.baseRadius + breathe * 30 + breathe2 * 15;
+            const pulseRadius = clickPulse * 50;
+            const mouseRadius = mouseInfluence.active ? 
+                Math.sqrt(mouseInfluence.x ** 2 + mouseInfluence.y ** 2) * 0.1 : 0;
+            const radius = breatheRadius + pulseRadius + mouseRadius;
+            
+            // Center with subtle drift
+            const centerX = SIZE / 2 + Math.sin(time * 0.0003) * 10;
+            const centerY = SIZE / 2 + Math.cos(time * 0.0004) * 10;
+            
+            // Draw the one circle — composed of many points for organic feel
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            
+            // Glow effect
+            const glowIntensity = 0.3 + breathe * 0.2 + clickPulse * 0.3;
+            ctx.shadowBlur = 30 + breathe * 20;
+            ctx.shadowColor = `hsla(${config.hueBase + breathe * config.hueRange}, 60%, 60%, ${glowIntensity})`;
+            
+            // The circle path
+            ctx.beginPath();
+            
+            for (let i = 0; i <= config.segments; i++) {
+                const angle = (i / config.segments) * Math.PI * 2;
+                
+                // Organic variation — Perlin-like noise approximation
+                const noise1 = Math.sin(angle * 3 + time * 0.001) * Math.cos(angle * 2 - time * 0.0008);
+                const noise2 = Math.sin(angle * 7 + time * 0.002) * 0.5;
+                const noise3 = Math.sin(angle * 13 + breathePhase) * 0.25;
+                const organicOffset = (noise1 + noise2 + noise3) * radius * config.noiseAmount;
+                
+                // Mouse influence creates ripple
+                let mouseOffset = 0;
+                if (mouseInfluence.active) {
+                    const mouseAngle = Math.atan2(mouseInfluence.y, mouseInfluence.x);
+                    const angleDiff = Math.abs(angle - mouseAngle);
+                    const wrappedDiff = Math.min(angleDiff, Math.PI * 2 - angleDiff);
+                    if (wrappedDiff < 0.5) {
+                        mouseOffset = (0.5 - wrappedDiff) * 30 * (1 - Math.min(1, Math.sqrt(mouseInfluence.x ** 2 + mouseInfluence.y ** 2) / 200));
+                    }
+                }
+                
+                const r = radius + organicOffset + mouseOffset;
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.closePath();
+            
+            // Stroke with dynamic color
+            const hue = config.hueBase + breathe * config.hueRange;
+            const saturation = 50 + breathe * 20;
+            const lightness = 50 + breathe2 * 20 + clickPulse * 20;
+            const alpha = 0.6 + breathe * 0.3;
+            
+            ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+            ctx.lineWidth = 2 + breathe;
+            ctx.stroke();
+            
+            // Optional: subtle fill for depth
+            ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${0.02 + breathe * 0.02})`;
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // Inner point — the center of attention
+            ctx.shadowBlur = 20 + clickPulse * 30;
+            ctx.shadowColor = `hsla(${config.hueBase}, 70%, 70%, ${0.5 + clickPulse})`;
+            ctx.fillStyle = `hsla(${config.hueBase}, 60%, 80%, ${0.8 + clickPulse * 0.2})`;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 3 + breathe * 2 + clickPulse * 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        function regenerate() {
+            loop.stop();
+            init();
+            loop.start();
+        }
+        
+        function togglePause() {
+            loop.toggle();
+            document.getElementById('pauseBtn').textContent = 
+                loop.isRunning ? 'Pause' : 'Resume';
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'less-but-better-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Interaction — subtle, responsive
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width) - SIZE / 2;
+            const y = (e.clientY - rect.top) * (SIZE / rect.height) - SIZE / 2;
+            mouseInfluence.x = x;
+            mouseInfluence.y = y;
+            mouseInfluence.active = true;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            mouseInfluence.active = false;
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            clickPulse = 1;
+            
+            // Visual feedback
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            // Brief ripple at click point
+            ctx.save();
+            ctx.strokeStyle = `hsla(${config.hueBase}, 70%, 70%, 0.5)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyB') {
+                // B for breathe — trigger pulse
+                clickPulse = 1;
+            }
+        });
+        
+        // Start
+        init();
+        loop.start();
+    </script>
+</body>
+</html>

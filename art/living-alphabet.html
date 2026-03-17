@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Living Alphabet — Organic Typography</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: right;
+        }
+        
+        .word-input {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #d0c0f0;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            letter-spacing: 2px;
+            text-align: center;
+            width: 300px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .word-input:focus {
+            outline: none;
+            border-color: rgba(140, 120, 220, 0.8);
+            box-shadow: 0 0 20px rgba(100, 80, 200, 0.2);
+        }
+        
+        .word-input::placeholder {
+            color: rgba(160, 160, 192, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Living Alphabet</div>
+    <div class="status" id="status">Type to grow words</div>
+    <canvas id="canvas"></canvas>
+    <input type="text" class="word-input" id="wordInput" placeholder="TYPE HERE" maxlength="20" autocomplete="off">
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="randomWord()">Random</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script src="lib/nemo-art-kit.js"></script>
+    <script>
+        const SIZE = 800;
+        const { canvas, ctx } = NemoArt.wrapCanvas('canvas', SIZE, SIZE);
+        const loop = NemoArt.createLoop(render, { fps: 60 });
+        
+        // Alphabet as living organisms
+        const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const VOWELS = 'AEIOU';
+        
+        // Word bank for random generation
+        const WORD_BANK = [
+            'GROW', 'LIFE', 'BREATH', 'PULSE', 'FLOW',
+            'WAVE', 'LIGHT', 'SEED', 'ROOT', 'BLOOM',
+            'NEURAL', 'CHAOS', 'ORDER', 'FORM', 'VOID',
+            'DREAM', 'STARS', 'OCEAN', 'FLAME', 'SPARK',
+            'EMERGE', 'EVOLVE', 'CREATE', 'BECOME', 'ALIVE'
+        ];
+        
+        // Living letter class
+        class LivingLetter {
+            constructor(char, x, y, index, total) {
+                this.char = char;
+                this.targetX = x;
+                this.targetY = y;
+                this.x = x + (Math.random() - 0.5) * 100;
+                this.y = y + (Math.random() - 0.5) * 100;
+                this.index = index;
+                this.total = total;
+                
+                // Life properties
+                this.birthTime = performance.now();
+                this.age = 0;
+                this.lifeForce = 0;
+                this.targetLifeForce = 0.5 + Math.random() * 0.5;
+                
+                // Visual properties
+                this.baseSize = 40 + Math.random() * 30;
+                this.size = 0;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.pulseSpeed = 0.001 + Math.random() * 0.002;
+                
+                // Color
+                this.hue = 200 + Math.random() * 60;
+                if (VOWELS.includes(char)) {
+                    this.hue = 320 + Math.random() * 40; // Vowels are warmer
+                }
+                this.saturation = 60 + Math.random() * 30;
+                this.lightness = 50 + Math.random() * 20;
+                
+                // Connections
+                this.connections = [];
+                this.energy = 0;
+                
+                // Movement
+                this.vx = 0;
+                this.vy = 0;
+                this.noiseOffset = Math.random() * 1000;
+            }
+            
+            update(time, deltaTime, allLetters, mouse) {
+                this.age = time - this.birthTime;
+                
+                // Grow into existence
+                const growthDuration = 1000;
+                if (this.age < growthDuration) {
+                    this.lifeForce = (this.age / growthDuration) * this.targetLifeForce;
+                    this.size = this.baseSize * (this.age / growthDuration);
+                } else {
+                    this.lifeForce = this.targetLifeForce;
+                    this.size = this.baseSize;
+                }
+                
+                // Pulse with life
+                this.pulsePhase += this.pulseSpeed * deltaTime;
+                const pulse = Math.sin(this.pulsePhase) * 0.2 + 0.8;
+                this.energy = this.lifeForce * pulse;
+                
+                // Find connections to nearby letters
+                this.connections = [];
+                for (let other of allLetters) {
+                    if (other === this) continue;
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 150 && this.energy > 0.3 && other.energy > 0.3) {
+                        this.connections.push({
+                            letter: other,
+                            distance: dist,
+                            strength: 1 - (dist / 150)
+                        });
+                    }
+                }
+                
+                // Organic movement toward target
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                this.vx += dx * 0.001;
+                this.vy += dy * 0.001;
+                
+                // Add organic noise movement
+                const noiseX = Math.sin(time * 0.0005 + this.noiseOffset) * 0.3;
+                const noiseY = Math.cos(time * 0.0007 + this.noiseOffset) * 0.3;
+                this.vx += noiseX;
+                this.vy += noiseY;
+                
+                // Mouse influence (gentle repulsion/attraction)
+                if (mouse.active) {
+                    const mdx = this.x - mouse.x;
+                    const mdy = this.y - mouse.y;
+                    const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+                    if (mDist < 200 && mDist > 0) {
+                        const force = (1 - mDist / 200) * 0.5;
+                        this.vx += (mdx / mDist) * force;
+                        this.vy += (mdy / mDist) * force;
+                    }
+                }
+                
+                // Damping
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                
+                // Apply velocity
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+            
+            draw(ctx, time) {
+                if (this.lifeForce <= 0.01) return;
+                
+                const pulseSize = this.size * (0.9 + this.energy * 0.2);
+                const alpha = this.lifeForce;
+                
+                // Glow
+                ctx.shadowBlur = 20 * this.energy;
+                ctx.shadowColor = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${alpha * 0.5})`;
+                
+                // Draw connections first (behind letter)
+                for (let conn of this.connections) {
+                    const gradient = ctx.createLinearGradient(
+                        this.x, this.y, conn.letter.x, conn.letter.y
+                    );
+                    gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${conn.strength * alpha * 0.3})`);
+                    gradient.addColorStop(1, `hsla(${conn.letter.hue}, ${conn.letter.saturation}%, ${conn.letter.lightness}%, ${conn.strength * conn.letter.lifeForce * 0.3})`);
+                    
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = conn.strength * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(conn.letter.x, conn.letter.y);
+                    ctx.stroke();
+                    
+                    // Energy pulse along connection
+                    const pulsePos = (time * 0.0005 + this.index * 0.1) % 1;
+                    const px = this.x + (conn.letter.x - this.x) * pulsePos;
+                    const py = this.y + (conn.letter.y - this.y) * pulsePos;
+                    
+                    ctx.fillStyle = `hsla(${(this.hue + conn.letter.hue) / 2}, 80%, 70%, ${conn.strength * alpha * 0.5})`;
+                    ctx.beginPath();
+                    ctx.arc(px, py, conn.strength * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Draw letter
+                ctx.fillStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${alpha})`;
+                ctx.font = `${Math.floor(pulseSize)}px 'SF Mono', Monaco, monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.char, this.x, this.y);
+                
+                // Inner glow dot
+                ctx.fillStyle = `hsla(${this.hue}, ${this.saturation}%, 90%, ${alpha * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3 * this.energy, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+            }
+        }
+        
+        // State
+        let letters = [];
+        let currentWord = 'LIFE';
+        let mouse = { x: 0, y: 0, active: false };
+        
+        function createLetters(word) {
+            letters = [];
+            const spacing = Math.min(80, (SIZE - 100) / word.length);
+            const startX = (SIZE - (word.length - 1) * spacing) / 2;
+            const centerY = SIZE / 2;
+            
+            for (let i = 0; i < word.length; i++) {
+                const x = startX + i * spacing;
+                const y = centerY + Math.sin(i * 0.5) * 20;
+                letters.push(new LivingLetter(word[i], x, y, i, word.length));
+            }
+        }
+        
+        function render({ time, deltaTime }) {
+            // Fade background slightly for trails
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Update and draw letters
+            for (let letter of letters) {
+                letter.update(time, deltaTime, letters, mouse);
+            }
+            
+            // Draw connections first
+            for (let letter of letters) {
+                for (let conn of letter.connections) {
+                    if (letter.index < conn.letter.index) { // Draw once
+                        const gradient = ctx.createLinearGradient(
+                            letter.x, letter.y, conn.letter.x, conn.letter.y
+                        );
+                        gradient.addColorStop(0, `hsla(${letter.hue}, ${letter.saturation}%, ${letter.lightness}%, ${conn.strength * letter.lifeForce * 0.4})`);
+                        gradient.addColorStop(0.5, `hsla(${(letter.hue + conn.letter.hue) / 2}, 70%, 60%, ${conn.strength * Math.min(letter.lifeForce, conn.letter.lifeForce) * 0.5})`);
+                        gradient.addColorStop(1, `hsla(${conn.letter.hue}, ${conn.letter.saturation}%, ${conn.letter.lightness}%, ${conn.strength * conn.letter.lifeForce * 0.4})`);
+                        
+                        ctx.strokeStyle = gradient;
+                        ctx.lineWidth = conn.strength * 3;
+                        ctx.beginPath();
+                        ctx.moveTo(letter.x, letter.y);
+                        ctx.lineTo(conn.letter.x, conn.letter.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Draw letters
+            for (let letter of letters) {
+                letter.draw(ctx, time);
+            }
+            
+            // Update status
+            const avgLife = letters.length > 0 
+                ? letters.reduce((sum, l) => sum + l.lifeForce, 0) / letters.length 
+                : 0;
+            document.getElementById('status').textContent = 
+                `${letters.length} cells • ${(avgLife * 100).toFixed(0)}% vitality`;
+        }
+        
+        function regenerate() {
+            createLetters(currentWord);
+        }
+        
+        function togglePause() {
+            loop.toggle();
+            document.getElementById('pauseBtn').textContent = 
+                loop.isRunning ? 'Pause' : 'Resume';
+        }
+        
+        function clearCanvas() {
+            letters = [];
+            currentWord = '';
+            document.getElementById('wordInput').value = '';
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+        }
+        
+        function randomWord() {
+            const word = WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)];
+            document.getElementById('wordInput').value = word;
+            setWord(word);
+        }
+        
+        function setWord(word) {
+            currentWord = word.toUpperCase().replace(/[^A-Z]/g, '');
+            if (currentWord.length > 0) {
+                createLetters(currentWord);
+            }
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = `living-alphabet-${currentWord.toLowerCase()}-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Input handling
+        const wordInput = document.getElementById('wordInput');
+        wordInput.addEventListener('input', (e) => {
+            setWord(e.target.value);
+        });
+        
+        wordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                regenerate();
+            }
+        });
+        
+        // Mouse interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = (e.clientX - rect.left) * (SIZE / rect.width);
+            mouse.y = (e.clientY - rect.top) * (SIZE / rect.height);
+            mouse.active = true;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            mouse.active = false;
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            // Add energy pulse at click location
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            for (let letter of letters) {
+                const dx = letter.x - x;
+                const dy = letter.y - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 100) {
+                    letter.lifeForce = Math.min(1, letter.lifeForce + 0.3);
+                    letter.pulsePhase = 0;
+                }
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target === wordInput) return;
+            
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyR') {
+                randomWord();
+            } else if (e.code === 'KeyC') {
+                clearCanvas();
+            }
+        });
+        
+        // Initialize
+        ctx.fillStyle = '#0a0a0f';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        createLetters(currentWord);
+        loop.start();
+    </script>
+</body>
+</html>
