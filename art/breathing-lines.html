@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing Lines — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 80px rgba(100, 80, 200, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Breathing Lines</div>
+    <div class="status" id="status">Click to ripple</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="toggleColorMode()" id="colorBtn">Colors</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup with high-DPI support
+        const SIZE = 800;
+        const canvas = document.getElementById('canvas');
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        
+        // Animation state
+        let isRunning = true;
+        let animationId = null;
+        let frameCount = 0;
+        let colorMode = 0; // 0 = monochrome, 1 = warm, 2 = cool, 3 = rainbow
+        
+        // Parameters — minimal but expressive
+        const LINE_COUNT = 24;
+        const AMPLITUDE_BASE = 40;
+        const FREQUENCY_BASE = 0.015;
+        const SPEED_BASE = 0.0003;
+        
+        // Ripple effect state
+        let ripples = [];
+        
+        // Color palettes — each one "less but better"
+        const palettes = [
+            // Monochrome — pure form
+            { bg: '#0a0a0f', lines: ['#e8e8f0', '#d0d0e0', '#b8b8d0', '#a0a0c0'] },
+            // Warm — sunset breath
+            { bg: '#0f080a', lines: ['#ffd4a3', '#ffb896', '#ff9c8a', '#ff807e'] },
+            // Cool — ocean calm
+            { bg: '#080a0f', lines: ['#a3d4ff', '#96c8ff', '#8abcff', '#7eb0ff'] },
+            // Rainbow — full spectrum, still restrained
+            { bg: '#0a0a0f', lines: ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff'] }
+        ];
+        
+        // Seeded random for reproducibility
+        let seed = Math.random() * 10000;
+        function random() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
+        
+        function setSeed(s) {
+            seed = s;
+        }
+        
+        // Easing functions for organic movement
+        function easeInOutSine(t) {
+            return -(Math.cos(Math.PI * t) - 1) / 2;
+        }
+        
+        function easeInOutQuad(t) {
+            return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        }
+        
+        // Clear canvas with gradient background
+        function clear() {
+            const p = palettes[colorMode];
+            const gradient = ctx.createRadialGradient(
+                SIZE / 2, SIZE / 2, 0,
+                SIZE / 2, SIZE / 2, SIZE * 0.8
+            );
+            gradient.addColorStop(0, p.bg);
+            gradient.addColorStop(0.5, p.bg);
+            gradient.addColorStop(1, '#000000');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+        }
+        
+        // Get color for a line based on its index and position
+        function getLineColor(lineIndex, yProgress) {
+            const p = palettes[colorMode];
+            const colorIndex = (lineIndex + Math.floor(yProgress * 3)) % p.lines.length;
+            return p.lines[colorIndex];
+        }
+        
+        // Draw a single breathing line
+        function drawLine(y, time, lineIndex) {
+            const p = palettes[colorMode];
+            ctx.beginPath();
+            
+            // Each line has slightly different phase and frequency
+            const phase = lineIndex * 0.3;
+            const freq = FREQUENCY_BASE + lineIndex * 0.002;
+            const amp = AMPLITUDE_BASE + Math.sin(time * 0.001 + phase) * 15;
+            
+            // Breathing effect — amplitude pulses slowly
+            const breath = easeInOutSine((Math.sin(time * SPEED_BASE * 3 + phase) + 1) / 2);
+            const currentAmp = amp * (0.7 + breath * 0.6);
+            
+            // Draw the sine wave
+            for (let x = 0; x <= SIZE; x += 2) {
+                // Base sine wave
+                let yOffset = Math.sin(x * freq + time * SPEED_BASE + phase) * currentAmp;
+                
+                // Add subtle secondary wave for complexity
+                yOffset += Math.sin(x * freq * 2.3 + time * SPEED_BASE * 1.7) * (currentAmp * 0.3);
+                
+                // Apply ripple effects
+                for (const ripple of ripples) {
+                    const dx = x - ripple.x;
+                    const dy = y - ripple.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const rippleAge = (time - ripple.startTime) / 1000;
+                    
+                    if (rippleAge > 0 && rippleAge < ripple.duration) {
+                        const rippleProgress = rippleAge / ripple.duration;
+                        const rippleStrength = (1 - rippleProgress) * ripple.amplitude;
+                        const ripplePhase = dist * 0.05 - rippleAge * 5;
+                        yOffset += Math.sin(ripplePhase) * rippleStrength * Math.exp(-dist * 0.003);
+                    }
+                }
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y + yOffset);
+                } else {
+                    ctx.lineTo(x, y + yOffset);
+                }
+            }
+            
+            // Line styling — subtle variation
+            const alpha = 0.4 + breath * 0.4;
+            const lineWidth = 1 + breath * 0.5;
+            
+            ctx.strokeStyle = getLineColor(lineIndex, y / SIZE);
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        
+        // Main render function
+        function render(time) {
+            clear();
+            
+            // Update ripples — remove expired ones
+            ripples = ripples.filter(r => (time - r.startTime) / 1000 < r.duration);
+            
+            // Draw all breathing lines
+            const spacing = SIZE / (LINE_COUNT + 1);
+            for (let i = 0; i < LINE_COUNT; i++) {
+                const y = spacing * (i + 1);
+                drawLine(y, time, i);
+            }
+            
+            // Subtle vignette overlay
+            const vignette = ctx.createRadialGradient(
+                SIZE / 2, SIZE / 2, SIZE * 0.3,
+                SIZE / 2, SIZE / 2, SIZE * 0.7
+            );
+            vignette.addColorStop(0, 'rgba(0,0,0,0)');
+            vignette.addColorStop(1, 'rgba(0,0,0,0.3)');
+            ctx.fillStyle = vignette;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            frameCount++;
+        }
+        
+        // Animation loop
+        function animate(time) {
+            if (!isRunning) return;
+            render(time);
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Controls
+        function regenerate() {
+            setSeed(Math.random() * 10000);
+            ripples = [];
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) {
+                animate(performance.now());
+            } else {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function toggleColorMode() {
+            colorMode = (colorMode + 1) % palettes.length;
+            const modes = ['Mono', 'Warm', 'Cool', 'Rainbow'];
+            document.getElementById('colorBtn').textContent = modes[colorMode];
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'breathing-lines-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Interaction — click creates ripples
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            ripples.push({
+                x: x,
+                y: y,
+                startTime: performance.now(),
+                duration: 3, // seconds
+                amplitude: 30
+            });
+            
+            // Keep only recent ripples
+            if (ripples.length > 5) {
+                ripples.shift();
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyC') {
+                toggleColorMode();
+            }
+        });
+        
+        // Start
+        animate(performance.now());
+    </script>
+</body>
+</html>
