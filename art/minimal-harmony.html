@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Harmony — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+        }
+        
+        canvas {
+            box-shadow: 0 0 80px rgba(255, 255, 255, 0.02);
+            border-radius: 1px;
+        }
+        
+        .info {
+            position: fixed;
+            bottom: 50px;
+            text-align: center;
+            font-size: 10px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="info">Minimal Harmony — Three frequencies, one rhythm</div>
+
+    <script>
+        // Minimal Harmony
+        // Three circles. Three frequencies. One composition.
+        // Less, but better — Dieter Rams would approve.
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const SIZE = 700;
+        const dpr = window.devicePixelRatio || 1;
+        
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Time — the only variable that moves
+        let time = 0;
+        
+        // Three circles in harmonic relationship
+        // Frequencies chosen for visual consonance: 1 : 1.5 : 2
+        const circles = [
+            { freq: 1.0, amp: 120, phase: 0, size: 40, alpha: 0.9 },
+            { freq: 1.5, amp: 80, phase: Math.PI / 3, size: 25, alpha: 0.6 },
+            { freq: 2.0, amp: 50, phase: Math.PI * 2 / 3, size: 15, alpha: 0.4 }
+        ];
+        
+        // Trail history for each circle
+        const trails = circles.map(() => []);
+        const MAX_TRAIL = 80;
+        
+        function draw() {
+            // Fade background — creates motion blur effect
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.15)';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            const centerX = SIZE / 2;
+            const centerY = SIZE / 2;
+            
+            // Calculate positions
+            const positions = circles.map((c, i) => {
+                const t = time * c.freq + c.phase;
+                return {
+                    x: centerX + Math.cos(t) * c.amp,
+                    y: centerY + Math.sin(t) * c.amp,
+                    size: c.size,
+                    alpha: c.alpha
+                };
+            });
+            
+            // Add to trails
+            positions.forEach((pos, i) => {
+                trails[i].push({ x: pos.x, y: pos.y });
+                if (trails[i].length > MAX_TRAIL) trails[i].shift();
+            });
+            
+            // Draw connection lines between circles
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(positions[0].x, positions[0].y);
+            ctx.lineTo(positions[1].x, positions[1].y);
+            ctx.lineTo(positions[2].x, positions[2].y);
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Draw trails
+            trails.forEach((trail, i) => {
+                if (trail.length < 2) return;
+                
+                ctx.beginPath();
+                ctx.moveTo(trail[0].x, trail[0].y);
+                
+                for (let j = 1; j < trail.length; j++) {
+                    const p = trail[j];
+                    ctx.lineTo(p.x, p.y);
+                }
+                
+                const c = circles[i];
+                const gradient = ctx.createLinearGradient(
+                    trail[0].x, trail[0].y,
+                    trail[trail.length - 1].x, trail[trail.length - 1].y
+                );
+                gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
+                gradient.addColorStop(1, `rgba(255, 255, 255, ${c.alpha * 0.5})`);
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+            
+            // Draw circles
+            positions.forEach((pos, i) => {
+                const c = circles[i];
+                
+                // Outer glow
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, pos.size * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha * 0.1})`;
+                ctx.fill();
+                
+                // Main circle
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, pos.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`;
+                ctx.fill();
+                
+                // Inner highlight
+                ctx.beginPath();
+                ctx.arc(pos.x - pos.size * 0.3, pos.y - pos.size * 0.3, pos.size * 0.2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha * 0.5})`;
+                ctx.fill();
+            });
+            
+            // Center point — the anchor
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fill();
+            
+            // Four corner guides — precision, restraint
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+            ctx.lineWidth = 1;
+            const m = 30;
+            const l = 12;
+            
+            // Top left
+            ctx.beginPath();
+            ctx.moveTo(m, m + l); ctx.lineTo(m, m); ctx.lineTo(m + l, m);
+            ctx.stroke();
+            
+            // Top right
+            ctx.beginPath();
+            ctx.moveTo(SIZE - m - l, m); ctx.lineTo(SIZE - m, m); ctx.lineTo(SIZE - m, m + l);
+            ctx.stroke();
+            
+            // Bottom left
+            ctx.beginPath();
+            ctx.moveTo(m, SIZE - m - l); ctx.lineTo(m, SIZE - m); ctx.lineTo(m + l, SIZE - m);
+            ctx.stroke();
+            
+            // Bottom right
+            ctx.beginPath();
+            ctx.moveTo(SIZE - m - l, SIZE - m); ctx.lineTo(SIZE - m, SIZE - m); ctx.lineTo(SIZE - m, SIZE - m - l);
+            ctx.stroke();
+        }
+        
+        function animate() {
+            time += 0.008;
+            draw();
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

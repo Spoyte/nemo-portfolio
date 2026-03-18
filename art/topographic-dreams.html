@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topographic Dreams — Perlin Terrain</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0d1117;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        .container {
+            position: relative;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+        }
+        .canvas-wrapper {
+            position: relative;
+            box-shadow: 0 0 80px rgba(100, 180, 220, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        .controls {
+            background: rgba(20, 25, 35, 0.95);
+            padding: 24px;
+            border-radius: 12px;
+            width: 280px;
+            border: 1px solid rgba(100, 180, 220, 0.2);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .controls h3 {
+            color: #7cc;
+            font-size: 13px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .controls h2 {
+            color: #9dd;
+            font-size: 16px;
+            margin-bottom: 20px;
+            font-weight: normal;
+        }
+        .control-group {
+            margin-bottom: 18px;
+        }
+        .control-group label {
+            display: block;
+            color: #8aa;
+            font-size: 11px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            margin-bottom: 4px;
+            accent-color: #7cc;
+        }
+        .value-display {
+            color: #7cc;
+            font-size: 11px;
+            text-align: right;
+        }
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: rgba(100, 180, 220, 0.15);
+            border: 1px solid rgba(100, 180, 220, 0.3);
+            color: #7cc;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 80px;
+        }
+        button:hover {
+            background: rgba(100, 180, 220, 0.25);
+            border-color: rgba(100, 180, 220, 0.5);
+        }
+        button.active {
+            background: rgba(100, 180, 220, 0.4);
+            border-color: #7cc;
+        }
+        .info {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: rgba(100, 180, 220, 0.6);
+            font-size: 10px;
+            pointer-events: none;
+        }
+        .elevation-legend {
+            position: absolute;
+            right: 15px;
+            bottom: 15px;
+            background: rgba(10, 15, 25, 0.9);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(100, 180, 220, 0.2);
+        }
+        .legend-title {
+            color: #8aa;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .legend-gradient {
+            width: 20px;
+            height: 120px;
+            background: linear-gradient(to top, 
+                #1a3a4a 0%,
+                #2d5a6a 20%,
+                #4a8a7a 40%,
+                #7ab88a 60%,
+                #b8d89a 80%,
+                #f0f8d0 100%
+            );
+            border-radius: 3px;
+            position: relative;
+        }
+        .legend-labels {
+            position: absolute;
+            left: 28px;
+            top: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #6aa;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .controls {
+                width: 100%;
+                max-width: 400px;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="terrain" width="600" height="600"></canvas>
+            <div class="info">
+                Perlin Noise Terrain | Click to seed new landscape
+            </div>
+            <div class="elevation-legend">
+                <div class="legend-title">Elevation</div>
+                <div style="position: relative;">
+                    <div class="legend-gradient"></div>
+                    <div class="legend-labels">
+                        <span>Peak</span>
+                        <span>High</span>
+                        <span>Mid</span>
+                        <span>Low</span>
+                        <span>Sea</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="controls">
+            <h3>Generative Terrain</h3>
+            <h2>Topographic Dreams</h2>
+            
+            <div class="control-group">
+                <label>View Mode</label>
+                <div class="button-group">
+                    <button id="mode-contours" class="active">Contours</button>
+                    <button id="mode-shaded">Shaded</button>
+                    <button id="mode-hybrid">Hybrid</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Terrain Scale <span class="value-display" id="scale-val">100</span></label>
+                <input type="range" id="scale" min="30" max="250" value="100">
+            </div>
+            
+            <div class="control-group">
+                <label>Octaves <span class="value-display" id="octaves-val">4</span></label>
+                <input type="range" id="octaves" min="1" max="8" value="4">
+            </div>
+            
+            <div class="control-group">
+                <label>Persistence <span class="value-display" id="persistence-val">0.5</span></label>
+                <input type="range" id="persistence" min="0.1" max="0.9" step="0.1" value="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label>Contour Levels <span class="value-display" id="levels-val">32</span></label>
+                <input type="range" id="levels" min="8" max="64" value="32">
+            </div>
+            
+            <div class="control-group">
+                <label>Animation Speed <span class="value-display" id="speed-val">0.5</span></label>
+                <input type="range" id="speed" min="0" max="2" step="0.1" value="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label>Water Level <span class="value-display" id="water-val">0.3</span></label>
+                <input type="range" id="water" min="0" max="0.6" step="0.05" value="0.3">
+            </div>
+            
+            <div class="control-group">
+                <label>Color Palette</label>
+                <div class="button-group">
+                    <button id="palette-natural" class="active">Natural</button>
+                    <button id="palette-thermal">Thermal</button>
+                    <button id="palette-mono">Mono</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="button-group">
+                    <button id="btn-regenerate">New Terrain</button>
+                    <button id="btn-pause">Pause</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="button-group">
+                    <button id="btn-export">Export PNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Perlin Noise Implementation
+        class PerlinNoise {
+            constructor() {
+                this.p = new Uint8Array(512);
+                this.perm = new Uint8Array(512);
+                this.grad3 = [
+                    [1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],
+                    [1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],
+                    [0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]
+                ];
+                this.seed(Math.random());
+            }
+            
+            seed(value) {
+                // Simple seeded random
+                let s = value * 12345;
+                const random = () => {
+                    s = (s * 16807) % 2147483647;
+                    return (s / 2147483647);
+                };
+                
+                // Fill permutation table
+                for (let i = 0; i < 256; i++) {
+                    this.p[i] = i;
+                }
+                for (let i = 255; i > 0; i--) {
+                    const j = Math.floor(random() * (i + 1));
+                    [this.p[i], this.p[j]] = [this.p[j], this.p[i]];
+                }
+                for (let i = 0; i < 512; i++) {
+                    this.perm[i] = this.p[i & 255];
+                }
+            }
+            
+            dot(g, x, y) {
+                return g[0] * x + g[1] * y;
+            }
+            
+            mix(a, b, t) {
+                return (1 - t) * a + t * b;
+            }
+            
+            fade(t) {
+                return t * t * t * (t * (t * 6 - 15) + 10);
+            }
+            
+            noise2D(x, y) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                
+                x -= Math.floor(x);
+                y -= Math.floor(y);
+                
+                const u = this.fade(x);
+                const v = this.fade(y);
+                
+                const A = this.perm[X] + Y;
+                const B = this.perm[X + 1] + Y;
+                
+                const g1 = this.grad3[this.perm[A] % 12];
+                const g2 = this.grad3[this.perm[B] % 12];
+                const g3 = this.grad3[this.perm[A + 1] % 12];
+                const g4 = this.grad3[this.perm[B + 1] % 12];
+                
+                const n1 = this.dot(g1, x, y);
+                const n2 = this.dot(g2, x - 1, y);
+                const n3 = this.dot(g3, x, y - 1);
+                const n4 = this.dot(g4, x - 1, y - 1);
+                
+                return this.mix(this.mix(n1, n2, u), this.mix(n3, n4, u), v);
+            }
+        }
+        
+        // Terrain Generator
+        class TerrainGenerator {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = canvas.width;
+                this.height = canvas.height;
+                this.perlin = new PerlinNoise();
+                
+                // Parameters
+                this.scale = 100;
+                this.octaves = 4;
+                this.persistence = 0.5;
+                this.contourLevels = 32;
+                this.animationSpeed = 0.5;
+                this.waterLevel = 0.3;
+                this.viewMode = 'contours'; // contours, shaded, hybrid
+                this.palette = 'natural'; // natural, thermal, mono
+                
+                // Animation
+                this.time = 0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.isAnimating = true;
+                this.seed = Math.random();
+                
+                // Height map cache
+                this.heightMap = new Float32Array(this.width * this.height);
+                
+                this.generateHeightMap();
+                this.setupEvents();
+                this.animate();
+            }
+            
+            generateHeightMap() {
+                this.perlin.seed(this.seed);
+                
+                let i = 0;
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        let amplitude = 1;
+                        let frequency = 1 / this.scale;
+                        let noise = 0;
+                        let maxValue = 0;
+                        
+                        for (let o = 0; o < this.octaves; o++) {
+                            const nx = (x + this.offsetX) * frequency;
+                            const ny = (y + this.offsetY) * frequency;
+                            noise += this.perlin.noise2D(nx, ny) * amplitude;
+                            maxValue += amplitude;
+                            amplitude *= this.persistence;
+                            frequency *= 2;
+                        }
+                        
+                        // Normalize to 0-1
+                        this.heightMap[i++] = (noise / maxValue + 1) / 2;
+                    }
+                }
+            }
+            
+            getElevation(x, y) {
+                if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
+                return this.heightMap[y * this.width + x];
+            }
+            
+            getColor(elevation, isContour = false) {
+                const t = Math.max(0, Math.min(1, elevation));
+                
+                if (this.palette === 'thermal') {
+                    // Thermal/infrared style
+                    if (t < this.waterLevel) return `hsl(220, 70%, ${20 + t * 100}%)`;
+                    const hue = 240 - (t - this.waterLevel) / (1 - this.waterLevel) * 240;
+                    return `hsl(${hue}, 80%, ${30 + t * 40}%)`;
+                } else if (this.palette === 'mono') {
+                    // Monochrome cartographic
+                    if (t < this.waterLevel) return `hsl(200, 30%, ${10 + t * 30}%)`;
+                    const l = 15 + t * 70;
+                    return `hsl(200, 10%, ${l}%)`;
+                } else {
+                    // Natural topographic
+                    if (t < this.waterLevel * 0.3) return '#1a3a5a'; // Deep water
+                    if (t < this.waterLevel) return `hsl(200, 50%, ${20 + (t / this.waterLevel) * 20}%)`; // Shallow water
+                    if (t < this.waterLevel + 0.1) return '#c4b896'; // Beach/sand
+                    if (t < 0.5) return `hsl(100, ${30 + t * 40}%, ${30 + (t - this.waterLevel) * 40}%)`; // Low vegetation
+                    if (t < 0.7) return `hsl(80, ${40 + t * 20}%, ${40 + (t - 0.5) * 30}%)`; // Mid vegetation
+                    if (t < 0.85) return `hsl(60, 30%, ${50 + (t - 0.7) * 30}%)`; // High vegetation
+                    return `hsl(${40 - (t - 0.85) * 200}, ${20 + (t - 0.85) * 60}%, ${70 + (t - 0.85) * 30}%)`; // Snow/peak
+                }
+            }
+            
+            render() {
+                const imageData = this.ctx.createImageData(this.width, this.height);
+                const data = imageData.data;
+                
+                const contourInterval = 1 / this.contourLevels;
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const idx = y * this.width + x;
+                        const elevation = this.heightMap[idx];
+                        
+                        let r, g, b;
+                        
+                        if (this.viewMode === 'contours') {
+                            // Pure contour lines
+                            const contourLevel = Math.floor(elevation / contourInterval);
+                            const contourFrac = (elevation % contourInterval) / contourInterval;
+                            const isLine = contourFrac < 0.15 || contourFrac > 0.98;
+                            
+                            if (isLine) {
+                                const intensity = 0.3 + elevation * 0.7;
+                                r = g = b = Math.floor(40 + intensity * 120);
+                            } else {
+                                // Subtle background
+                                const bg = Math.floor(10 + elevation * 15);
+                                r = g = b = bg;
+                            }
+                        } else if (this.viewMode === 'shaded') {
+                            // Shaded relief
+                            const color = this.getColor(elevation);
+                            const hsl = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                            if (hsl) {
+                                const h = parseInt(hsl[1]);
+                                const s = parseInt(hsl[2]);
+                                let l = parseInt(hsl[3]);
+                                
+                                // Simple shading based on slope
+                                const dx = this.getElevation(x + 1, y) - this.getElevation(x - 1, y);
+                                const dy = this.getElevation(x, y + 1) - this.getElevation(x, y - 1);
+                                const slope = Math.sqrt(dx * dx + dy * dy);
+                                l = Math.max(5, Math.min(95, l - slope * 30 + dx * 20));
+                                
+                                const rgb = this.hslToRgb(h / 360, s / 100, l / 100);
+                                r = rgb[0];
+                                g = rgb[1];
+                                b = rgb[2];
+                            } else {
+                                // Hex color
+                                const hex = color.replace('#', '');
+                                r = parseInt(hex.substr(0, 2), 16);
+                                g = parseInt(hex.substr(2, 2), 16);
+                                b = parseInt(hex.substr(4, 2), 16);
+                            }
+                        } else {
+                            // Hybrid: shaded with contour overlay
+                            const color = this.getColor(elevation);
+                            const contourLevel = Math.floor(elevation / contourInterval);
+                            const contourFrac = (elevation % contourInterval) / contourInterval;
+                            const isLine = contourFrac < 0.08;
+                            
+                            if (isLine) {
+                                r = g = b = Math.floor(60 + elevation * 100);
+                            } else {
+                                const hsl = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                                if (hsl) {
+                                    const h = parseInt(hsl[1]);
+                                    const s = parseInt(hsl[2]);
+                                    let l = parseInt(hsl[3]);
+                                    
+                                    // Subtle shading
+                                    const dx = this.getElevation(x + 1, y) - this.getElevation(x - 1, y);
+                                    l = Math.max(5, Math.min(95, l + dx * 15));
+                                    
+                                    const rgb = this.hslToRgb(h / 360, s / 100, l / 100);
+                                    r = rgb[0];
+                                    g = rgb[1];
+                                    b = rgb[2];
+                                } else {
+                                    const hex = color.replace('#', '');
+                                    r = parseInt(hex.substr(0, 2), 16);
+                                    g = parseInt(hex.substr(2, 2), 16);
+                                    b = parseInt(hex.substr(4, 2), 16);
+                                }
+                            }
+                        }
+                        
+                        const pixelIdx = idx * 4;
+                        data[pixelIdx] = r;
+                        data[pixelIdx + 1] = g;
+                        data[pixelIdx + 2] = b;
+                        data[pixelIdx + 3] = 255;
+                    }
+                }
+                
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+            
+            hslToRgb(h, s, l) {
+                let r, g, b;
+                
+                if (s === 0) {
+                    r = g = b = l;
+                } else {
+                    const hue2rgb = (p, q, t) => {
+                        if (t < 0) t += 1;
+                        if (t > 1) t -= 1;
+                        if (t < 1/6) return p + (q - p) * 6 * t;
+                        if (t < 1/2) return q;
+                        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                        return p;
+                    };
+                    
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    r = hue2rgb(p, q, h + 1/3);
+                    g = hue2rgb(p, q, h);
+                    b = hue2rgb(p, q, h - 1/3);
+                }
+                
+                return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+            }
+            
+            animate() {
+                if (this.isAnimating) {
+                    this.time += 0.016 * this.animationSpeed;
+                    
+                    // Subtle drift animation
+                    if (this.animationSpeed > 0) {
+                        this.offsetX = Math.sin(this.time * 0.3) * 20 * this.animationSpeed;
+                        this.offsetY = Math.cos(this.time * 0.2) * 15 * this.animationSpeed;
+                        this.generateHeightMap();
+                    }
+                    
+                    this.render();
+                }
+                
+                requestAnimationFrame(() => this.animate());
+            }
+            
+            setupEvents() {
+                // Canvas click to regenerate
+                this.canvas.addEventListener('click', (e) => {
+                    this.seed = Math.random();
+                    this.generateHeightMap();
+                });
+                
+                // Controls
+                document.getElementById('scale').addEventListener('input', (e) => {
+                    this.scale = parseInt(e.target.value);
+                    document.getElementById('scale-val').textContent = this.scale;
+                    this.generateHeightMap();
+                });
+                
+                document.getElementById('octaves').addEventListener('input', (e) => {
+                    this.octaves = parseInt(e.target.value);
+                    document.getElementById('octaves-val').textContent = this.octaves;
+                    this.generateHeightMap();
+                });
+                
+                document.getElementById('persistence').addEventListener('input', (e) => {
+                    this.persistence = parseFloat(e.target.value);
+                    document.getElementById('persistence-val').textContent = this.persistence;
+                    this.generateHeightMap();
+                });
+                
+                document.getElementById('levels').addEventListener('input', (e) => {
+                    this.contourLevels = parseInt(e.target.value);
+                    document.getElementById('levels-val').textContent = this.contourLevels;
+                });
+                
+                document.getElementById('speed').addEventListener('input', (e) => {
+                    this.animationSpeed = parseFloat(e.target.value);
+                    document.getElementById('speed-val').textContent = this.animationSpeed;
+                });
+                
+                document.getElementById('water').addEventListener('input', (e) => {
+                    this.waterLevel = parseFloat(e.target.value);
+                    document.getElementById('water-val').textContent = this.waterLevel;
+                });
+                
+                // View mode buttons
+                document.getElementById('mode-contours').addEventListener('click', (e) => {
+                    this.viewMode = 'contours';
+                    this.updateActiveButton('mode-', e.target);
+                });
+                
+                document.getElementById('mode-shaded').addEventListener('click', (e) => {
+                    this.viewMode = 'shaded';
+                    this.updateActiveButton('mode-', e.target);
+                });
+                
+                document.getElementById('mode-hybrid').addEventListener('click', (e) => {
+                    this.viewMode = 'hybrid';
+                    this.updateActiveButton('mode-', e.target);
+                });
+                
+                // Palette buttons
+                document.getElementById('palette-natural').addEventListener('click', (e) => {
+                    this.palette = 'natural';
+                    this.updateActiveButton('palette-', e.target);
+                });
+                
+                document.getElementById('palette-thermal').addEventListener('click', (e) => {
+                    this.palette = 'thermal';
+                    this.updateActiveButton('palette-', e.target);
+                });
+                
+                document.getElementById('palette-mono').addEventListener('click', (e) => {
+                    this.palette = 'mono';
+                    this.updateActiveButton('palette-', e.target);
+                });
+                
+                // Action buttons
+                document.getElementById('btn-regenerate').addEventListener('click', () => {
+                    this.seed = Math.random();
+                    this.generateHeightMap();
+                });
+                
+                document.getElementById('btn-pause').addEventListener('click', (e) => {
+                    this.isAnimating = !this.isAnimating;
+                    e.target.textContent = this.isAnimating ? 'Pause' : 'Resume';
+                });
+                
+                document.getElementById('btn-export').addEventListener('click', () => {
+                    const link = document.createElement('a');
+                    link.download = `topographic-dreams-${Date.now()}.png`;
+                    link.href = this.canvas.toDataURL();
+                    link.click();
+                });
+            }
+            
+            updateActiveButton(prefix, activeBtn) {
+                document.querySelectorAll(`[id^="${prefix}"]`).forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                activeBtn.classList.add('active');
+            }
+        }
+        
+        // Initialize
+        const canvas = document.getElementById('terrain');
+        const terrain = new TerrainGenerator(canvas);
+    </script>
+</body>
+</html>

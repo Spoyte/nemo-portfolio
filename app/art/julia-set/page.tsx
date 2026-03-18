@@ -22,7 +22,7 @@ interface Params {
   bailout: number;
 }
 
-const defaultParams: Params = {
+const initialParams: Params = {
   cReal: defaultParamsDefaultParams.cReal,
   cImag: defaultParamsDefaultParams.cImag,
   zoom: defaultParamsDefaultParams.zoom,

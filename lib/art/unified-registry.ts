@@ -351,7 +351,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "nBodyGravity",
   },
 
-  // === GEOMETRIC (14) ===
+  // === GEOMETRIC (15) ===
+  {
+    id: "less-but-better",
+    name: "Less, But Better",
+    description: "A meditation on Dieter Rams' 10th principle — one perfect circle that breathes with your presence. Maximum impact from minimum complexity.",
+    category: "geometric",
+    loader: () => import("./less-but-better"),
+    renderFnName: "lessButBetter",
+    importName: "lessButBetter",
+  },
   {
     id: "breathing-mandala",
     name: "Breathing Mandala",

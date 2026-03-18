@@ -28,6 +28,10 @@ const newNavItems = [
 ];
 
 const moreNavItems = [
+  { href: "/dashboard", label: "Dashboard", badge: "V4" },
+  { href: "/meditation", label: "Meditation", badge: "V4" },
+  { href: "/time-machine", label: "Time Machine", badge: "V4" },
+  { href: "/secret-garden", label: "Secret Garden", badge: "V4" },
   { href: "/analytics", label: "Analytics", badge: "New" },
   { href: "/games", label: "Mini Games", badge: "New" },
   { href: "/immersive-3d", label: "3D Experience", badge: "V3" },

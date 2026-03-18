@@ -62,7 +62,7 @@ import { ApiPlayground } from "@/components/api-playground";
 import { DesignTokenStudio } from "@/components/design-token-studio";
 import { CodeCompareTool } from "@/components/code-compare-tool";
 import { CodeTypingCinema } from "@/components/code-typing-cinema";
-import { GitCompare, Type, Palette, Terminal, Brain, Clock, Box, Mic, Atom, Eye } from "lucide-react";
+import { GitCompare, Type, Palette as PaletteIcon, Terminal as TerminalIcon, Brain as BrainIcon, Clock, Box, Mic, Atom, Eye } from "lucide-react";
 import { Immersive3DHero } from "@/components/immersive-3d-hero";
 import { AIArtGenerator } from "@/components/ai-art-generator";
 import { VoiceInterface } from "@/components/voice-interface";

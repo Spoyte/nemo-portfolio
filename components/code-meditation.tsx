@@ -3,273 +3,149 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Settings,
-  Wind,
-  Waves,
+  Wind, 
+  Heart, 
+  Zap, 
+  Coffee,
   Music,
   Volume2,
   VolumeX,
-  Sparkles,
-  Timer,
-  Heart,
-  Zap,
-  Leaf
+  Play,
+  Pause,
+  RotateCcw,
+  Settings2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  alpha: number;
+type BreathPhase = "inhale" | "hold" | "exhale" | "rest";
+
+interface BreathingPattern {
+  name: string;
+  description: string;
+  inhale: number;
+  hold: number;
+  exhale: number;
+  rest: number;
   color: string;
 }
 
-const AMBIENT_SOUNDS = [
-  { id: "rain", name: "Gentle Rain", icon: CloudRain },
-  { id: "ocean", name: "Ocean Waves", icon: Waves },
-  { id: "forest", name: "Forest", icon: Leaf },
-  { id: "cafe", name: "Coffee Shop", icon: Coffee },
-  { id: "white", name: "White Noise", icon: Wind },
+const breathingPatterns: BreathingPattern[] = [
+  { 
+    name: "4-7-8 Relaxation", 
+    description: "Calm your nervous system",
+    inhale: 4, 
+    hold: 7, 
+    exhale: 8, 
+    rest: 0,
+    color: "from-blue-500 to-cyan-500"
+  },
+  { 
+    name: "Box Breathing", 
+    description: "Focus and clarity",
+    inhale: 4, 
+    hold: 4, 
+    exhale: 4, 
+    rest: 4,
+    color: "from-purple-500 to-pink-500"
+  },
+  { 
+    name: "Coherent Breathing", 
+    description: "Balance and harmony",
+    inhale: 5, 
+    hold: 0, 
+    exhale: 5, 
+    rest: 0,
+    color: "from-green-500 to-emerald-500"
+  },
+  { 
+    name: "Energizing", 
+    description: "Quick energy boost",
+    inhale: 2, 
+    hold: 0, 
+    exhale: 2, 
+    rest: 0,
+    color: "from-orange-500 to-yellow-500"
+  },
 ];
 
-import { CloudRain, Coffee } from "lucide-react";
-
-const BREATHING_PATTERNS = [
-  { name: "4-7-8 Relax", inhale: 4, hold: 7, exhale: 8, description: "Calming for sleep" },
-  { name: "Box Breathing", inhale: 4, hold: 4, exhale: 4, hold2: 4, description: "Focus & clarity" },
-  { name: "Energizing", inhale: 6, hold: 0, exhale: 2, description: "Quick energy boost" },
+const ambientSounds = [
+  { name: "Silence", icon: VolumeX },
+  { name: "Rain", icon: Wind },
+  { name: "Ocean", icon: Zap },
+  { name: "Forest", icon: Coffee },
+  { name: "White Noise", icon: Music },
 ];
 
 export function CodeMeditation() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale" | "hold2">("inhale");
-  const [breathProgress, setBreathProgress] = useState(0);
+  const [isActive, setIsActive] = useState(false);
+  const [phase, setPhase] = useState<BreathPhase>("inhale");
+  const [progress, setProgress] = useState(0);
   const [selectedPattern, setSelectedPattern] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [selectedSound, setSelectedSound] = useState(0);
+  const [sessionTime, setSessionTime] = useState(0);
+  const [totalBreaths, setTotalBreaths] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
   const [volume, setVolume] = useState(50);
-  const [activeTab, setActiveTab] = useState("breathe");
-  const [meditationTime, setMeditationTime] = useState(0);
-  const [isMeditating, setIsMeditating] = useState(false);
-  const [totalSessions, setTotalSessions] = useState(12);
-  const [totalMinutes, setTotalMinutes] = useState(145);
+  const [showQuote, setShowQuote] = useState(true);
+  
+  const pattern = breathingPatterns[selectedPattern];
+  const phaseDuration = {
+    inhale: pattern.inhale,
+    hold: pattern.hold,
+    exhale: pattern.exhale,
+    rest: pattern.rest,
+  };
 
-  // Initialize particles
-  const initializeParticles = useCallback(() => {
-    const newParticles: Particle[] = [];
-    for (let i = 0; i < 50; i++) {
-      newParticles.push({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        vx: (Math.random() - 0.5) * 0.2,
-        vy: (Math.random() - 0.5) * 0.2,
-        size: Math.random() * 3 + 1,
-        alpha: Math.random() * 0.5 + 0.2,
-        color: ["#dc2626", "#ea580c", "#d97706", "#65a30d", "#0891b2"][Math.floor(Math.random() * 5)],
-      });
-    }
-    setParticles(newParticles);
-  }, []);
-
-  // Draw meditation canvas
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Clear with fade effect
-    ctx.fillStyle = "rgba(12, 10, 9, 0.1)";
-    ctx.fillRect(0, 0, rect.width, rect.height);
-
-    // Draw breathing circle
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const baseRadius = 80;
-    
-    let breathRadius = baseRadius;
-    const pattern = BREATHING_PATTERNS[selectedPattern];
-    
-    if (breathPhase === "inhale") {
-      breathRadius = baseRadius + (baseRadius * 0.5) * breathProgress;
-    } else if (breathPhase === "hold" || breathPhase === "hold2") {
-      breathRadius = baseRadius * 1.5;
-    } else if (breathPhase === "exhale") {
-      breathRadius = baseRadius * 1.5 - (baseRadius * 0.5) * breathProgress;
-    }
-
-    // Outer glow
-    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breathRadius * 2);
-    gradient.addColorStop(0, `rgba(220, 38, 38, ${0.3 + breathProgress * 0.2})`);
-    gradient.addColorStop(0.5, `rgba(220, 38, 38, ${0.1 + breathProgress * 0.1})`);
-    gradient.addColorStop(1, "rgba(220, 38, 38, 0)");
-    
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, breathRadius * 2, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // Main circle
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, breathRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(220, 38, 38, ${0.5 + breathProgress * 0.5})`;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Inner circle
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, breathRadius * 0.7, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(220, 38, 38, ${0.1 + breathProgress * 0.2})`;
-    ctx.fill();
-
-    // Draw particles
-    particles.forEach((particle) => {
-      const x = (particle.x / 100) * rect.width;
-      const y = (particle.y / 100) * rect.height;
-
-      ctx.beginPath();
-      ctx.arc(x, y, particle.size, 0, Math.PI * 2);
-      ctx.fillStyle = particle.color;
-      ctx.globalAlpha = particle.alpha;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    });
-
-    // Draw text
-    ctx.font = "600 24px system-ui";
-    ctx.fillStyle = "rgba(250, 250, 249, 0.9)";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    
-    const phaseText = {
-      inhale: "Breathe In",
-      hold: "Hold",
-      exhale: "Breathe Out",
-      hold2: "Hold",
-    };
-    
-    ctx.fillText(phaseText[breathPhase], centerX, centerY - 20);
-    
-    ctx.font = "400 16px system-ui";
-    ctx.fillStyle = "rgba(250, 250, 249, 0.6)";
-    ctx.fillText(`${Math.ceil(breathProgress * 100)}%`, centerX, centerY + 10);
-  }, [particles, breathPhase, breathProgress, selectedPattern]);
-
-  // Breathing animation
+  // Breathing cycle
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isActive) return;
 
-    const pattern = BREATHING_PATTERNS[selectedPattern];
-    let startTime = Date.now();
-    let currentPhase: "inhale" | "hold" | "exhale" | "hold2" = "inhale";
-
-    const animate = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      
-      if (currentPhase === "inhale") {
-        const progress = Math.min(elapsed / pattern.inhale, 1);
-        setBreathPhase("inhale");
-        setBreathProgress(progress);
-        
-        if (progress >= 1) {
-          startTime = Date.now();
-          currentPhase = pattern.hold > 0 ? "hold" : "exhale";
-        }
-      } else if (currentPhase === "hold") {
-        const progress = Math.min(elapsed / pattern.hold, 1);
-        setBreathPhase("hold");
-        setBreathProgress(1 - progress * 0.1);
-        
-        if (progress >= 1) {
-          startTime = Date.now();
-          currentPhase = "exhale";
-        }
-      } else if (currentPhase === "exhale") {
-        const progress = Math.min(elapsed / pattern.exhale, 1);
-        setBreathPhase("exhale");
-        setBreathProgress(1 - progress);
-        
-        if (progress >= 1) {
-          startTime = Date.now();
-          currentPhase = pattern.hold2 ? "hold2" : "inhale";
-        }
-      } else if (currentPhase === "hold2") {
-        const progress = Math.min(elapsed / (pattern.hold2 || 1), 1);
-        setBreathPhase("hold2");
-        setBreathProgress(0.1 + progress * 0.1);
-        
-        if (progress >= 1) {
-          startTime = Date.now();
-          currentPhase = "inhale";
-        }
-      }
-    };
-
-    const interval = setInterval(animate, 50);
-    return () => clearInterval(interval);
-  }, [isPlaying, selectedPattern]);
-
-  // Meditation timer
-  useEffect(() => {
-    if (!isMeditating) return;
-
+    const duration = phaseDuration[phase] * 1000;
+    const startTime = Date.now();
+    
     const interval = setInterval(() => {
-      setMeditationTime(prev => prev + 1);
-    }, 1000);
+      const elapsed = Date.now() - startTime;
+      const newProgress = Math.min(100, (elapsed / duration) * 100);
+      setProgress(newProgress);
+      
+      if (elapsed >= duration) {
+        // Move to next phase
+        const phases: BreathPhase[] = ["inhale", "hold", "exhale", "rest"];
+        const currentIndex = phases.indexOf(phase);
+        const nextIndex = (currentIndex + 1) % phases.length;
+        
+        // Skip phases with 0 duration
+        let nextPhase = phases[nextIndex];
+        let checkIndex = nextIndex;
+        while (phaseDuration[nextPhase] === 0 && checkIndex !== currentIndex) {
+          checkIndex = (checkIndex + 1) % phases.length;
+          nextPhase = phases[checkIndex];
+        }
+        
+        setPhase(nextPhase);
+        setProgress(0);
+        
+        if (nextPhase === "inhale") {
+          setTotalBreaths(prev => prev + 1);
+        }
+      }
+    }, 16);
 
     return () => clearInterval(interval);
-  }, [isMeditating]);
+  }, [isActive, phase, pattern]);
 
-  // Canvas animation loop
+  // Session timer
   useEffect(() => {
-    const animate = () => {
-      draw();
-      
-      // Update particles
-      setParticles(prev => prev.map(p => ({
-        ...p,
-        x: (p.x + p.vx + 100) % 100,
-        y: (p.y + p.vy + 100) % 100,
-        alpha: p.alpha + (Math.random() - 0.5) * 0.02,
-      })));
-      
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [draw]);
-
-  // Initialize
-  useEffect(() => {
-    initializeParticles();
-  }, [initializeParticles]);
+    if (!isActive) return;
+    
+    const interval = setInterval(() => {
+      setSessionTime(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isActive]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -277,279 +153,365 @@ export function CodeMeditation() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  return (
-    <section className="py-24 border-y border-border/50 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            whileInView={{ scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ type: "spring", stiffness: 200 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Mindfulness</span>
-          </motion.div>
+  const getPhaseText = () => {
+    switch (phase) {
+      case "inhale": return "Breathe In";
+      case "hold": return "Hold";
+      case "exhale": return "Breathe Out";
+      case "rest": return "Rest";
+    }
+  };
 
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Code{" "}
-            <span className="text-gradient-animated">Meditation</span>
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Take a break from coding. Practice breathing exercises, listen to ambient sounds, 
-            and find your zen.
-          </p>
+  const getPhaseInstruction = () => {
+    switch (phase) {
+      case "inhale": return "Fill your lungs completely";
+      case "hold": return "Keep the breath gentle";
+      case "exhale": return "Release slowly and fully";
+      case "rest": return "Prepare for next breath";
+    }
+  };
+
+  const getCircleScale = () => {
+    switch (phase) {
+      case "inhale": return 1 + (progress / 100) * 0.5;
+      case "hold": return 1.5;
+      case "exhale": return 1.5 - (progress / 100) * 0.5;
+      case "rest": return 1;
+    }
+  };
+
+  const getCircleOpacity = () => {
+    switch (phase) {
+      case "inhale": return 0.3 + (progress / 100) * 0.4;
+      case "hold": return 0.7;
+      case "exhale": return 0.7 - (progress / 100) * 0.4;
+      case "rest": return 0.3;
+    }
+  };
+
+  const quotes = [
+    "Code is like humor. When you have to explain it, it's bad.",
+    "First, solve the problem. Then, write the code.",
+    "Any fool can write code that a computer can understand.",
+    "Simplicity is the soul of efficiency.",
+    "Make it work, make it right, make it fast.",
+    "The best code is no code at all.",
+    "Clear is better than clever.",
+    "Debugging is twice as hard as writing the code.",
+  ];
+
+  const [currentQuote, setCurrentQuote] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const interval = setInterval(() => {
+      setCurrentQuote(prev => (prev + 1) % quotes.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-white/10 rounded-full"
+            initial={{ 
+              x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 1000),
+              y: Math.random() * (typeof window !== "undefined" ? window.innerHeight : 800),
+            }}
+            animate={{
+              y: [null, -20, 20],
+              opacity: [0.1, 0.3, 0.1],
+            }}
+            transition={{
+              duration: 5 + Math.random() * 5,
+              repeat: Infinity,
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 w-full max-w-lg">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-4">
+            <Wind className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm text-white/80">Code Meditation</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Breathe &amp; Focus</h1>
+          <p className="text-white/60">A moment of calm for developers</p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Canvas */}
-          <Card className="lg:col-span-2 overflow-hidden">
-            <CardContent className="p-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="flex items-center justify-between p-4 border-b">
-                  <TabsList>
-                    <TabsTrigger value="breathe" className="gap-2">
-                      <Wind className="h-4 w-4" />
-                      Breathe
-                    </TabsTrigger>
-                    <TabsTrigger value="meditate" className="gap-2">
-                      <Timer className="h-4 w-4" />
-                      Meditate
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSoundEnabled(!soundEnabled)}
-                    >
-                      {soundEnabled ? (
-                        <Volume2 className="h-4 w-4" />
-                      ) : (
-                        <VolumeX className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
+        {/* Breathing Circle */}
+        <div className="relative w-80 h-80 mx-auto mb-8">
+          {/* Outer rings */}
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              className={`absolute inset-0 rounded-full border-2 border-gradient-to-r ${pattern.color} opacity-20`}
+              animate={{
+                scale: isActive ? [1, 1.1 + i * 0.1, 1] : 1,
+                rotate: isActive ? [0, 360] : 0,
+              }}
+              transition={{
+                scale: {
+                  duration: pattern.inhale + pattern.exhale,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
+                rotate: {
+                  duration: 20 + i * 10,
+                  repeat: Infinity,
+                  ease: "linear",
+                },
+              }}
+              style={{
+                borderColor: "transparent",
+                borderImage: `linear-gradient(135deg, ${pattern.color.includes("blue") ? "#3b82f6" : pattern.color.includes("purple") ? "#a855f7" : pattern.color.includes("green") ? "#22c55e" : "#f97316"}, transparent) 1`,
+              }}
+            />
+          ))}
 
-                <TabsContent value="breathe" className="m-0">
-                  <canvas
-                    ref={canvasRef}
-                    className="w-full h-[400px] md:h-[500px] bg-background"
-                  />
-                </TabsContent>
+          {/* Main breathing circle */}
+          <motion.div
+            className={`absolute inset-8 rounded-full bg-gradient-to-br ${pattern.color} flex items-center justify-center`}
+            animate={{
+              scale: getCircleScale(),
+              opacity: getCircleOpacity(),
+            }}
+            transition={{
+              duration: phaseDuration[phase],
+              ease: phase === "inhale" ? "easeInOut" : phase === "exhale" ? "easeInOut" : "linear",
+            }}
+          >
+            <motion.div
+              className="text-center"
+              animate={{ opacity: isActive ? 1 : 0.5 }}
+            >
+              <motion.p 
+                className="text-2xl font-bold text-white mb-1"
+                key={phase}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {getPhaseText()}
+              </motion.p>
+              <p className="text-sm text-white/80">{getPhaseInstruction()}</p>
+            </motion.div>
+          </motion.div>
 
-                <TabsContent value="meditate" className="m-0">
-                  <div className="w-full h-[400px] md:h-[500px] bg-background flex flex-col items-center justify-center p-8">
-                    <motion.div
-                      animate={{
-                        scale: isMeditating ? [1, 1.05, 1] : 1,
-                        opacity: isMeditating ? [0.8, 1, 0.8] : 0.6,
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="w-48 h-48 rounded-full bg-gradient-to-br from-primary/20 to-orange-500/20 flex items-center justify-center mb-8"
-                    >
-                      <div className="text-5xl font-bold text-gradient">
-                        {formatTime(meditationTime)}
-                      </div>
-                    </motion.div>
-
-                    <div className="flex gap-4">
-                      <Button
-                        size="lg"
-                        onClick={() => {
-                          setIsMeditating(!isMeditating);
-                          if (isMeditating) {
-                            setTotalSessions(s => s + 1);
-                            setTotalMinutes(m => m + Math.floor(meditationTime / 60));
-                          }
-                        }}
-                      >
-                        {isMeditating ? (
-                          <><Pause className="h-4 w-4 mr-2" /> Pause</>
-                        ) : (
-                          <><Play className="h-4 w-4 mr-2" /> {meditationTime > 0 ? "Resume" : "Start"}</>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() => {
-                          setIsMeditating(false);
-                          setMeditationTime(0);
-                        }}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-2" /> Reset
-                      </Button>
-                    </div>
-
-                    <p className="text-muted-foreground mt-6 text-center max-w-md">
-                      {isMeditating 
-                        ? "Focus on your breath. Let thoughts come and go like clouds in the sky." 
-                        : "Start a meditation session to clear your mind and recharge."}
-                    </p>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* Controls */}
-          <div className="space-y-6">
-            {/* Breathing Controls */}
-            {activeTab === "breathe" && (
-              <>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Wind className="h-4 w-4" />
-                      Breathing Pattern
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                      <Button
-                        variant={isPlaying ? "default" : "outline"}
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="flex-1"
-                      >
-                        {isPlaying ? (
-                          <><Pause className="h-4 w-4 mr-2" /> Pause</>
-                        ) : (
-                          <><Play className="h-4 w-4 mr-2" /> Start</>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsPlaying(false);
-                          setBreathPhase("inhale");
-                          setBreathProgress(0);
-                        }}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {BREATHING_PATTERNS.map((pattern, index) => (
-                        <button
-                          key={pattern.name}
-                          onClick={() => {
-                            setSelectedPattern(index);
-                            setBreathPhase("inhale");
-                            setBreathProgress(0);
-                          }}
-                          className={`w-full p-3 rounded-lg text-left transition-colors ${
-                            selectedPattern === index
-                              ? "bg-primary/10 border border-primary/30"
-                              : "bg-muted hover:bg-muted/80"
-                          }`}
-                        >
-                          <div className="font-medium">{pattern.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {pattern.inhale}-{pattern.hold || 0}-{pattern.exhale}
-                            {pattern.hold2 ? `-${pattern.hold2}` : ""} • {pattern.description}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Sound Settings */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Music className="h-4 w-4" />
-                      Ambient Sound
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Enable Sounds</span>
-                      <Switch
-                        checked={soundEnabled}
-                        onCheckedChange={setSoundEnabled}
-                      />
-                    </div>
-
-                    {soundEnabled && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="space-y-4"
-                      >
-                        <div className="space-y-2">
-                          <label className="text-sm">Volume: {volume}%</label>
-                          <Slider
-                            value={[volume]}
-                            onValueChange={([v]) => setVolume(v)}
-                            min={0}
-                            max={100}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          {AMBIENT_SOUNDS.map((sound) => (
-                            <Button
-                              key={sound.id}
-                              variant="outline"
-                              size="sm"
-                              className="justify-start gap-2"
-                            >
-                              <sound.icon className="h-4 w-4" />
-                              {sound.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            )}
-
-            {/* Stats */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Heart className="h-4 w-4" />
-                  Your Journey
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold text-gradient">{totalSessions}</div>
-                    <div className="text-sm text-muted-foreground">Sessions</div>
-                  </div>
-                  <div className="text-center p-4 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold text-gradient">{totalMinutes}</div>
-                    <div className="text-sm text-muted-foreground">Minutes</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <span>Daily streak: 5 days</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Progress ring */}
+          <svg className="absolute inset-0 w-full h-full -rotate-90">
+            <circle
+              cx="160"
+              cy="160"
+              r="150"
+              fill="none"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth="2"
+            />
+            <circle
+              cx="160"
+              cy="160"
+              r="150"
+              fill="none"
+              stroke="url(#gradient)"
+              strokeWidth="2"
+              strokeDasharray={`${2 * Math.PI * 150}`}
+              strokeDashoffset={`${2 * Math.PI * 150 * (1 - progress / 100)}`}
+              strokeLinecap="round"
+              className="transition-all duration-100"
+            />
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#06b6d4" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
+
+        {/* Quote */}
+        <AnimatePresence mode="wait">
+          {showQuote && (
+            <motion.div
+              key={currentQuote}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="text-center mb-8 px-8"
+            >
+              <p className="text-white/60 italic text-sm">"{quotes[currentQuote]}"</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Stats */}
+        <div className="flex justify-center gap-8 mb-8">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-center"
+          >
+            <p className="text-2xl font-bold text-white">{formatTime(sessionTime)}</p>
+            <p className="text-xs text-white/50">Session Time</p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-center"
+          >
+            <p className="text-2xl font-bold text-white">{totalBreaths}</p>
+            <p className="text-xs text-white/50">Breaths</p>
+          </motion.div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex justify-center gap-4 mb-8">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              setIsActive(false);
+              setPhase("inhale");
+              setProgress(0);
+              setSessionTime(0);
+              setTotalBreaths(0);
+            }}
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </Button>
+          
+          <Button
+            size="lg"
+            onClick={() => setIsActive(!isActive)}
+            className={`px-8 ${
+              isActive 
+                ? "bg-red-500 hover:bg-red-600" 
+                : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+            }`}
+          >
+            {isActive ? (
+              <><Pause className="w-5 h-5 mr-2" /> Pause</>
+            ) : (
+              <><Play className="w-5 h-5 mr-2" /> Start</>
+            )}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowSettings(!showSettings)}
+            className={`border-white/20 text-white hover:bg-white/10 ${showSettings ? "bg-white/10" : ""}`}
+          >
+            <Settings2 className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Settings Panel */}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="glass rounded-2xl p-6 space-y-6"
+            >
+              {/* Pattern Selection */}
+              <div>
+                <label className="text-sm font-medium text-white/80 mb-3 block">Breathing Pattern</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {breathingPatterns.map((p, i) => (
+                    <button
+                      key={p.name}
+                      onClick={() => {
+                        setSelectedPattern(i);
+                        setIsActive(false);
+                        setPhase("inhale");
+                        setProgress(0);
+                      }}
+                      className={`p-3 rounded-xl text-left transition-all ${
+                        selectedPattern === i
+                          ? "bg-white/20 border border-white/30"
+                          : "bg-white/5 border border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-white">{p.name}</p>
+                      <p className="text-xs text-white/50">{p.description}</p>
+                      <div className="flex gap-1 mt-2">
+                        {p.inhale > 0 && <Badge variant="secondary" className="text-[10px]">{`In ${p.inhale}s`}</Badge>}
+                        {p.hold > 0 && <Badge variant="secondary" className="text-[10px]">{`Hold ${p.hold}s`}</Badge>}
+                        {p.exhale > 0 && <Badge variant="secondary" className="text-[10px]">{`Out ${p.exhale}s`}</Badge>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sound Selection */}
+              <div>
+                <label className="text-sm font-medium text-white/80 mb-3 block">Ambient Sound</label>
+                <div className="flex gap-2">
+                  {ambientSounds.map((sound, i) => (
+                    <button
+                      key={sound.name}
+                      onClick={() => setSelectedSound(i)}
+                      className={`flex-1 p-3 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                        selectedSound === i
+                          ? "bg-white/20 border border-white/30"
+                          : "bg-white/5 border border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      <sound.icon className="w-5 h-5 text-white/80" />
+                      <span className="text-xs text-white/60">{sound.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Volume */}
+              <div>
+                <label className="text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
+                  {selectedSound === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  Volume
+                </label>
+                <Slider
+                  value={[volume]}
+                  onValueChange={([v]) => setVolume(v)}
+                  max={100}
+                  step={1}
+                  disabled={selectedSound === 0}
+                  className="w-full"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 text-center"
+        >
+          <p className="text-xs text-white/40">
+            Take a moment to breathe. Your code can wait.
+          </p>
+        </motion.div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glyph Morph: Living Typography — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.2);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Glyph Morph: Living Typography</div>
+    <div class="status" id="status">Click to interact</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup with high-DPI support
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const SIZE = 800;
+        
+        // Handle high-DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Animation state
+        let isRunning = true;
+        let animationId = null;
+        let lastTime = 0;
+        
+        // Glyph Morph state
+        const state = {
+            particles: [],
+            currentWord: '',
+            targetWord: '',
+            wordIndex: 0,
+            morphProgress: 0,
+            phase: 'forming', // forming, holding, dissolving, morphing
+            phaseTimer: 0,
+            mouseX: 0,
+            mouseY: 0,
+            mouseActive: false,
+            colorHue: 280
+        };
+        
+        // Word palette - short evocative words
+        const words = [
+            'BREATHE', 'FLOW', 'MORPH', 'DANCE', 'SHIFT',
+            'EVOLVE', 'BECOME', 'EMERGE', 'DISSOLVE', 'TRANSFORM',
+            'RESONATE', 'ECHO', 'PULSE', 'DRIFT', 'SING',
+            'WEAVE', 'UNFOLD', 'RIPPLE', 'BLOOM', 'FADE'
+        ];
+        
+        // Particle class representing a point in a letter
+        class Particle {
+            constructor(x, y, targetX, targetY) {
+                this.x = x;
+                this.y = y;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.vx = 0;
+                this.vy = 0;
+                this.size = Math.random() * 2 + 1;
+                this.life = Math.random();
+                this.maxLife = 0.5 + Math.random() * 0.5;
+                this.hue = 280 + Math.random() * 60;
+                this.brightness = 50 + Math.random() * 30;
+            }
+            
+            update(dt, mouseX, mouseY, mouseActive) {
+                // Spring force toward target
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                const springStrength = 0.08;
+                const damping = 0.85;
+                
+                this.vx += dx * springStrength;
+                this.vy += dy * springStrength;
+                
+                // Mouse interaction - gentle repulsion
+                if (mouseActive) {
+                    const mdx = this.x - mouseX;
+                    const mdy = this.y - mouseY;
+                    const dist = Math.sqrt(mdx * mdx + mdy * mdy);
+                    if (dist < 100 && dist > 0) {
+                        const force = (100 - dist) / 100 * 2;
+                        this.vx += (mdx / dist) * force;
+                        this.vy += (mdy / dist) * force;
+                    }
+                }
+                
+                // Apply damping
+                this.vx *= damping;
+                this.vy *= damping;
+                
+                // Update position
+                this.x += this.vx * dt * 0.5;
+                this.y += this.vy * dt * 0.5;
+                
+                // Subtle drift
+                this.x += Math.sin(Date.now() * 0.001 + this.life * 10) * 0.3;
+                this.y += Math.cos(Date.now() * 0.0015 + this.life * 10) * 0.3;
+                
+                // Life cycle for twinkling effect
+                this.life += dt * 0.001;
+                if (this.life > this.maxLife) {
+                    this.life = 0;
+                }
+            }
+            
+            draw(ctx, phase, progress) {
+                const alpha = phase === 'dissolving' 
+                    ? (1 - progress) * (0.3 + this.life * 0.7)
+                    : phase === 'forming'
+                    ? progress * (0.3 + this.life * 0.7)
+                    : 0.3 + this.life * 0.7;
+                
+                const size = this.size * (0.8 + this.life * 0.4);
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 80%, ${this.brightness}%, ${alpha})`;
+                ctx.fill();
+                
+                // Glow effect
+                if (this.life > 0.7) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, size * 2, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 80%, ${this.brightness}%, ${alpha * 0.3})`;
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Get pixel data from text for particle formation
+        function getTextPixels(text, fontSize = 120) {
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+            offCanvas.width = SIZE;
+            offCanvas.height = SIZE;
+            
+            offCtx.font = `900 ${fontSize}px "SF Mono", Monaco, monospace`;
+            offCtx.textAlign = 'center';
+            offCtx.textBaseline = 'middle';
+            offCtx.fillStyle = 'white';
+            offCtx.fillText(text, SIZE / 2, SIZE / 2);
+            
+            const imageData = offCtx.getImageData(0, 0, SIZE, SIZE);
+            const pixels = [];
+            const step = 4; // Sample every 4th pixel for performance
+            
+            for (let y = 0; y < SIZE; y += step) {
+                for (let x = 0; x < SIZE; x += step) {
+                    const i = (y * SIZE + x) * 4;
+                    if (imageData.data[i + 3] > 128) {
+                        pixels.push({ x, y });
+                    }
+                }
+            }
+            
+            return pixels;
+        }
+        
+        // Initialize particles for a word
+        function createParticlesForWord(word, startScattered = true) {
+            const pixels = getTextPixels(word);
+            const particles = [];
+            
+            // Limit particles for performance
+            const maxParticles = 1500;
+            const sampledPixels = pixels.length > maxParticles 
+                ? pixels.filter((_, i) => i % Math.ceil(pixels.length / maxParticles) === 0)
+                : pixels;
+            
+            for (const pixel of sampledPixels) {
+                const startX = startScattered 
+                    ? Math.random() * SIZE 
+                    : pixel.x + (Math.random() - 0.5) * 50;
+                const startY = startScattered 
+                    ? Math.random() * SIZE 
+                    : pixel.y + (Math.random() - 0.5) * 50;
+                
+                particles.push(new Particle(startX, startY, pixel.x, pixel.y));
+            }
+            
+            return particles;
+        }
+        
+        // Transition particles to new word
+        function transitionParticles(particles, newWord) {
+            const newPixels = getTextPixels(newWord);
+            const maxParticles = 1500;
+            const sampledPixels = newPixels.length > maxParticles 
+                ? newPixels.filter((_, i) => i % Math.ceil(newPixels.length / maxParticles) === 0)
+                : newPixels;
+            
+            // Match existing particles to new targets
+            for (let i = 0; i < particles.length; i++) {
+                if (sampledPixels[i]) {
+                    particles[i].targetX = sampledPixels[i].x;
+                    particles[i].targetY = sampledPixels[i].y;
+                } else {
+                    // Excess particles drift away
+                    particles[i].targetX = Math.random() * SIZE;
+                    particles[i].targetY = SIZE + 100;
+                }
+            }
+            
+            // Add new particles if needed
+            while (particles.length < sampledPixels.length) {
+                const pixel = sampledPixels[particles.length];
+                particles.push(new Particle(
+                    Math.random() * SIZE,
+                    -100,
+                    pixel.x,
+                    pixel.y
+                ));
+            }
+            
+            // Remove excess particles gradually
+            if (particles.length > sampledPixels.length) {
+                for (let i = sampledPixels.length; i < particles.length; i++) {
+                    particles[i].targetY = SIZE + 100;
+                }
+            }
+        }
+        
+        // Initialize
+        function init() {
+            state.currentWord = words[0];
+            state.targetWord = words[1];
+            state.wordIndex = 0;
+            state.phase = 'forming';
+            state.phaseTimer = 0;
+            state.morphProgress = 0;
+            state.particles = createParticlesForWord(state.currentWord, true);
+            state.colorHue = 280 + Math.random() * 60;
+        }
+        
+        // Main render loop
+        function render(time) {
+            const dt = time - lastTime;
+            lastTime = time;
+            
+            // Clear with fade for trails
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Phase management
+            state.phaseTimer += dt;
+            
+            const phaseDurations = {
+                forming: 2000,
+                holding: 3000,
+                dissolving: 1000,
+                morphing: 2000
+            };
+            
+            // Update phase
+            if (state.phaseTimer > phaseDurations[state.phase]) {
+                state.phaseTimer = 0;
+                
+                switch (state.phase) {
+                    case 'forming':
+                        state.phase = 'holding';
+                        break;
+                    case 'holding':
+                        state.phase = 'dissolving';
+                        break;
+                    case 'dissolving':
+                        state.phase = 'morphing';
+                        state.wordIndex = (state.wordIndex + 1) % words.length;
+                        state.targetWord = words[state.wordIndex];
+                        transitionParticles(state.particles, state.targetWord);
+                        state.currentWord = state.targetWord;
+                        state.colorHue = 280 + Math.random() * 60;
+                        break;
+                    case 'morphing':
+                        state.phase = 'forming';
+                        // Clean up particles that drifted away
+                        state.particles = state.particles.filter(p => p.targetY < SIZE);
+                        break;
+                }
+            }
+            
+            // Calculate progress in current phase
+            state.morphProgress = Math.min(1, state.phaseTimer / phaseDurations[state.phase]);
+            
+            // Update and draw particles
+            ctx.globalCompositeOperation = 'screen';
+            
+            for (const particle of state.particles) {
+                particle.update(dt, state.mouseX, state.mouseY, state.mouseActive);
+                particle.draw(ctx, state.phase, state.morphProgress);
+            }
+            
+            // Draw connections between nearby particles
+            if (state.phase !== 'dissolving') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = `hsla(${state.colorHue}, 60%, 50%, 0.03)`;
+                ctx.lineWidth = 0.5;
+                
+                for (let i = 0; i < state.particles.length; i += 3) {
+                    const p1 = state.particles[i];
+                    for (let j = i + 1; j < Math.min(i + 20, state.particles.length); j += 3) {
+                        const p2 = state.particles[j];
+                        const dx = p1.x - p2.x;
+                        const dy = p1.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < 30) {
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+            
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Update status
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = `${state.currentWord} • ${state.phase}`;
+            }
+            
+            if (isRunning) {
+                animationId = requestAnimationFrame(render);
+            }
+        }
+        
+        // Controls
+        function regenerate() {
+            state.wordIndex = Math.floor(Math.random() * words.length);
+            state.currentWord = words[state.wordIndex];
+            state.phase = 'forming';
+            state.phaseTimer = 0;
+            state.particles = createParticlesForWord(state.currentWord, true);
+            state.colorHue = 280 + Math.random() * 60;
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) {
+                lastTime = performance.now();
+                render(lastTime);
+            } else {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'glyph-morph-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Mouse interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            state.mouseX = (e.clientX - rect.left) * (SIZE / rect.width);
+            state.mouseY = (e.clientY - rect.top) * (SIZE / rect.height);
+            state.mouseActive = true;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            state.mouseActive = false;
+        });
+        
+        canvas.addEventListener('click', () => {
+            regenerate();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            }
+        });
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            // Canvas size is fixed, but we could adjust scale here if needed
+        });
+        
+        // Start
+        init();
+        lastTime = performance.now();
+        render(lastTime);
+    </script>
+</body>
+</html>

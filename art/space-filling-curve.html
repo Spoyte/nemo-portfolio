@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space-Filling Curves — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0c0d0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 80px rgba(100, 150, 200, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        button {
+            background: rgba(20, 30, 40, 0.9);
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            color: #a0c0d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 50, 70, 0.9);
+            border-color: rgba(120, 170, 220, 0.5);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 150, 200, 0.2);
+            border-color: rgba(140, 190, 240, 0.6);
+            color: #c0e0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 192, 208, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 192, 208, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+        
+        .curve-selector {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        
+        .curve-selector button {
+            padding: 6px 14px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Space-Filling Curves</div>
+    <div class="curve-selector">
+        <button onclick="setCurveType('hilbert')" id="btn-hilbert" class="active">Hilbert</button>
+        <button onclick="setCurveType('peano')" id="btn-peano">Peano</button>
+        <button onclick="setCurveType('dragon')" id="btn-dragon">Dragon</button>
+    </div>
+    <div class="status" id="status">Order: 5 | Points: 1024</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="increaseOrder()">+ Order</button>
+        <button onclick="decreaseOrder()">- Order</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        const SIZE = 800;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // High-DPI setup
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // State
+        let curveType = 'hilbert';
+        let order = 5;
+        let points = [];
+        let drawIndex = 0;
+        let isPaused = false;
+        let animationId = null;
+        let hueOffset = 0;
+        let glowIntensity = 0;
+        
+        // Configuration
+        const config = {
+            hilbert: { maxOrder: 7, speed: 3 },
+            peano: { maxOrder: 5, speed: 2 },
+            dragon: { maxOrder: 14, speed: 4 }
+        };
+        
+        // Hilbert Curve: recursively defined space-filling curve
+        // Maps 1D index to 2D coordinates in a way that preserves locality
+        function hilbertCurve(order) {
+            const n = 1 << order; // 2^order
+            const total = n * n;
+            const pts = [];
+            
+            for (let i = 0; i < total; i++) {
+                pts.push(hilbertXY(i, order));
+            }
+            return pts;
+        }
+        
+        function hilbertXY(index, order) {
+            let x = 0, y = 0;
+            let t = index;
+            
+            for (let s = 1; s < (1 << order); s <<= 1) {
+                const rx = (t >> 1) & 1;
+                const ry = (t ^ rx) & 1;
+                
+                // Rotate and flip based on quadrant
+                if (ry === 0) {
+                    if (rx === 1) {
+                        x = s - 1 - x;
+                        y = s - 1 - y;
+                    }
+                    [x, y] = [y, x];
+                }
+                
+                x += rx * s;
+                y += ry * s;
+                t >>= 2;
+            }
+            
+            return { x, y };
+        }
+        
+        // Peano Curve: another classic space-filling curve
+        function peanoCurve(order) {
+            const n = Math.pow(3, order);
+            const pts = [];
+            
+            for (let i = 0; i < n * n; i++) {
+                pts.push(peanoXY(i, order));
+            }
+            return pts;
+        }
+        
+        function peanoXY(index, order) {
+            let x = 0, y = 0;
+            let t = index;
+            
+            for (let s = 1; s < Math.pow(3, order); s *= 3) {
+                const digit = t % 9;
+                t = Math.floor(t / 9);
+                
+                const rx = [0, 1, 2, 2, 1, 0, 0, 1, 2][digit];
+                const ry = [0, 0, 0, 1, 1, 1, 2, 2, 2][digit];
+                
+                // Alternating pattern for space-filling property
+                if (Math.floor(Math.log(s) / Math.log(3)) % 2 === 1) {
+                    x = (2 - rx) * s + x;
+                    y = ry * s + y;
+                } else {
+                    x = rx * s + x;
+                    y = ry * s + y;
+                }
+            }
+            
+            return { x, y };
+        }
+        
+        // Dragon Curve: paper-folding fractal
+        function dragonCurve(order) {
+            // Generate turn sequence
+            const turns = [];
+            for (let i = 0; i < (1 << order) - 1; i++) {
+                // Count trailing zeros, then odd/even
+                let tz = 0;
+                let n = i + 1;
+                while ((n & 1) === 0) {
+                    tz++;
+                    n >>= 1;
+                }
+                turns.push(tz % 2 === 0 ? 1 : -1); // 1 = left, -1 = right
+            }
+            
+            // Build points from turns
+            let x = 0, y = 0;
+            let dir = 0; // 0 = right, 1 = up, 2 = left, 3 = down
+            const pts = [{ x, y }];
+            
+            for (const turn of turns) {
+                dir = (dir + turn + 4) % 4;
+                if (dir === 0) x++;
+                else if (dir === 1) y--;
+                else if (dir === 2) x--;
+                else y++;
+                pts.push({ x, y });
+            }
+            
+            return pts;
+        }
+        
+        function generatePoints() {
+            switch (curveType) {
+                case 'hilbert': return hilbertCurve(order);
+                case 'peano': return peanoCurve(order);
+                case 'dragon': return dragonCurve(order);
+                default: return hilbertCurve(order);
+            }
+        }
+        
+        function init() {
+            points = generatePoints();
+            drawIndex = 0;
+            hueOffset = Math.random() * 360;
+            
+            // Clear with gradient background
+            const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE);
+            bg.addColorStop(0, '#1a1a3e');
+            bg.addColorStop(0.5, '#0d0d1a');
+            bg.addColorStop(1, '#050508');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Update status
+            const status = document.getElementById('status');
+            status.textContent = `Type: ${curveType.charAt(0).toUpperCase() + curveType.slice(1)} | Order: ${order} | Points: ${points.length}`;
+            
+            // Start animation
+            if (animationId) cancelAnimationFrame(animationId);
+            animate();
+        }
+        
+        function animate() {
+            if (isPaused) {
+                animationId = requestAnimationFrame(animate);
+                return;
+            }
+            
+            const speed = config[curveType].speed;
+            const padding = 40;
+            
+            // Calculate bounds
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const p of points) {
+                minX = Math.min(minX, p.x);
+                maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y);
+                maxY = Math.max(maxY, p.y);
+            }
+            
+            const width = maxX - minX || 1;
+            const height = maxY - minY || 1;
+            const scale = (SIZE - padding * 2) / Math.max(width, height);
+            const offsetX = (SIZE - width * scale) / 2 - minX * scale;
+            const offsetY = (SIZE - height * scale) / 2 - minY * scale;
+            
+            // Draw segments
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            for (let i = 0; i < speed && drawIndex < points.length - 1; i++) {
+                const p1 = points[drawIndex];
+                const p2 = points[drawIndex + 1];
+                
+                const x1 = p1.x * scale + offsetX;
+                const y1 = p1.y * scale + offsetY;
+                const x2 = p2.x * scale + offsetX;
+                const y2 = p2.y * scale + offsetY;
+                
+                // Color based on position in curve (gradient along the path)
+                const t = drawIndex / points.length;
+                const hue = (hueOffset + t * 360) % 360;
+                const saturation = 70 + Math.sin(t * Math.PI * 2) * 20;
+                const lightness = 50 + Math.sin(t * Math.PI * 3) * 15;
+                
+                // Glow effect
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
+                
+                // Main line
+                ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.9)`;
+                ctx.lineWidth = 2 + Math.sin(t * Math.PI) * 1.5;
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                
+                // Secondary glow (subtle)
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.2)`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+                
+                drawIndex++;
+            }
+            
+            // Reset shadow for next frame
+            ctx.shadowBlur = 0;
+            
+            if (drawIndex < points.length - 1) {
+                animationId = requestAnimationFrame(animate);
+            } else {
+                // Finished - subtle pulse effect
+                glowIntensity += 0.02;
+                const pulse = Math.sin(glowIntensity) * 0.1 + 0.9;
+                
+                // Redraw entire curve with pulsing glow
+                ctx.shadowBlur = 15 * pulse;
+                ctx.shadowColor = `hsla(${hueOffset}, 60%, 60%, ${0.3 * pulse})`;
+                
+                ctx.strokeStyle = `hsla(${hueOffset}, 50%, 70%, ${0.1 * pulse})`;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                for (let i = 0; i < points.length; i++) {
+                    const p = points[i];
+                    const x = p.x * scale + offsetX;
+                    const y = p.y * scale + offsetY;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        function setCurveType(type) {
+            curveType = type;
+            
+            // Update button states
+            document.querySelectorAll('.curve-selector button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`btn-${type}`).classList.add('active');
+            
+            // Clamp order to max for this curve type
+            order = Math.min(order, config[type].maxOrder);
+            regenerate();
+        }
+        
+        function increaseOrder() {
+            const max = config[curveType].maxOrder;
+            if (order < max) {
+                order++;
+                regenerate();
+            }
+        }
+        
+        function decreaseOrder() {
+            if (order > 1) {
+                order--;
+                regenerate();
+            }
+        }
+        
+        function regenerate() {
+            init();
+        }
+        
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = `space-filling-curve-${curveType}-order${order}-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'ArrowUp') {
+                increaseOrder();
+            } else if (e.code === 'ArrowDown') {
+                decreaseOrder();
+            } else if (e.code === 'Digit1') {
+                setCurveType('hilbert');
+            } else if (e.code === 'Digit2') {
+                setCurveType('peano');
+            } else if (e.code === 'Digit3') {
+                setCurveType('dragon');
+            }
+        });
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>
