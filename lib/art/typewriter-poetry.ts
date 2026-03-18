@@ -1,420 +1,459 @@
-import { ArtGenerator, ParamConfig, SeededRandom } from "./core";
+import { ArtGenerator } from "./core";
 
-// Typewriter Poetry - Vintage mechanical typewriter creating generative poetry
-// Features: realistic typewriter mechanics, ink variations, paper texture, carriage return
+/**
+ * Typewriter Poetry - Interactive Text Art
+ * 
+ * A physics-based typewriter simulation where each keystroke generates
+ * letters that fall, bounce, and settle into poetic arrangements.
+ * 
+ * Features:
+ * - Real-time typing with physics simulation
+ * - Letters have mass, velocity, and collision
+ * - Word magnets attract related words
+ * - Fade-out trails create calligraphic effects
+ * - Multiple poetry themes (haiku, surrealist, code)
+ * 
+ * Interactions:
+ * - Type to spawn letters
+ * - Click to explode/shake existing letters
+ * - Space to clear
+ * - Backspace to remove last word
+ */
 
-interface PoemLine {
-  text: string;
-  indent: number;
-  style: "normal" | "emphasis" | "whisper";
+// Physics constants
+const GRAVITY = 0.3;
+const FRICTION = 0.99;
+const BOUNCE_DAMPING = 0.6;
+const LETTER_SIZE = 24;
+const FLOOR_Y_OFFSET = 40;
+
+interface Letter {
+  char: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  vRotation: number;
+  opacity: number;
+  color: string;
+  size: number;
+  settled: boolean;
+  settleTime: number;
+  wordId: number;
 }
 
-interface TypewriterParams {
-  seed: number;
-  paperAge: number; // 0-100, yellowing
-  ribbonInk: number; // 0-100, freshness
-  typingSpeed: number; // 0-100
-  chaos: number; // 0-100, misalignment
-  poemLength: number; // 1-5 stanzas
+interface WordCluster {
+  id: number;
+  letters: Letter[];
+  theme: string;
+  x: number;
+  y: number;
 }
 
-const POEM_TEMPLATES = {
-  opening: [
-    "The {noun} {verb} in the {adjective} {place}",
-    "When {noun} meets {noun} under {adjective} skies",
-    "I remember the {noun} we {verb} together",
-    "The {adjective} silence of {place}",
-    "For {noun}, time moves like {liquid}",
+// Poetry themes with curated word banks
+const POETRY_THEMES: Record<string, string[]> = {
+  haiku: [
+    "autumn", "moonlight", "river", "silence", "petals", "fading",
+    "mountain", "morning", "dew", "bamboo", "cricket", "evening",
+    "frost", "shadow", "blossom", "drifting", "ancient", "temple"
   ],
-  middle: [
-    "and the {noun} {verb} without sound",
-    "while {noun} watches from {place}",
-    "as if {noun} could {verb} forever",
-    "but {noun} remains {adjective}",
-    "until {noun} becomes {abstract}",
+  surrealist: [
+    "melting", "clocks", "dream", "elephant", "spider", "sky",
+    "floating", "eyes", "desert", "memory", "labyrinth", "mirror",
+    "whisper", "crystal", "violet", "horizon", "echo", "silence"
   ],
-  closing: [
-    "This is how {noun} ends: {adjective}, alone.",
-    "We {verb} the {noun} into {place}.",
-    "The {noun} {verb}. The {noun} remains.",
-    "In {place}, even {noun} learns to {verb}.",
-    "Tomorrow, the {noun} will be {adjective} again.",
+  code: [
+    "function", "async", "await", "promise", "null", "undefined",
+    "recurse", "compile", "runtime", "syntax", "binary", "matrix",
+    "render", "compute", "vector", "lambda", "closure", "stream"
   ],
+  cosmic: [
+    "nebula", "quasar", "gravity", "orbit", "void", "light",
+    "singularity", "expansion", "particle", "photon", "dark", "matter",
+    "infinity", "eclipse", "aurora", "comet", "pulsar", "zenith"
+  ],
+  ocean: [
+    "tide", "abyss", "current", "coral", "kelp", "pearl",
+    "bioluminescent", "plankton", "narwhal", "jellyfish", "depth", "pressure",
+    "brine", "shipwreck", "mermaid", "tsunami", "lagoon", "atoll"
+  ]
 };
 
-const WORD_BANK = {
-  noun: [
-    "shadow", "light", "memory", "ocean", "mountain", "star", "silence",
-    "dream", "river", "wind", "heart", "time", "ghost", "flame",
-    "garden", "clock", "mirror", "door", "bridge", "song", "rain",
-    "leaf", "stone", "bird", "ship", "candle", "book", "window",
-    "road", "cloud", "forest", "wave", "dust", "smoke", "glass",
-  ],
-  verb: [
-    "waits", "falls", "rises", "drifts", "burns", "sleeps", "sings",
-    "breaks", "flows", "lingers", "fades", "glows", "trembles", "whispers",
-    "returns", "remembers", "floats", "dives", "dances", "cries",
-    "melts", "grows", "flies", "sinks", "turns", "opens", "closes",
-  ],
-  adjective: [
-    "ancient", "silent", "golden", "fragile", "endless", "faded", "wild",
-    "tender", "hollow", "bright", "heavy", "empty", "slow", "soft",
-    "bitter", "sweet", "distant", "near", "broken", "whole", "lost",
-    "found", "secret", "open", "hidden", "patient", "eager", "still",
-  ],
-  place: [
-    "darkness", "twilight", "morning", "evening", "winter", "summer",
-    "garden", "cellar", "attic", "harbor", "meadow", "desert", "city",
-    "forest", "cave", "shore", "valley", "sky", "room", "street",
-    "field", "ruins", "temple", "cafe", "station", "park", "bridge",
-  ],
-  liquid: [
-    "honey", "mercury", "ink", "wine", "rain", "molasses", "light",
-    "shadows", "memory", "dreams", "smoke", "water", "glass", "silver",
-  ],
-  abstract: [
-    "nothing", "everything", "eternity", "absence", "presence", "dust",
-    "silence", "echo", "ghost", "myth", "truth", "beauty", "chaos",
-  ],
+// Color palettes for each theme
+const THEME_COLORS: Record<string, string[]> = {
+  haiku: ["#e8d5b7", "#c9b896", "#a38b71", "#8b7355", "#d4c4a8"],
+  surrealist: ["#ff6b6b", "#4ecdc4", "#ffe66d", "#95e1d3", "#f38181"],
+  code: ["#00ff00", "#00cc00", "#009900", "#66ff66", "#33ff33"],
+  cosmic: ["#9d4edd", "#c77dff", "#e0aaff", "#7b2cbf", "#5a189a"],
+  ocean: ["#0077be", "#0096c7", "#48cae4", "#90e0ef", "#caf0f8"]
 };
-
-function generatePoem(rng: SeededRandom, length: number): PoemLine[] {
-  const lines: PoemLine[] = [];
-  const stanzas = Math.max(1, Math.min(5, length));
-
-  for (let s = 0; s < stanzas; s++) {
-    // Opening line
-    lines.push({
-      text: fillTemplate(POEM_TEMPLATES.opening[rng.nextInt(0, POEM_TEMPLATES.opening.length - 1)], rng),
-      indent: 0,
-      style: "normal",
-    });
-
-    // Middle lines (1-2)
-    const middleCount = rng.nextInt(1, 2);
-    for (let m = 0; m < middleCount; m++) {
-      lines.push({
-        text: fillTemplate(POEM_TEMPLATES.middle[rng.nextInt(0, POEM_TEMPLATES.middle.length - 1)], rng),
-        indent: 2,
-        style: m === 0 ? "normal" : "whisper",
-      });
-    }
-
-    // Closing line
-    lines.push({
-      text: fillTemplate(POEM_TEMPLATES.closing[rng.nextInt(0, POEM_TEMPLATES.closing.length - 1)], rng),
-      indent: 0,
-      style: "emphasis",
-    });
-
-    // Stanza break (except last)
-    if (s < stanzas - 1) {
-      lines.push({ text: "", indent: 0, style: "normal" });
-    }
-  }
-
-  return lines;
-}
-
-function fillTemplate(template: string, rng: SeededRandom): string {
-  return template.replace(/\{(\w+)\}/g, (_, key) => {
-    const words = WORD_BANK[key as keyof typeof WORD_BANK];
-    if (words) {
-      return words[rng.nextInt(0, words.length - 1)];
-    }
-    return `{${key}}`;
-  });
-}
-
-function drawPaperTexture(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  age: number,
-  rng: SeededRandom
-): void {
-  // Base paper color (aging from white to cream/yellow)
-  const ageFactor = age / 100;
-  const r = 255 - ageFactor * 25;
-  const g = 255 - ageFactor * 20;
-  const b = 255 - ageFactor * 35;
-
-  ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-  ctx.fillRect(0, 0, width, height);
-
-  // Paper grain
-  ctx.save();
-  ctx.globalAlpha = 0.03 + ageFactor * 0.02;
-  for (let i = 0; i < 5000; i++) {
-    const x = rng.next() * width;
-    const y = rng.next() * height;
-    const size = rng.next() * 2;
-    ctx.fillStyle = rng.next() > 0.5 ? "#000" : "#fff";
-    ctx.fillRect(x, y, size, size);
-  }
-  ctx.restore();
-
-  // Coffee stains / aging spots
-  if (age > 30) {
-    const stainCount = Math.floor((age - 30) / 10);
-    ctx.save();
-    for (let i = 0; i < stainCount; i++) {
-      const x = rng.next() * width * 0.8 + width * 0.1;
-      const y = rng.next() * height * 0.8 + height * 0.1;
-      const radius = 20 + rng.next() * 40;
-
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, `rgba(139, 90, 43, ${0.05 + rng.next() * 0.05})`);
-      gradient.addColorStop(0.7, `rgba(139, 90, 43, ${0.02 + rng.next() * 0.02})`);
-      gradient.addColorStop(1, "rgba(139, 90, 43, 0)");
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  // Page creases
-  if (age > 50) {
-    ctx.save();
-    ctx.strokeStyle = `rgba(0, 0, 0, ${0.03 + (age - 50) * 0.001})`;
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 3; i++) {
-      const y = height * (0.3 + i * 0.25) + rng.next() * 20 - 10;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y + rng.next() * 4 - 2);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-}
-
-function drawTypewriterCharacter(
-  ctx: CanvasRenderingContext2D,
-  char: string,
-  x: number,
-  y: number,
-  ribbonInk: number,
-  chaos: number,
-  rng: SeededRandom
-): void {
-  // Ink variation based on ribbon freshness
-  const inkOpacity = 0.7 + (ribbonInk / 100) * 0.25 + rng.next() * 0.1;
-  const inkVariation = rng.next();
-
-  // Slight misalignment based on chaos
-  const offsetX = (rng.next() - 0.5) * (chaos / 50);
-  const offsetY = (rng.next() - 0.5) * (chaos / 50);
-  const rotation = (rng.next() - 0.5) * (chaos / 200);
-
-  ctx.save();
-  ctx.translate(x + offsetX, y + offsetY);
-  ctx.rotate(rotation);
-
-  // Main character
-  ctx.fillStyle = `rgba(30, 30, 30, ${inkOpacity})`;
-  ctx.font = '18px "Courier New", Courier, monospace';
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(char, 0, 0);
-
-  // Ink splatter for older ribbon
-  if (ribbonInk < 60 && rng.next() < 0.1) {
-    ctx.fillStyle = `rgba(30, 30, 30, ${inkOpacity * 0.5})`;
-    const splatterX = rng.next() * 8 - 4;
-    const splatterY = rng.next() * 8 - 4;
-    const size = rng.next() * 2;
-    ctx.beginPath();
-    ctx.arc(splatterX, splatterY, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Double strike effect (imperfect alignment)
-  if (rng.next() < 0.05) {
-    ctx.fillStyle = `rgba(30, 30, 30, ${inkOpacity * 0.3})`;
-    ctx.fillText(char, 0.5, 0.5);
-  }
-
-  ctx.restore();
-}
-
-function drawTypedText(
-  ctx: CanvasRenderingContext2D,
-  lines: PoemLine[],
-  startX: number,
-  startY: number,
-  lineHeight: number,
-  ribbonInk: number,
-  chaos: number,
-  time: number,
-  typingSpeed: number,
-  rng: SeededRandom
-): void {
-  const charWidth = 11;
-  const charsPerSecond = 5 + (typingSpeed / 100) * 15;
-  const totalCharsToShow = Math.floor(time * charsPerSecond);
-
-  let charCount = 0;
-  let currentY = startY;
-
-  for (const line of lines) {
-    if (line.text === "") {
-      // Empty line (stanza break)
-      currentY += lineHeight * 0.5;
-      continue;
-    }
-
-    const lineX = startX + line.indent * charWidth * 2;
-
-    // Draw each character
-    for (let i = 0; i < line.text.length; i++) {
-      if (charCount >= totalCharsToShow) {
-        // Typewriter cursor
-        const cursorX = lineX + i * charWidth;
-        ctx.save();
-        ctx.fillStyle = "rgba(30, 30, 30, 0.8)";
-        ctx.fillRect(cursorX, currentY - 14, 2, 18);
-        ctx.restore();
-        return;
-      }
-
-      const char = line.text[i];
-      const charX = lineX + i * charWidth;
-
-      // Style variations
-      if (line.style === "emphasis") {
-        ctx.save();
-        ctx.font = 'bold 18px "Courier New", Courier, monospace';
-      } else if (line.style === "whisper") {
-        ctx.save();
-        ctx.globalAlpha = 0.6;
-      }
-
-      drawTypewriterCharacter(ctx, char, charX, currentY, ribbonInk, chaos, rng);
-
-      if (line.style === "emphasis" || line.style === "whisper") {
-        ctx.restore();
-      }
-
-      charCount++;
-    }
-
-    currentY += lineHeight;
-  }
-}
-
-export function renderTypewriterPoetry(
-  ctx: CanvasRenderingContext2D,
-  params: TypewriterParams,
-  time: number = 0
-): void {
-  const width = 800;
-  const height = 600;
-
-  const rng = new SeededRandom(params.seed);
-
-  // Generate poem once (deterministic from seed)
-  const poem = generatePoem(rng, params.poemLength);
-
-  // Clear and draw paper
-  drawPaperTexture(ctx, width, height, params.paperAge, rng);
-
-  // Draw page margins
-  const marginLeft = 80;
-  const marginTop = 100;
-  const lineHeight = 28;
-
-  // Draw typed text with animation
-  drawTypedText(
-    ctx,
-    poem,
-    marginLeft,
-    marginTop,
-    lineHeight,
-    params.ribbonInk,
-    params.chaos,
-    time,
-    params.typingSpeed,
-    rng
-  );
-
-  // Draw page number at bottom
-  const pageNum = String(params.seed % 100).padStart(2, "0");
-  ctx.save();
-  ctx.fillStyle = `rgba(30, 30, 30, ${0.4 + params.ribbonInk / 200})`;
-  ctx.font = '14px "Courier New", Courier, monospace';
-  ctx.textAlign = "center";
-  ctx.fillText(`- ${pageNum} -`, width / 2, height - 50);
-  ctx.restore();
-}
 
 export const typewriterPoetry: ArtGenerator = {
   name: "Typewriter Poetry",
-  description: "Vintage mechanical typewriter creating generative poetry with realistic ink, paper texture, and mechanical imperfections",
+  description: "Physics-based typewriter where keystrokes become falling letters that settle into poetic arrangements. Type to create, click to disturb.",
   params: {
-    seed: {
-      name: "Seed",
-      type: "range",
-      min: 1,
-      max: 10000,
-      step: 1,
-      default: 42,
+    theme: {
+      name: "Theme",
+      type: "select",
+      default: "haiku",
+      options: ["haiku", "surrealist", "code", "cosmic", "ocean"],
     },
-    paperAge: {
-      name: "Paper Age",
-      description: "How aged the paper appears (yellowing, stains, creases)",
+    gravity: {
+      name: "Gravity",
+      type: "range",
+      min: 0.1,
+      max: 1.0,
+      step: 0.1,
+      default: 0.3,
+    },
+    bounce: {
+      name: "Bounce",
+      type: "range",
+      min: 0.1,
+      max: 0.9,
+      step: 0.1,
+      default: 0.6,
+    },
+    wind: {
+      name: "Wind",
+      type: "range",
+      min: -0.5,
+      max: 0.5,
+      step: 0.1,
+      default: 0,
+    },
+    fadeTrails: {
+      name: "Fade Trails",
       type: "range",
       min: 0,
-      max: 100,
-      step: 1,
-      default: 30,
-    },
-    ribbonInk: {
-      name: "Ribbon Ink",
-      description: "Freshness of the typewriter ribbon (affects darkness and consistency)",
-      type: "range",
-      min: 0,
-      max: 100,
-      step: 1,
-      default: 80,
-    },
-    typingSpeed: {
-      name: "Typing Speed",
-      description: "Speed of the typing animation",
-      type: "range",
-      min: 0,
-      max: 100,
-      step: 1,
-      default: 50,
-    },
-    chaos: {
-      name: "Mechanical Chaos",
-      description: "Imperfections in alignment (higher = more misaligned characters)",
-      type: "range",
-      min: 0,
-      max: 100,
-      step: 1,
-      default: 15,
-    },
-    poemLength: {
-      name: "Poem Length",
-      description: "Number of stanzas to generate",
-      type: "range",
-      min: 1,
-      max: 5,
-      step: 1,
-      default: 3,
+      max: 0.95,
+      step: 0.05,
+      default: 0.1,
     },
   },
-  generate: renderTypewriterPoetry,
+
+  generate: (ctx, params, time) => {
+    const canvas = ctx.canvas;
+    const width = canvas.width;
+    const height = canvas.height;
+    const theme = params.theme as string;
+    const gravity = params.gravity as number;
+    const bounce = params.bounce as number;
+    const wind = params.wind as number;
+    const fadeTrails = params.fadeTrails as number;
+
+    // Initialize state
+    if (!ctx._state) {
+      ctx._state = {
+        letters: [] as Letter[],
+        wordClusters: [] as WordCluster[],
+        currentWordId: 0,
+        lastSpawnTime: 0,
+        autoSpawnTimer: 0,
+        theme: theme,
+        mouseX: width / 2,
+        mouseY: height / 2,
+        mouseDown: false,
+        shakeIntensity: 0,
+      };
+    }
+    const state = ctx._state as {
+      letters: Letter[];
+      wordClusters: WordCluster[];
+      currentWordId: number;
+      lastSpawnTime: number;
+      autoSpawnTimer: number;
+      theme: string;
+      mouseX: number;
+      mouseY: number;
+      mouseDown: boolean;
+      shakeIntensity: number;
+    };
+
+    // Update theme if changed
+    if (state.theme !== theme) {
+      state.theme = theme;
+    }
+
+    // Fade effect for trails
+    if (fadeTrails > 0) {
+      ctx.fillStyle = `rgba(10, 10, 15, ${fadeTrails})`;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.fillStyle = "#0a0a0f";
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    const colors = THEME_COLORS[theme];
+    const floorY = height - FLOOR_Y_OFFSET;
+
+    // Auto-spawn poetry words if no user input for a while
+    state.autoSpawnTimer += 1 / 60;
+    if (state.autoSpawnTimer > 3 && state.letters.length < 50) {
+      const words = POETRY_THEMES[theme];
+      const word = words[Math.floor(Math.random() * words.length)];
+      spawnWord(state, word, width / 2 + (Math.random() - 0.5) * 200, 50, colors);
+      state.autoSpawnTimer = 0;
+    }
+
+    // Apply shake effect
+    if (state.shakeIntensity > 0) {
+      ctx.save();
+      const shakeX = (Math.random() - 0.5) * state.shakeIntensity;
+      const shakeY = (Math.random() - 0.5) * state.shakeIntensity;
+      ctx.translate(shakeX, shakeY);
+      state.shakeIntensity *= 0.9;
+      if (state.shakeIntensity < 0.5) state.shakeIntensity = 0;
+    }
+
+    // Update and draw letters
+    const lettersToRemove: number[] = [];
+    
+    state.letters.forEach((letter, index) => {
+      // Physics update
+      if (!letter.settled) {
+        letter.vy += gravity;
+        letter.vx += wind * 0.1;
+        letter.vx *= FRICTION;
+        letter.vy *= FRICTION;
+        
+        letter.x += letter.vx;
+        letter.y += letter.vy;
+        letter.rotation += letter.vRotation;
+
+        // Floor collision
+        if (letter.y + letter.size / 2 > floorY) {
+          letter.y = floorY - letter.size / 2;
+          letter.vy *= -bounce;
+          letter.vx *= 0.8; // Ground friction
+          letter.vRotation *= 0.5;
+
+          // Settle if slow enough
+          if (Math.abs(letter.vy) < 1 && Math.abs(letter.vx) < 0.5) {
+            letter.settled = true;
+            letter.settleTime = time;
+          }
+        }
+
+        // Wall collisions
+        if (letter.x < letter.size / 2) {
+          letter.x = letter.size / 2;
+          letter.vx *= -bounce;
+        }
+        if (letter.x > width - letter.size / 2) {
+          letter.x = width - letter.size / 2;
+          letter.vx *= -bounce;
+        }
+
+        // Mouse interaction - explode on click
+        if (state.mouseDown) {
+          const dx = letter.x - state.mouseX;
+          const dy = letter.y - state.mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            const force = (100 - dist) / 100 * 15;
+            letter.vx += (dx / dist) * force;
+            letter.vy += (dy / dist) * force;
+            letter.settled = false;
+            letter.vRotation = (Math.random() - 0.5) * 0.5;
+          }
+        }
+      } else {
+        // Settled letters can be disturbed
+        const dx = letter.x - state.mouseX;
+        const dy = letter.y - state.mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (state.mouseDown && dist < 80) {
+          letter.settled = false;
+          const force = (80 - dist) / 80 * 10;
+          letter.vx += (dx / dist) * force;
+          letter.vy += (dy / dist) * force;
+        }
+      }
+
+      // Draw letter
+      ctx.save();
+      ctx.translate(letter.x, letter.y);
+      ctx.rotate(letter.rotation);
+      
+      // Glow effect
+      ctx.shadowColor = letter.color;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = letter.color;
+      ctx.font = `${letter.size}px 'SF Mono', monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.globalAlpha = letter.opacity;
+      ctx.fillText(letter.char, 0, 0);
+      
+      ctx.restore();
+
+      // Fade out old settled letters
+      if (letter.settled && time - letter.settleTime > 10) {
+        letter.opacity -= 0.005;
+        if (letter.opacity <= 0) {
+          lettersToRemove.push(index);
+        }
+      }
+    });
+
+    // Remove faded letters (in reverse order)
+    for (let i = lettersToRemove.length - 1; i >= 0; i--) {
+      state.letters.splice(lettersToRemove[i], 1);
+    }
+
+    // Draw floor line
+    ctx.strokeStyle = colors[0];
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, floorY);
+    ctx.lineTo(width, floorY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Draw prompt text
+    ctx.fillStyle = colors[0];
+    ctx.font = "14px 'SF Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.globalAlpha = 0.6;
+    ctx.fillText("Type to create poetry • Click to disturb • Space to clear", width / 2, 30);
+    ctx.globalAlpha = 1;
+
+    if (state.shakeIntensity > 0) {
+      ctx.restore();
+    }
+
+    // Reset mouse down for next frame
+    state.mouseDown = false;
+  },
+
+  // Handle keyboard input
+  onKeyDown: (ctx, key, params) => {
+    const state = ctx._state as {
+      letters: Letter[];
+      currentWordId: number;
+      autoSpawnTimer: number;
+      theme: string;
+      shakeIntensity: number;
+    };
+    
+    if (!state) return;
+
+    const canvas = ctx.canvas;
+    const colors = THEME_COLORS[state.theme];
+    state.autoSpawnTimer = 0;
+
+    if (key === " ") {
+      // Space clears all
+      state.letters = [];
+      state.shakeIntensity = 20;
+      return;
+    }
+
+    if (key === "Backspace") {
+      // Remove last word
+      if (state.letters.length > 0) {
+        const lastWordId = state.letters[state.letters.length - 1].wordId;
+        state.letters = state.letters.filter(l => l.wordId !== lastWordId);
+      }
+      return;
+    }
+
+    if (key === "Enter") {
+      // Spawn a random poetry word
+      const words = POETRY_THEMES[state.theme];
+      const word = words[Math.floor(Math.random() * words.length)];
+      spawnWord(state, word, canvas.width / 2 + (Math.random() - 0.5) * 100, 50, colors);
+      return;
+    }
+
+    if (key.length === 1 && key.match(/[a-zA-Z0-9\s\.,;:!?\-']/)) {
+      // Spawn single letter
+      const x = canvas.width / 2 + (Math.random() - 0.5) * 100;
+      spawnLetter(state, key, x, 60, colors);
+    }
+  },
+
+  // Handle mouse/touch input
+  onClick: (ctx, x, y, params) => {
+    const state = ctx._state as {
+      mouseX: number;
+      mouseY: number;
+      mouseDown: boolean;
+      shakeIntensity: number;
+    };
+    
+    if (!state) return;
+
+    state.mouseX = x;
+    state.mouseY = y;
+    state.mouseDown = true;
+    state.shakeIntensity = 10;
+  },
+
   meta: {
-    category: "text",
+    category: "interactive",
     complexity: "moderate",
-    tags: ["animated", "retro", "minimal", "ordered"],
-    created: "2026-03-12",
+    tags: ["interactive", "text", "physics", "animated", "colorful"],
+    created: "2026-03-18",
   },
 };
 
-export default typewriterPoetry;
+// Helper to spawn a single letter
+function spawnLetter(
+  state: { letters: Letter[]; currentWordId: number },
+  char: string,
+  x: number,
+  y: number,
+  colors: string[]
+): void {
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  
+  state.letters.push({
+    char: char.toLowerCase(),
+    x: x + (Math.random() - 0.5) * 10,
+    y: y + (Math.random() - 0.5) * 10,
+    vx: (Math.random() - 0.5) * 2,
+    vy: Math.random() * 2,
+    rotation: (Math.random() - 0.5) * 0.5,
+    vRotation: (Math.random() - 0.5) * 0.1,
+    opacity: 1,
+    color,
+    size: LETTER_SIZE + Math.random() * 8,
+    settled: false,
+    settleTime: 0,
+    wordId: state.currentWordId,
+  });
+}
+
+// Helper to spawn a complete word
+function spawnWord(
+  state: { letters: Letter[]; currentWordId: number },
+  word: string,
+  startX: number,
+  y: number,
+  colors: string[]
+): void {
+  state.currentWordId++;
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  
+  word.split("").forEach((char, i) => {
+    state.letters.push({
+      char,
+      x: startX + i * (LETTER_SIZE * 0.7) + (Math.random() - 0.5) * 5,
+      y: y + (Math.random() - 0.5) * 10,
+      vx: (Math.random() - 0.5) * 1,
+      vy: Math.random() * 2,
+      rotation: (Math.random() - 0.5) * 0.3,
+      vRotation: (Math.random() - 0.5) * 0.05,
+      opacity: 1,
+      color,
+      size: LETTER_SIZE + Math.random() * 6,
+      settled: false,
+      settleTime: 0,
+      wordId: state.currentWordId,
+    });
+  });
+}

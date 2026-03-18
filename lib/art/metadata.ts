@@ -657,6 +657,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "geometric", "ordered"],
     created: "2026-03-16",
   },
+  "typewriter-poetry": {
+    category: "interactive",
+    complexity: "moderate",
+    tags: ["interactive", "text", "physics", "animated", "colorful"],
+    created: "2026-03-18",
+  },
 };
 
 // Helper function to get metadata for a generator

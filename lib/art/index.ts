@@ -138,7 +138,7 @@ import { crystalLattice } from "./crystal-lattice";
 import { sdfSculptor } from "./sdf-sculptor";
 import { volumetricMist } from "./volumetric-mist";
 
-// === INTERACTIVE (8) ===
+// === INTERACTIVE (9) ===
 import { floatingLetters } from "./floating-letters";
 import { audioReactiveWaves } from "./audio-reactive-waves";
 import { particleNetwork } from "./particle-network";
@@ -147,6 +147,7 @@ import { topographicFlow } from "./topographic-flow";
 import { abelianSandpile } from "./abelian-sandpile";
 import { magneticPoetry } from "./magnetic-poetry";
 import { kineticSculpture } from "./kinetic-sculpture";
+import { typewriterPoetry } from "./typewriter-poetry";
 
 // ============================================================================
 // GENERATORS MAP - Connects IDs to implementations
@@ -259,6 +260,7 @@ const rawGenerators: Record<string, ArtGenerator> = {
   "abelian-sandpile": abelianSandpile,
   "magnetic-poetry": magneticPoetry,
   "kinetic-sculpture": kineticSculpture,
+  "typewriter-poetry": typewriterPoetry,
 
 };
 

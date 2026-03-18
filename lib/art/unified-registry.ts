@@ -701,7 +701,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "poetryRain",
   },
 
-  // === 3D (9) ===
+  // === 3D (10) ===
+  {
+    id: "floating-glyphs",
+    name: "Floating Glyphs",
+    description: "3D extruded typography floating in volumetric space - characters form transient poetry from chaos",
+    category: "3d",
+    loader: () => import("./floating-glyphs"),
+    renderFnName: "generateFloatingGlyphs",
+    importName: "floatingGlyphs",
+  },
   {
     id: "light-caverns",
     name: "Light Caverns",
@@ -820,6 +829,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./kinetic-sculpture"),
     renderFnName: "renderKineticSculpture",
     importName: "kineticSculpture",
+  },
+  {
+    id: "typewriter-poetry",
+    name: "Typewriter Poetry",
+    description: "Physics-based typewriter where keystrokes become falling letters that settle into poetic arrangements. Type to create, click to disturb.",
+    category: "interactive",
+    loader: () => import("./typewriter-poetry"),
+    renderFnName: "typewriterPoetry",
+    importName: "typewriterPoetry",
   },
 
   // === TEXT (5) ===

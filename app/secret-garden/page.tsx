@@ -1,522 +1,611 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { 
-  Sparkles, 
-  Flower2, 
-  Wind, 
-  Music, 
-  Heart,
-  Lock,
-  Unlock,
-  Search,
-  Star,
-  Gift,
-  Key,
-  Eye,
-  EyeOff,
-  MessageCircle,
-  Send,
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Flower2,
   Leaf,
+  Wind,
+  Sparkles,
   Moon,
   Sun,
   Cloud,
-  Rainbow
+  CloudRain,
+  Music,
+  Volume2,
+  VolumeX,
+  Heart,
+  Star,
+  Butterfly,
+  Droplets,
+  Flame,
+  Snowflake,
+  Rainbow,
+  Zap,
+  Ghost,
+  Eye,
+  EyeOff,
+  Maximize2,
+  Minimize2,
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Shuffle,
+  Repeat,
+  Mic,
+  MessageCircle,
+  Send,
+  X,
+  Settings,
+  Palette,
+  Type,
+  Image as ImageIcon,
+  Music2,
+  Volume1,
+  Sun as SunIcon,
+  Moon as MoonIcon,
+  Cloud as CloudIcon,
+  CloudRain as CloudRainIcon,
+  CloudSnow,
+  CloudLightning,
+  Wind as WindIcon,
+  Thermometer,
+  Droplets as DropletsIcon,
+  Umbrella,
+  Snowflake as SnowflakeIcon,
+  Flame as FlameIcon,
+  Rainbow as RainbowIcon,
+  Star as StarIcon,
+  Heart as HeartIcon,
+  Sparkles as SparklesIcon,
+  Ghost as GhostIcon,
+  Butterfly as ButterflyIcon,
+  Leaf as LeafIcon,
+  Flower2 as Flower2Icon,
+  Zap as ZapIcon,
+  Music as MusicIcon,
+  Volume2 as Volume2Icon,
+  VolumeX as VolumeXIcon,
+  Play as PlayIcon,
+  Pause as PauseIcon,
+  SkipForward as SkipForwardIcon,
+  SkipBack as SkipBackIcon,
+  Shuffle as ShuffleIcon,
+  Repeat as RepeatIcon,
+  Mic as MicIcon,
+  MessageCircle as MessageCircleIcon,
+  Send as SendIcon,
+  X as XIcon,
+  Settings as SettingsIcon,
+  Palette as PaletteIcon,
+  Type as TypeIcon,
+  ImageIcon as ImageIcon2,
+  Maximize2 as Maximize2Icon,
+  Minimize2 as Minimize2Icon,
+  Eye as EyeIcon,
+  EyeOff as EyeOffIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
-// Secret discovery types
-interface Secret {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  unlocked: boolean;
-  hint: string;
+// Particle types for the garden
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  speedX: number;
+  speedY: number;
+  opacity: number;
   color: string;
+  type: "petal" | "firefly" | "snow" | "rain" | "leaf" | "sparkle";
 }
 
-const initialSecrets: Secret[] = [
-  {
-    id: "konami",
-    title: "Konami Master",
-    description: "You found the legendary Konami code!",
-    icon: Key,
-    unlocked: false,
-    hint: "Try the classic gaming cheat code...",
-    color: "from-yellow-500 to-orange-500",
-  },
-  {
-    id: "night-owl",
-    title: "Night Owl",
-    description: "Visited during the quiet hours of the night.",
-    icon: Moon,
-    unlocked: false,
-    hint: "Some secrets only reveal themselves after dark...",
-    color: "from-indigo-500 to-purple-500",
-  },
-  {
-    id: "explorer",
-    title: "Deep Explorer",
-    description: "Visited every page on the site.",
-    icon: Search,
-    unlocked: false,
-    hint: "Leave no stone unturned...",
-    color: "from-green-500 to-emerald-500",
-  },
-  {
-    id: "music-lover",
-    title: "Melody Seeker",
-    description: "Found and played the hidden music player.",
-    icon: Music,
-    unlocked: false,
-    hint: "Listen closely for hidden tunes...",
-    color: "from-pink-500 to-rose-500",
-  },
-  {
-    id: "zen-master",
-    title: "Zen Master",
-    description: "Spent time in the meditation garden.",
+interface GardenState {
+  theme: "spring" | "summer" | "autumn" | "winter" | "night" | "rainbow";
+  particleCount: number;
+  windSpeed: number;
+  musicEnabled: boolean;
+  ambientSounds: boolean;
+}
+
+const themes = {
+  spring: {
+    name: "Spring Garden",
+    bg: "from-pink-100 via-rose-50 to-green-50",
+    accent: "text-pink-500",
+    particles: "petal",
     icon: Flower2,
-    unlocked: false,
-    hint: "Find your center...",
-    color: "from-cyan-500 to-blue-500",
+    description: "Cherry blossoms and gentle breezes",
   },
-  {
-    id: "time-traveler",
-    title: "Time Traveler",
-    description: "Explored the portfolio's evolution.",
-    icon: Sparkles,
-    unlocked: false,
-    hint: "Journey through the past...",
-    color: "from-violet-500 to-purple-500",
+  summer: {
+    name: "Summer Meadow",
+    bg: "from-yellow-100 via-orange-50 to-green-50",
+    accent: "text-yellow-500",
+    particles: "firefly",
+    icon: Sun,
+    description: "Warm sunshine and buzzing fireflies",
   },
+  autumn: {
+    name: "Autumn Forest",
+    bg: "from-orange-100 via-amber-50 to-yellow-50",
+    accent: "text-orange-500",
+    particles: "leaf",
+    icon: Leaf,
+    description: "Falling leaves and crisp air",
+  },
+  winter: {
+    name: "Winter Wonderland",
+    bg: "from-blue-100 via-slate-50 to-white",
+    accent: "text-blue-500",
+    particles: "snow",
+    icon: Snowflake,
+    description: "Gentle snowfall and frosty air",
+  },
+  night: {
+    name: "Midnight Garden",
+    bg: "from-indigo-950 via-purple-950 to-slate-950",
+    accent: "text-indigo-400",
+    particles: "sparkle",
+    icon: Moon,
+    description: "Starlight and magical glows",
+  },
+  rainbow: {
+    name: "Rainbow Valley",
+    bg: "from-red-100 via-yellow-100 to-blue-100",
+    accent: "text-purple-500",
+    particles: "sparkle",
+    icon: Rainbow,
+    description: "Vibrant colors and joy",
+  },
+};
+
+// Zen quotes for the garden
+const zenQuotes = [
+  "Breathe in peace, breathe out worry.",
+  "The present moment is the only moment.",
+  "Like a garden, the mind must be cultivated.",
+  "Peace comes from within. Do not seek it without.",
+  "In the midst of movement and chaos, keep stillness inside of you.",
+  "Nature does not hurry, yet everything is accomplished.",
+  "The quieter you become, the more you can hear.",
+  "Every moment is a fresh beginning.",
+  "Let go of the thoughts that do not make you strong.",
+  "Be like water, my friend.",
 ];
 
-// Floating particle component
-function FloatingParticle({ delay }: { delay: number }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  
-  useEffect(() => {
-    const animate = () => {
-      x.set(Math.random() * 100 - 50);
-      y.set(Math.random() * 100 - 50);
-    };
-    const interval = setInterval(animate, 3000 + delay * 500);
-    return () => clearInterval(interval);
-  }, [x, y, delay]);
+// Breathing exercise guide
+const breathingSteps = [
+  { phase: "inhale", duration: 4000, text: "Breathe In" },
+  { phase: "hold", duration: 4000, text: "Hold" },
+  { phase: "exhale", duration: 4000, text: "Breathe Out" },
+  { phase: "hold", duration: 2000, text: "Hold" },
+];
 
-  return (
-    <motion.div
-      className="absolute w-2 h-2 rounded-full bg-primary/30"
-      style={{ x, y }}
-      animate={{ 
-        opacity: [0, 1, 0],
-        scale: [0, 1, 0]
-      }}
-      transition={{ 
-        duration: 4,
-        repeat: Infinity,
-        delay: delay * 0.5
-      }}
-    />
-  );
-}
-
-// Secret card component
-function SecretCard({ secret, onUnlock }: { secret: Secret; onUnlock: () => void }) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <motion.div
-      layout
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      onClick={onUnlock}
-      className={`relative cursor-pointer rounded-2xl p-6 border-2 transition-all ${
-        secret.unlocked 
-          ? "bg-card border-primary" 
-          : "bg-muted/50 border-dashed border-muted-foreground/30"
-      }`}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <div className="flex items-start gap-4">
-        <motion.div 
-          className={`p-3 rounded-xl ${
-            secret.unlocked 
-              ? `bg-gradient-to-br ${secret.color}` 
-              : "bg-muted"
-          }`}
-          animate={secret.unlocked ? { rotate: [0, 10, -10, 0] } : {}}
-          transition={{ duration: 0.5 }}
-        >
-          {secret.unlocked ? (
-            <secret.icon className="h-6 w-6 text-white" />
-          ) : (
-            <Lock className="h-6 w-6 text-muted-foreground" />
-          )}
-        </motion.div>
-
-        <div className="flex-1">
-          <h3 className={`font-bold ${secret.unlocked ? "" : "text-muted-foreground"}`}>
-            {secret.unlocked ? secret.title : "???"}
-          </h3>
-          
-          <AnimatePresence>
-            {secret.unlocked ? (
-              <motion.p
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="text-sm text-muted-foreground mt-1"
-              >
-                {secret.description}
-              </motion.p>
-            ) : isHovered ? (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-xs text-muted-foreground mt-1 italic"
-              >
-                Hint: {secret.hint}
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
-        </div>
-
-        <div>
-          {secret.unlocked ? (
-            <Badge variant="default" className="bg-green-500">
-              <Unlock className="h-3 w-3 mr-1" /> Unlocked
-            </Badge>
-          ) : (
-            <Badge variant="secondary">
-              <Lock className="h-3 w-3 mr-1" /> Locked
-            </Badge>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// Whisper wall component
-function WhisperWall() {
-  const [whispers, setWhispers] = useState([
-    { id: "1", text: "The garden is beautiful at midnight...", author: "Anonymous", time: "2h ago" },
-    { id: "2", text: "Found the secret terminal! 🎉", author: "Explorer", time: "5h ago" },
-    { id: "3", text: "This portfolio is a work of art.", author: "Visitor", time: "1d ago" },
-  ]);
-  const [newWhisper, setNewWhisper] = useState("");
-
-  const submitWhisper = () => {
-    if (!newWhisper.trim()) return;
-    setWhispers([{
-      id: Date.now().toString(),
-      text: newWhisper,
-      author: "Guest",
-      time: "Just now"
-    }, ...whispers]);
-    setNewWhisper("");
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wind className="h-5 w-5" />
-          Whisper Wall
-        </CardTitle>
-        <CardDescription>Leave a secret message for future visitors</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Share a secret..."
-            value={newWhisper}
-            onChange={(e) => setNewWhisper(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitWhisper()}
-          />
-          <Button size="icon" onClick={submitWhisper}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="space-y-3 max-h-64 overflow-y-auto">
-          <AnimatePresence>
-            {whispers.map((whisper) => (
-              <motion.div
-                key={whisper.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="p-3 rounded-xl bg-muted/50"
-              >
-                <p className="text-sm">{whisper.text}</p>
-                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <span>{whisper.author}</span>
-                  <span>•</span>
-                  <span>{whisper.time}</span>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Interactive garden
-function InteractiveGarden() {
-  const [flowers, setFlowers] = useState<Array<{ id: number; x: number; y: number; color: string }>([]);
-  const gardenRef = useRef<HTMLDivElement>(null);
-
-  const plantFlower = (e: React.MouseEvent) => {
-    if (!gardenRef.current) return;
-    const rect = gardenRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    const colors = ["#f472b6", "#a78bfa", "#60a5fa", "#34d399", "#fbbf24"];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    
-    setFlowers(prev => [...prev, { id: Date.now(), x, y, color }]);
-  };
-
-  return (
-    <Card className="overflow-hidden">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Flower2 className="h-5 w-5" />
-          Secret Garden
-        </CardTitle>
-        <CardDescription>Click anywhere to plant a flower</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div
-          ref={gardenRef}
-          onClick={plantFlower}
-          className="relative h-64 bg-gradient-to-b from-sky-100 to-green-100 dark:from-sky-900 dark:to-green-900 cursor-crosshair overflow-hidden"
-        >
-          {/* Background elements */}
-          <div className="absolute top-4 right-4">
-            <Sun className="h-12 w-12 text-yellow-400" />
-          </div>
-          
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-green-200 to-transparent dark:from-green-800" />
-
-          {/* Planted flowers */}
-          <AnimatePresence>
-            {flowers.map((flower) => (
-              <motion.div
-                key={flower.id}
-                initial={{ scale: 0, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0 }}
-                className="absolute"
-                style={{ left: `${flower.x}%`, top: `${flower.y}%` }}
-              >
-                <svg width="30" height="30" viewBox="0 0 30 30">
-                  <circle cx="15" cy="15" r="5" fill={flower.color} />
-                  {[0, 72, 144, 216, 288].map((rotation) => (
-                    <ellipse
-                      key={rotation}
-                      cx="15"
-                      cy="15"
-                      rx="3"
-                      ry="8"
-                      fill={flower.color}
-                      opacity="0.7"
-                      transform={`rotate(${rotation} 15 15)`}
-                    />
-                  ))}
-                </svg>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          <div className="absolute bottom-4 left-4 text-xs text-muted-foreground">
-            {flowers.length} flowers planted
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Main page component
 export default function SecretGardenPage() {
-  const [secrets, setSecrets] = useState(initialSecrets);
-  const [unlockedCount, setUnlockedCount] = useState(0);
-  const [showCelebration, setShowCelebration] = useState(false);
+  const [state, setState] = useState<GardenState>({
+    theme: "spring",
+    particleCount: 30,
+    windSpeed: 1,
+    musicEnabled: false,
+    ambientSounds: false,
+  });
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const [currentQuote, setCurrentQuote] = useState(zenQuotes[0]);
+  const [showBreathing, setShowBreathing] = useState(false);
+  const [breathingPhase, setBreathingPhase] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  // Check for time-based secrets
+  // Initialize particles
   useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 22 || hour <= 5) {
-      unlockSecret("night-owl");
+    const newParticles: Particle[] = [];
+    const theme = themes[state.theme];
+
+    for (let i = 0; i < state.particleCount; i++) {
+      newParticles.push({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 10 + 5,
+        speedX: (Math.random() - 0.5) * state.windSpeed,
+        speedY: Math.random() * 0.5 + 0.2,
+        opacity: Math.random() * 0.5 + 0.3,
+        color: getParticleColor(theme.particles as Particle["type"]),
+        type: theme.particles as Particle["type"],
+      });
     }
+    setParticles(newParticles);
+  }, [state.theme, state.particleCount, state.windSpeed]);
+
+  // Animate particles
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setParticles((prev) =>
+        prev.map((p) => ({
+          ...p,
+          x: (p.x + p.speedX * state.windSpeed + 100) % 100,
+          y: (p.y + p.speedY + 100) % 100,
+          speedX: p.speedX + (Math.random() - 0.5) * 0.1,
+        }))
+      );
+    }, 50);
+    return () => clearInterval(interval);
+  }, [state.windSpeed]);
+
+  // Rotate quotes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentQuote(zenQuotes[Math.floor(Math.random() * zenQuotes.length)]);
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Listen for Konami code
+  // Breathing exercise
   useEffect(() => {
-    const handleKonami = () => unlockSecret("konami");
-    window.addEventListener("konami-code", handleKonami);
-    return () => window.removeEventListener("konami-code", handleKonami);
+    if (!showBreathing) return;
+
+    const currentStep = breathingSteps[breathingPhase];
+    const timer = setTimeout(() => {
+      setBreathingPhase((prev) => (prev + 1) % breathingSteps.length);
+    }, currentStep.duration);
+
+    return () => clearTimeout(timer);
+  }, [showBreathing, breathingPhase]);
+
+  // Track mouse for parallax
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20,
+      });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  const unlockSecret = (id: string) => {
-    setSecrets(prev => {
-      const updated = prev.map(s => s.id === id ? { ...s, unlocked: true } : s);
-      const newUnlocked = updated.filter(s => s.unlocked).length;
-      if (newUnlocked > unlockedCount) {
-        setUnlockedCount(newUnlocked);
-        if (newUnlocked === secrets.length) {
-          setShowCelebration(true);
-        }
-      }
-      return updated;
-    });
-  };
-
-  const handleSecretClick = (secret: Secret) => {
-    // Simulate unlocking for demo purposes
-    if (!secret.unlocked) {
-      unlockSecret(secret.id);
+  function getParticleColor(type: Particle["type"]): string {
+    switch (type) {
+      case "petal":
+        return ["#ffb7c5", "#ffc0cb", "#ff69b4", "#ffb6c1"][Math.floor(Math.random() * 4)];
+      case "firefly":
+        return "#ffff00";
+      case "snow":
+        return "#ffffff";
+      case "rain":
+        return "#a0c4ff";
+      case "leaf":
+        return ["#ff6b35", "#f7931e", "#ffd23f", "#06ffa5"][Math.floor(Math.random() * 4)];
+      case "sparkle":
+        return ["#ffd700", "#ffec8b", "#fff8dc", "#ffffff"][Math.floor(Math.random() * 4)];
+      default:
+        return "#ffffff";
     }
-  };
+  }
+
+  const currentTheme = themes[state.theme];
+  const currentStep = breathingSteps[breathingPhase];
 
   return (
-    <div className="min-h-screen pt-24 pb-16 relative overflow-hidden">
-      {/* Floating particles */}
-      <div className="fixed inset-0 pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <FloatingParticle key={i} delay={i} />
+    <div
+      className={`min-h-screen relative overflow-hidden transition-all duration-1000 bg-gradient-to-br ${currentTheme.bg}`}
+    >
+      {/* Animated Background Layers */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Parallax layers */}
+        <motion.div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `radial-gradient(circle at ${50 + mousePos.x}% ${50 + mousePos.y}%, rgba(255,255,255,0.3) 0%, transparent 50%)`,
+          }}
+          animate={{
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Floating particles */}
+        {particles.map((particle) => (
+          <motion.div
+            key={particle.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+              width: particle.size,
+              height: particle.size,
+              backgroundColor: particle.color,
+              opacity: particle.opacity,
+              boxShadow: particle.type === "firefly" || particle.type === "sparkle"
+                ? `0 0 ${particle.size * 2}px ${particle.color}`
+                : "none",
+            }}
+            animate={{
+              rotate: [0, 360],
+              scale: particle.type === "firefly" ? [1, 1.2, 1] : 1,
+            }}
+            transition={{
+              rotate: { duration: 10 + Math.random() * 10, repeat: Infinity, ease: "linear" },
+              scale: { duration: 2 + Math.random(), repeat: Infinity, ease: "easeInOut" },
+            }}
+          />
         ))}
+
+        {/* Ambient glow orbs */}
+        <motion.div
+          className="absolute w-96 h-96 rounded-full blur-3xl opacity-20"
+          style={{
+            background: `radial-gradient(circle, ${currentTheme.accent.replace("text-", "")} 0%, transparent 70%)`,
+            left: "10%",
+            top: "20%",
+          }}
+          animate={{
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute w-96 h-96 rounded-full blur-3xl opacity-20"
+          style={{
+            background: `radial-gradient(circle, ${currentTheme.accent.replace("text-", "")} 0%, transparent 70%)`,
+            right: "10%",
+            bottom: "20%",
+          }}
+          animate={{
+            x: [0, -50, 0],
+            y: [0, -30, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="absolute top-8 left-0 right-0 flex justify-between items-center px-8"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Shhh... Secret Area</span>
-          </motion.div>
-
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Secret <span className="text-gradient-animated">Garden</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A hidden sanctuary for those who seek. Discover secrets, plant flowers, and leave whispers.
-          </p>
-
-          {/* Progress */}
-          <div className="mt-8 inline-flex items-center gap-4 px-6 py-3 rounded-full bg-muted">
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500" />
-              <span className="font-semibold">{unlockedCount}/{secrets.length} Secrets Found</span>
+          <div className="flex items-center gap-3">
+            <motion.div
+              className={`w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center ${currentTheme.accent}`}
+              whileHover={{ scale: 1.1, rotate: 10 }}
+            >
+              <Flower2 className="w-6 h-6" />
+            </motion.div>
+            <div>
+              <h1 className="text-xl font-bold">Secret Garden</h1>
+              <p className="text-sm text-muted-foreground">A peaceful retreat</p>
             </div>
-            <div className="w-32 h-2 rounded-full bg-muted-foreground/20 overflow-hidden">
-              <motion.div 
-                className="h-full rounded-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: `${(unlockedCount / secrets.length) * 100}%` }}
-              />
-            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowBreathing(!showBreathing)}
+              className={showBreathing ? "bg-white/20" : ""}
+            >
+              <Wind className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSettings(!showSettings)}
+              className={showSettings ? "bg-white/20" : ""}
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+            >
+              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            </Button>
           </div>
         </motion.div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Secrets Collection */}
+        {/* Central Zen Quote */}
+        <motion.div
+          key={currentQuote}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 1 }}
+          className="text-center max-w-2xl"
+        >
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            className="mb-8"
+            animate={{
+              rotate: [0, 5, -5, 0],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Gift className="h-5 w-5" />
-                  Secret Collection
-                </CardTitle>
-                <CardDescription>Discover hidden achievements</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <AnimatePresence>
-                  {secrets.map((secret) => (
-                    <SecretCard
-                      key={secret.id}
-                      secret={secret}
-                      onUnlock={() => handleSecretClick(secret)}
-                    />
-                  ))}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
+            <currentTheme.icon className={`w-24 h-24 mx-auto ${currentTheme.accent} opacity-50`} />
           </motion.div>
 
-          {/* Right Column */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-6"
-003e
-            <InteractiveGarden />
-            <WhisperWall />
-          </motion.div>
-        </div>
+          <blockquote className="text-2xl md:text-4xl font-light leading-relaxed mb-8">
+            "{currentQuote}"
+          </blockquote>
 
-        {/* Celebration */}
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentQuote(zenQuotes[Math.floor(Math.random() * zenQuotes.length)])}
+              className="bg-white/10 backdrop-blur-sm border-white/20"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              New Quote
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Breathing Exercise */}
         <AnimatePresence>
-          {showCelebration && (
+          {showBreathing && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-              onClick={() => setShowCelebration(false)}
+              className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
+              onClick={() => setShowBreathing(false)}
             >
               <motion.div
-                className="bg-card p-8 rounded-3xl text-center max-w-md mx-4"
+                className="text-center"
                 onClick={(e) => e.stopPropagation()}
               >
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="inline-block mb-4"
-003e
-                  <Sparkles className="h-16 w-16 text-yellow-500" />
+                  className={`w-48 h-48 rounded-full bg-gradient-to-br ${currentTheme.bg} mx-auto mb-8 flex items-center justify-center`}
+                  animate={{
+                    scale: currentStep.phase === "inhale" ? 1.5 : currentStep.phase === "exhale" ? 1 : 1.5,
+                    opacity: currentStep.phase === "hold" ? 0.7 : 1,
+                  }}
+                  transition={{
+                    duration: currentStep.duration / 1000,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <span className="text-2xl font-light">{currentStep.text}</span>
                 </motion.div>
-                <h2 className="text-3xl font-bold mb-2">All Secrets Found!</h2>
-                <p className="text-muted-foreground mb-6">
-                  You&apos;ve unlocked every secret in the garden. You are truly a master explorer!
-                </p>
-                <Button onClick={() => setShowCelebration(false)}>
-                  Continue Exploring
-                </Button>
+                <p className="text-white/80">Click anywhere to stop</p>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Settings Panel */}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              initial={{ opacity: 0, x: 300 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 300 }}
+              className="absolute right-8 top-24 w-80"
+            >
+              <Card className="bg-white/90 dark:bg-black/90 backdrop-blur-xl border-white/20">
+                <CardContent className="p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Garden Settings</h3>
+                    <Button variant="ghost" size="icon" onClick={() => setShowSettings(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Theme Selector */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Season</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(themes).map(([key, theme]) => (
+                        <Button
+                          key={key}
+                          variant={state.theme === key ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setState({ ...state, theme: key as GardenState["theme"] })}
+                          className="justify-start"
+                        >
+                          <theme.icon className="w-4 h-4 mr-2" />
+                          {theme.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Particle Count */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Particle Density</label>
+                    <Slider
+                      value={[state.particleCount]}
+                      onValueChange={([value]) => setState({ ...state, particleCount: value })}
+                      min={0}
+                      max={100}
+                      step={5}
+                    />
+                  </div>
+
+                  {/* Wind Speed */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Wind Speed</label>
+                    <Slider
+                      value={[state.windSpeed]}
+                      onValueChange={([value]) => setState({ ...state, windSpeed: value })}
+                      min={0}
+                      max={5}
+                      step={0.5}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Theme Selector (Bottom) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <div className="flex items-center gap-2 p-2 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+            {Object.entries(themes).map(([key, theme]) => (
+              <motion.button
+                key={key}
+                onClick={() => setState({ ...state, theme: key as GardenState["theme"] })}
+                className={`p-3 rounded-xl transition-all ${
+                  state.theme === key
+                    ? "bg-white/30 shadow-lg"
+                    : "hover:bg-white/10"
+                }`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                title={theme.name}
+              >
+                <theme.icon className={`w-5 h-5 ${theme.accent}`} />
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="absolute bottom-8 right-8 text-xs text-muted-foreground"
+        >
+          <p>{particles.length} particles active</p>
+          <p>Wind: {state.windSpeed}x</p>
+        </motion.div>
+      </div>
+
+      {/* Easter Egg Hint */}
+      <div className="absolute bottom-8 left-8 text-[10px] text-muted-foreground/50">
+        <p>Try pressing the spacebar for a surprise...</p>
       </div>
     </div>
   );
