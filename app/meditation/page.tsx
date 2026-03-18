@@ -1,375 +1,202 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Sparkles, 
+  Play, 
+  Pause, 
+  RotateCcw, 
   Wind, 
-  Music, 
-  Volume2, 
+  Waves, 
+  CloudRain,
+  Volume2,
   VolumeX,
-  Play,
-  Pause,
-  RotateCcw,
-  Flower2,
-  Waves,
-  Mountain,
-  Cloud,
-  Flame
+  Sparkles,
+  Code,
+  Coffee,
+  Leaf,
+  Timer
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
-// Ambient sound generators using Web Audio API
-function useAmbientSound() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.3);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
-  const gainNodeRef = useRef<GainNode | null>(null);
-
-  const toggle = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    }
-
-    const ctx = audioContextRef.current;
-
-    if (isPlaying) {
-      // Fade out
-      if (gainNodeRef.current) {
-        gainNodeRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.5);
-      }
-      setTimeout(() => {
-        oscillatorsRef.current.forEach(osc => osc.stop());
-        oscillatorsRef.current = [];
-      }, 500);
-      setIsPlaying(false);
-    } else {
-      // Create ambient drone
-      const gainNode = ctx.createGain();
-      gainNode.gain.setValueAtTime(0, ctx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + 2);
-      gainNode.connect(ctx.destination);
-      gainNodeRef.current = gainNode;
-
-      // Multiple oscillators for rich texture
-      const frequencies = [110, 164.81, 196, 220]; // A2, E3, G3, A3
-      frequencies.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        osc.type = i % 2 === 0 ? "sine" : "triangle";
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        
-        // Add subtle detune
-        const lfo = ctx.createOscillator();
-        lfo.frequency.setValueAtTime(0.1 + i * 0.05, ctx.currentTime);
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.setValueAtTime(2, ctx.currentTime);
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start();
-        
-        osc.connect(gainNode);
-        osc.start();
-        oscillatorsRef.current.push(osc);
-      });
-
-      setIsPlaying(true);
-    }
-  };
-
-  const adjustVolume = (newVolume: number) => {
-    setVolume(newVolume);
-    if (gainNodeRef.current && audioContextRef.current) {
-      gainNodeRef.current.gain.setTargetAtTime(newVolume, audioContextRef.current.currentTime, 0.1);
-    }
-  };
-
-  return { isPlaying, toggle, volume, adjustVolume };
+interface BreathingPattern {
+  name: string;
+  inhale: number;
+  hold: number;
+  exhale: number;
+  holdEmpty: number;
 }
 
-// Breathing exercise component
-function BreathingExercise() {
-  const [phase, setPhase] = useState<"inhale" | "hold" | "exhale" | "rest">("inhale");
-  const [isActive, setIsActive] = useState(false);
+const patterns: BreathingPattern[] = [
+  { name: "4-7-8 Relaxing", inhale: 4, hold: 7, exhale: 8, holdEmpty: 0 },
+  { name: "Box Breathing", inhale: 4, hold: 4, exhale: 4, holdEmpty: 4 },
+  { name: "Coherent 5-5", inhale: 5, hold: 0, exhale: 5, holdEmpty: 0 },
+  { name: "Energizing 2-4", inhale: 2, hold: 0, exhale: 4, holdEmpty: 0 },
+];
 
+const ambientSounds = [
+  { name: "Gentle Rain", icon: CloudRain, color: "from-blue-400 to-cyan-400" },
+  { name: "Ocean Waves", icon: Waves, color: "from-cyan-400 to-teal-400" },
+  { name: "Forest Wind", icon: Wind, color: "from-green-400 to-emerald-400" },
+  { name: "White Noise", icon: Sparkles, color: "from-purple-400 to-pink-400" },
+];
+
+const codeMantras = [
+  "Breathe in clarity, breathe out complexity",
+  "Every bug is a teacher in disguise",
+  "Progress over perfection",
+  "The code will wait, your mind needs rest",
+  "Small steps lead to big changes",
+  "Embrace the learning curve",
+  "Rest is part of the process",
+  "Your best code comes from a calm mind",
+];
+
+export default function MeditationPage() {
+  const [isActive, setIsActive] = useState(false);
+  const [phase, setPhase] = useState<"inhale" | "hold" | "exhale" | "holdEmpty">("inhale");
+  const [progress, setProgress] = useState(0);
+  const [selectedPattern, setSelectedPattern] = useState(0);
+  const [selectedSound, setSelectedSound] = useState<number | null>(null);
+  const [volume, setVolume] = useState(50);
+  const [isMuted, setIsMuted] = useState(false);
+  const [sessionTime, setSessionTime] = useState(0);
+  const [currentMantra, setCurrentMantra] = useState(0);
+  const [showMantra, setShowMantra] = useState(true);
+  const [totalSessions, setTotalSessions] = useState(0);
+  const [totalMinutes, setTotalMinutes] = useState(0);
+
+  const pattern = patterns[selectedPattern];
+
+  // Load stats from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("meditation-stats");
+    if (saved) {
+      const stats = JSON.parse(saved);
+      setTotalSessions(stats.sessions || 0);
+      setTotalMinutes(stats.minutes || 0);
+    }
+  }, []);
+
+  // Save stats
+  const saveStats = useCallback((sessions: number, minutes: number) => {
+    localStorage.setItem("meditation-stats", JSON.stringify({ sessions, minutes }));
+  }, []);
+
+  // Breathing cycle
   useEffect(() => {
     if (!isActive) return;
 
-    const phases: Array<{ phase: "inhale" | "hold" | "exhale" | "rest"; duration: number }> = [
-      { phase: "inhale", duration: 4000 },
-      { phase: "hold", duration: 4000 },
-      { phase: "exhale", duration: 4000 },
-      { phase: "rest", duration: 4000 },
-    ];
-
-    let currentIndex = 0;
-    const runPhase = () => {
-      const current = phases[currentIndex];
-      setPhase(current.phase);
-      
-      setTimeout(() => {
-        currentIndex = (currentIndex + 1) % phases.length;
-        if (isActive) runPhase();
-      }, current.duration);
+    let interval: NodeJS.Timeout;
+    const cyclePhase = () => {
+      switch (phase) {
+        case "inhale":
+          interval = setTimeout(() => {
+            if (pattern.hold > 0) setPhase("hold");
+            else setPhase("exhale");
+          }, pattern.inhale * 1000);
+          break;
+        case "hold":
+          interval = setTimeout(() => setPhase("exhale"), pattern.hold * 1000);
+          break;
+        case "exhale":
+          interval = setTimeout(() => {
+            if (pattern.holdEmpty > 0) setPhase("holdEmpty");
+            else setPhase("inhale");
+          }, pattern.exhale * 1000);
+          break;
+        case "holdEmpty":
+          interval = setTimeout(() => setPhase("inhale"), pattern.holdEmpty * 1000);
+          break;
+      }
     };
 
-    runPhase();
+    cyclePhase();
+    return () => clearTimeout(interval);
+  }, [isActive, phase, pattern]);
 
-    return () => {
-      currentIndex = 0;
+  // Progress animation
+  useEffect(() => {
+    if (!isActive) return;
+
+    const duration = {
+      inhale: pattern.inhale,
+      hold: pattern.hold,
+      exhale: pattern.exhale,
+      holdEmpty: pattern.holdEmpty,
+    }[phase];
+
+    if (duration === 0) return;
+
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const newProgress = Math.min((elapsed / duration) * 100, 100);
+      setProgress(newProgress);
+
+      if (newProgress < 100) {
+        requestAnimationFrame(animate);
+      }
     };
+
+    const frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [isActive, phase, pattern]);
+
+  // Session timer
+  useEffect(() => {
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      setSessionTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, [isActive]);
 
-  const getPhaseText = () => {
-    switch (phase) {
-      case "inhale": return "Breathe In...";
-      case "hold": return "Hold...";
-      case "exhale": return "Breathe Out...";
-      case "rest": return "Rest...";
-    }
-  };
-
-  const getScale = () => {
-    switch (phase) {
-      case "inhale": return 1.5;
-      case "hold": return 1.5;
-      case "exhale": return 1;
-      case "rest": return 1;
-    }
-  };
-
-  return (
-    <Card className="relative overflow-hidden">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wind className="h-5 w-5" />
-          Breathing Exercise
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center py-8">
-        <motion.div
-          className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-6"
-          animate={{ scale: getScale() }}
-          transition={{ duration: 4, ease: "easeInOut" }}
-        >
-          <motion.div
-            className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/50 to-primary/20"
-            animate={{ scale: getScale() }}
-            transition={{ duration: 4, ease: "easeInOut", delay: 0.1 }}
-          />
-        </motion.div>
-        
-        <p className="text-lg font-medium mb-4">{getPhaseText()}</p>
-        
-        <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "default" : "outline"}>
-          {isActive ? (
-            <><Pause className="h-4 w-4 mr-2" /> Pause</>
-          ) : (
-            <><Play className="h-4 w-4 mr-2" /> Start</>
-          )}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Zen garden with interactive sand
-function ZenGarden() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [rakedLines, setRakedLines] = useState<Array<{ x1: number; y1: number; x2: number; y2: number }>>([]);
-
+  // Rotate mantras
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!isActive) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const interval = setInterval(() => {
+      setShowMantra(false);
+      setTimeout(() => {
+        setCurrentMantra((prev) => (prev + 1) % codeMantras.length);
+        setShowMantra(true);
+      }, 500);
+    }, 15000);
 
-    // Set canvas size
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    // Draw sand texture
-    const drawSand = () => {
-      ctx.fillStyle = "#f5f5f0";
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-
-      // Add noise
-      for (let i = 0; i < 5000; i++) {
-        const x = Math.random() * canvas.offsetWidth;
-        const y = Math.random() * canvas.offsetHeight;
-        ctx.fillStyle = Math.random() > 0.5 ? "#e8e8e0" : "#fafaf5";
-        ctx.fillRect(x, y, 1, 1);
-      }
-
-      // Draw raked lines
-      ctx.strokeStyle = "#d0d0c8";
-      ctx.lineWidth = 2;
-      rakedLines.forEach(line => {
-        ctx.beginPath();
-        ctx.moveTo(line.x1, line.y1);
-        ctx.lineTo(line.x2, line.y2);
-        ctx.stroke();
-      });
-    };
-
-    drawSand();
-
-    return () => window.removeEventListener("resize", resize);
-  }, [rakedLines]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setRakedLines(prev => [...prev, { x1: x, y1: y, x2: x, y2: y }]);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setRakedLines(prev => {
-      const newLines = [...prev];
-      newLines[newLines.length - 1] = { ...newLines[newLines.length - 1], x2: x, y2: y };
-      return newLines;
-    });
-  };
-
-  const handleMouseUp = () => setIsDrawing(false);
-
-  const clearGarden = () => setRakedLines([]);
-
-  return (
-    <Card className="relative overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Mountain className="h-5 w-5" />
-          Zen Garden
-        </CardTitle>
-        <Button variant="ghost" size="sm" onClick={clearGarden}>
-          <RotateCcw className="h-4 w-4 mr-1" /> Reset
-        </Button>
-      </CardHeader>
-      <CardContent className="p-0">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-64 cursor-crosshair touch-none"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        />
-        <p className="text-xs text-muted-foreground text-center py-2">
-          Click and drag to rake the sand
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Floating lotus animation
-function FloatingLotus() {
-  return (
-    <div className="relative h-48 overflow-hidden rounded-2xl bg-gradient-to-b from-sky-100 to-sky-200 dark:from-sky-900 dark:to-sky-950">
-      {/* Water ripples */}
-      {[...Array(3)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-sky-300/30"
-          initial={{ width: 50, height: 50, opacity: 0 }}
-          animate={{ 
-            width: 200 + i * 50, 
-            height: 100 + i * 25, 
-            opacity: [0, 0.5, 0] 
-          }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity, 
-            delay: i * 1.5,
-            ease: "easeOut"
-          }}
-        />
-      ))}
-
-      {/* Lotus flower */}
-      <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <svg width="80" height="80" viewBox="0 0 100 100" className="drop-shadow-lg">
-          <defs>
-            <linearGradient id="petal1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f472b6" />
-              <stop offset="100%" stopColor="#ec4899" />
-            </linearGradient>
-            <linearGradient id="petal2" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f9a8d4" />
-              <stop offset="100%" stopColor="#f472b6" />
-            </linearGradient>
-          </defs>
-          {/* Petals */}
-          {[...Array(8)].map((_, i) => (
-            <ellipse
-              key={i}
-              cx="50"
-              cy="50"
-              rx="15"
-              ry="35"
-              fill={i % 2 === 0 ? "url(#petal1)" : "url(#petal2)"}
-              transform={`rotate(${i * 45} 50 50)`}
-            />
-          ))}
-          <circle cx="50" cy="50" r="10" fill="#fbbf24" />
-        </svg>
-      </motion.div>
-
-      {/* Lily pad */}
-      <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        animate={{ rotate: [0, 5, -5, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <svg width="120" height="120" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4ade80" opacity="0.8" />
-          <path d="M50 50 L50 5 A45 45 0 0 1 95 50 Z" fill="#22c55e" opacity="0.6" />
-        </svg>
-      </motion.div>
-    </div>
-  );
-}
-
-// Meditation timer
-function MeditationTimer() {
-  const [duration, setDuration] = useState(5);
-  const [timeLeft, setTimeLeft] = useState(5 * 60);
-  const [isActive, setIsActive] = useState(false);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-    }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
+  }, [isActive]);
+
+  const handleStart = () => {
+    if (!isActive && sessionTime === 0) {
+      setTotalSessions((prev) => {
+        const newSessions = prev + 1;
+        saveStats(newSessions, totalMinutes);
+        return newSessions;
+      });
+    }
+    setIsActive(!isActive);
+  };
+
+  const handleReset = () => {
+    setIsActive(false);
+    setPhase("inhale");
+    setProgress(0);
+    setSessionTime(0);
+    
+    // Save session minutes
+    const minutes = Math.ceil(sessionTime / 60);
+    if (minutes > 0) {
+      setTotalMinutes((prev) => {
+        const newMinutes = prev + minutes;
+        saveStats(totalSessions, newMinutes);
+        return newMinutes;
+      });
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -377,179 +204,331 @@ function MeditationTimer() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const reset = () => {
-    setIsActive(false);
-    setTimeLeft(duration * 60);
+  const getPhaseDuration = () => {
+    switch (phase) {
+      case "inhale": return pattern.inhale;
+      case "hold": return pattern.hold;
+      case "exhale": return pattern.exhale;
+      case "holdEmpty": return pattern.holdEmpty;
+    }
   };
 
-  const setDurationAndReset = (mins: number) => {
-    setDuration(mins);
-    setTimeLeft(mins * 60);
-    setIsActive(false);
+  const getPhaseText = () => {
+    switch (phase) {
+      case "inhale": return "Breathe In";
+      case "hold": return "Hold";
+      case "exhale": return "Breathe Out";
+      case "holdEmpty": return "Pause";
+    }
+  };
+
+  const getPhaseColor = () => {
+    switch (phase) {
+      case "inhale": return "from-blue-400 to-cyan-400";
+      case "hold": return "from-yellow-400 to-orange-400";
+      case "exhale": return "from-purple-400 to-pink-400";
+      case "holdEmpty": return "from-gray-400 to-slate-400";
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Flower2 className="h-5 w-5" />
-          Meditation Timer
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="text-center">
-        <div className="text-6xl font-bold mb-6 font-mono">
-          {formatTime(timeLeft)}
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            scale: phase === "inhale" ? 1.5 : phase === "exhale" ? 0.8 : 1,
+            opacity: phase === "hold" ? 0.6 : 0.3,
+          }}
+          transition={{ duration: getPhaseDuration(), ease: "easeInOut" }}
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-gradient-to-r ${getPhaseColor()} blur-3xl`}
+        />
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-white/20 rounded-full"
+            initial={{
+              x: Math.random() * (typeof window !== "undefined" ? window.innerWidth : 1000),
+              y: Math.random() * (typeof window !== "undefined" ? window.innerHeight : 1000),
+            }}
+            animate={{
+              y: [null, -20, 20],
+              opacity: [0.2, 0.5, 0.2],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
 
-        <div className="flex justify-center gap-2 mb-6">
-          {[5, 10, 15, 20].map(mins => (
-            <Button
-              key={mins}
-              variant={duration === mins ? "default" : "outline"}
-              size="sm"
-              onClick={() => setDurationAndReset(mins)}
-            >
-              {mins}m
-            </Button>
-          ))}
-        </div>
-
-        <div className="flex justify-center gap-2">
-          <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "default" : "outline"}>
-            {isActive ? <><Pause className="h-4 w-4 mr-2" /> Pause</> : <><Play className="h-4 w-4 mr-2" /> Start</>}
-          </Button>
-          <Button variant="ghost" onClick={reset}>
-            <RotateCcw className="h-4 w-4 mr-2" /> Reset
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Main page component
-export default function MeditationPage() {
-  const { isPlaying, toggle, volume, adjustVolume } = useAmbientSound();
-
-  return (
-    <div className="min-h-screen pt-24 pb-16 bg-gradient-to-b from-background via-background to-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 container mx-auto px-4 py-24 min-h-screen flex flex-col">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Find Your Center</span>
-          </motion.div>
-
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Code <span className="text-gradient-animated">Meditation</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm mb-6">
+            <Leaf className="w-4 h-4 text-green-400" />
+            <span className="text-sm font-medium">Code Meditation</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+            Find Your Flow
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Take a break from coding. Breathe deeply, clear your mind, and find your center.
+          <p className="text-white/60 max-w-xl mx-auto">
+            Take a moment to breathe, reset, and return to your code with clarity and focus.
           </p>
         </motion.div>
 
-        {/* Ambient Sound Control */}
+        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="flex justify-center gap-8 mb-12"
         >
-          <Card className="bg-gradient-to-r from-primary/5 to-orange-500/5">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <Music className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Ambient Soundscape</h3>
-                    <p className="text-sm text-muted-foreground">Generative ambient drone for deep focus</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  {isPlaying && (
-                    <div className="flex items-center gap-2">
-                      {volume > 0 ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={volume}
-                        onChange={(e) => adjustVolume(parseFloat(e.target.value))}
-                        className="w-24"
-                      />
-                    </div>
-                  )}
-                  <Button onClick={toggle} variant={isPlaying ? "default" : "outline"}>
-                    {isPlaying ? <><Pause className="h-4 w-4 mr-2" /> Stop</> : <><Play className="h-4 w-4 mr-2" /> Play</>}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-white">{totalSessions}</p>
+            <p className="text-sm text-white/50">Sessions</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-white">{totalMinutes}</p>
+            <p className="text-sm text-white/50">Minutes</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-white">{formatTime(sessionTime)}</p>
+            <p className="text-sm text-white/50">Current</p>
+          </div>
         </motion.div>
 
-        {/* Featured: Floating Lotus */}
+        {/* Main Breathing Circle */}
+        <div className="flex-1 flex items-center justify-center mb-12">
+          <div className="relative">
+            {/* Outer Rings */}
+            {[...Array(3)].map((_, i) => (
+              <motion.div
+                key={i}
+                className={`absolute inset-0 rounded-full border-2 border-white/10`}
+                animate={{
+                  scale: isActive ? [1, 1.2 + i * 0.1, 1] : 1,
+                  opacity: isActive ? [0.3, 0.1, 0.3] : 0.1,
+                }}
+                transition={{
+                  duration: getPhaseDuration() * 2,
+                  repeat: Infinity,
+                  delay: i * 0.3,
+                }}
+              />
+            ))}
+
+            {/* Main Circle */}
+            <motion.div
+              className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br ${getPhaseColor()} flex items-center justify-center cursor-pointer`}
+              animate={{
+                scale: phase === "inhale" ? 1.1 : phase === "exhale" ? 0.9 : 1,
+              }}
+              transition={{ duration: getPhaseDuration(), ease: "easeInOut" }}
+              onClick={handleStart}
+            >
+              {/* Progress Ring */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90">
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="48%"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.2)"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="48%"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={`${progress * 3.02} 302`}
+                  className="transition-all duration-100"
+                />
+              </svg>
+
+              {/* Center Content */}
+              <div className="text-center z-10">
+                <motion.div
+                  key={phase}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="text-2xl md:text-3xl font-bold text-white mb-2"
+                >
+                  {getPhaseText()}
+                </motion.div>
+                <p className="text-white/80 text-lg">
+                  {Math.ceil((getPhaseDuration() * (100 - progress)) / 100)}s
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Floating Icons */}
+            <AnimatePresence>
+              {isActive && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0 }}
+                    className="absolute -top-4 -right-4"
+                  >
+                    <Code className="w-6 h-6 text-white/40" />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="absolute -bottom-4 -left-4"
+                  >
+                    <Coffee className="w-6 h-6 text-white/40" />
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Mantra */}
+        <AnimatePresence mode="wait">
+          {showMantra && (
+            <motion.div
+              key={currentMantra}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="text-center mb-12"
+            >
+              <p className="text-xl md:text-2xl text-white/70 italic max-w-2xl mx-auto">
+                &ldquo;{codeMantras[currentMantra]}&rdquo;
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Controls */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-8"
+          className="max-w-2xl mx-auto w-full space-y-8"
         >
-          <FloatingLotus />
+          {/* Play Controls */}
+          <div className="flex justify-center gap-4">
+            <Button
+              size="lg"
+              onClick={handleStart}
+              className={`rounded-full px-8 ${
+                isActive 
+                  ? "bg-white/20 hover:bg-white/30" 
+                  : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              }`}
+            >
+              {isActive ? (
+                <><Pause className="w-5 h-5 mr-2" /> Pause</>
+              ) : (
+                <><Play className="w-5 h-5 mr-2" /> Start Session</>
+              )}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleReset}
+              className="rounded-full border-white/20 text-white hover:bg-white/10"
+            >
+              <RotateCcw className="w-5 h-5 mr-2" /> Reset
+            </Button>
+          </div>
+
+          {/* Pattern Selection */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {patterns.map((p, i) => (
+              <button
+                key={p.name}
+                onClick={() => {
+                  setSelectedPattern(i);
+                  setPhase("inhale");
+                  setProgress(0);
+                }}
+                className={`p-3 rounded-xl border transition-all text-sm ${
+                  selectedPattern === i
+                    ? "border-white/40 bg-white/10 text-white"
+                    : "border-white/10 text-white/50 hover:border-white/20 hover:text-white/70"
+                }`}
+              >
+                <p className="font-medium">{p.name}</p>
+                <p className="text-xs opacity-60 mt-1">
+                  {p.inhale}-{p.hold > 0 ? p.hold + "-" : ""}{p.exhale}
+                  {p.holdEmpty > 0 ? "-" + p.holdEmpty : ""}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {/* Ambient Sounds */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-white/60">Ambient Sound</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <Slider
+                  value={[isMuted ? 0 : volume]}
+                  onValueChange={(v) => {
+                    setVolume(v[0]);
+                    setIsMuted(v[0] === 0);
+                  }}
+                  max={100}
+                  step={1}
+                  className="w-24"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {ambientSounds.map((sound, i) => (
+                <button
+                  key={sound.name}
+                  onClick={() => setSelectedSound(selectedSound === i ? null : i)}
+                  className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
+                    selectedSound === i
+                      ? `border-white/40 bg-gradient-to-br ${sound.color} text-white`
+                      : "border-white/10 text-white/50 hover:border-white/20 hover:text-white/70"
+                  }`}
+                >
+                  <sound.icon className="w-6 h-6" />
+                  <span className="text-xs font-medium">{sound.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <BreathingExercise />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <MeditationTimer />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-            className="md:col-span-2"
-          >
-            <ZenGarden />
-          </motion.div>
-        </div>
-
-        {/* Quotes */}
+        {/* Footer Tip */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-12 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center mt-12 text-white/40 text-sm"
         >
-          <blockquote className="text-xl italic text-muted-foreground max-w-2xl mx-auto">
-            "The mind is everything. What you think you become."
-          </blockquote>
-          <cite className="text-sm text-muted-foreground mt-2 block">— Buddha</cite>
+          <p className="flex items-center justify-center gap-2">
+            <Timer className="w-4 h-4" />
+            Tip: Even 5 minutes of mindful breathing can significantly improve focus and reduce stress
+          </p>
         </motion.div>
       </div>
     </div>
