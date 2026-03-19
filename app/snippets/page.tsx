@@ -1,23 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Code2, 
-  Copy, 
-  Check, 
-  Search, 
+import {
   Terminal,
-  FileCode,
-  Braces,
-  Hash,
+  Play,
+  Pause,
+  RotateCcw,
+  Download,
+  Copy,
+  Check,
+  Code2,
   Sparkles,
-  ExternalLink
+  Zap,
+  Settings,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Type,
+  Palette,
+  Layout,
+  MousePointer
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 interface CodeSnippet {
   id: string;
@@ -26,493 +35,703 @@ interface CodeSnippet {
   language: string;
   code: string;
   tags: string[];
+  complexity: "beginner" | "intermediate" | "advanced";
 }
 
-const snippets: CodeSnippet[] = [
+const codeSnippets: CodeSnippet[] = [
   {
     id: "1",
-    title: "Debounce Function",
-    description: "A utility function to debounce function calls, useful for search inputs and resize handlers.",
+    title: "React useLocalStorage Hook",
+    description: "A custom hook for persisting state to localStorage with SSR safety",
     language: "typescript",
-    code: `export function debounce<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
+    complexity: "intermediate",
+    tags: ["react", "hooks", "storage"],
+    code: `import { useState, useEffect } from 'react';
+
+function useLocalStorage<T>(key: string, initialValue: T) {
+  // State to store our value
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        setStoredValue(JSON.parse(item));
+      }
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+    }
+    setIsLoaded(true);
+  }, [key]);
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function 
+        ? value(storedValue) 
+        : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
   };
-}`,
-    tags: ["utility", "performance", "react"]
+
+  return [storedValue, setValue, isLoaded] as const;
+}
+
+export default useLocalStorage;`
   },
   {
     id: "2",
-    title: "Copy to Clipboard",
-    description: "Modern async clipboard API wrapper with fallback for older browsers.",
+    title: "Debounce Function",
+    description: "A utility function to limit how often a function can fire",
     language: "typescript",
-    code: `export async function copyToClipboard(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (err) {
-    // Fallback for older browsers
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    
-    try {
-      document.execCommand('copy');
-      return true;
-    } catch {
-      return false;
-    } finally {
-      document.body.removeChild(textarea);
+    complexity: "intermediate",
+    tags: ["utilities", "performance"],
+    code: `function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  return function (...args: Parameters<T>) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
     }
-  }
-}`,
-    tags: ["utility", "browser", "async"]
+
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, wait);
+  };
+}
+
+// Usage example
+const handleSearch = debounce((query: string) => {
+  console.log('Searching for:', query);
+  // Perform search API call
+}, 300);
+
+// In your input handler
+// onChange={(e) => handleSearch(e.target.value)}`
   },
   {
     id: "3",
-    title: "Random ID Generator",
-    description: "Generate cryptographically secure random IDs with optional prefix.",
-    language: "typescript",
-    code: `export function generateId(prefix = ''): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  
-  const id = Array.from(array)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-  
-  return prefix ? \`\${prefix}_\${id}\` : id;
-}`,
-    tags: ["utility", "security", "id"]
+    title: "CSS Grid Masonry Layout",
+    description: "A pure CSS approach to masonry-style layouts using grid",
+    language: "css",
+    complexity: "beginner",
+    tags: ["css", "layout"],
+    code: `.masonry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: 10px;
+  gap: 1rem;
+}
+
+.masonry-item {
+  grid-row: span var(--row-span, 20);
+  break-inside: avoid;
+}
+
+/* Item heights based on content */
+.masonry-item.small {
+  --row-span: 15;
+}
+
+.masonry-item.medium {
+  --row-span: 25;
+}
+
+.masonry-item.large {
+  --row-span: 35;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .masonry-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .masonry-grid {
+    grid-template-columns: 1fr;
+  }
+}`
   },
   {
     id: "4",
-    title: "Format Date Relative",
-    description: "Display relative time like '2 hours ago' or 'just now'.",
+    title: "Intersection Observer Hook",
+    description: "React hook for detecting when elements enter the viewport",
     language: "typescript",
-    code: `export function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'just now';
-  if (diffInSeconds < 3600) return \`\${Math.floor(diffInSeconds / 60)}m ago\`;
-  if (diffInSeconds < 86400) return \`\${Math.floor(diffInSeconds / 3600)}h ago\`;
-  if (diffInSeconds < 604800) return \`\${Math.floor(diffInSeconds / 86400)}d ago\`;
-  
-  return date.toLocaleDateString();
-}`,
-    tags: ["date", "formatting", "utility"]
-  },
-  {
-    id: "5",
-    title: "CSS Grid Centering",
-    description: "The ultimate centering technique using CSS Grid.",
-    language: "css",
-    code: `.center-container {
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-}`,
-    tags: ["css", "layout", "centering"]
-  },
-  {
-    id: "6",
-    title: "Fetch with Timeout",
-    description: "Wrap fetch with a timeout to prevent hanging requests.",
-    language: "typescript",
-    code: `export async function fetchWithTimeout(
-  url: string,
-  options: RequestInit = {},
-  timeout = 5000
-): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
-  }
-}`,
-    tags: ["fetch", "async", "network"]
-  },
-  {
-    id: "7",
-    title: "Group By Array",
-    description: "Group array items by a key function, similar to Python's itertools.groupby.",
-    language: "typescript",
-    code: `export function groupBy<T>(
-  array: T[],
-  keyFn: (item: T) => string
-): Record<string, T[]> {
-  return array.reduce((groups, item) => {
-    const key = keyFn(item);
-    return {
-      ...groups,
-      [key]: [...(groups[key] || []), item],
-    };
-  }, {} as Record<string, T[]>);
+    complexity: "advanced",
+    tags: ["react", "hooks", "performance"],
+    code: `import { useEffect, useRef, useState, RefObject } from 'react';
+
+interface UseIntersectionObserverOptions {
+  threshold?: number | number[];
+  root?: Element | null;
+  rootMargin?: string;
+  triggerOnce?: boolean;
 }
 
-// Usage:
-// const byCategory = groupBy(products, p => p.category);`,
-    tags: ["array", "utility", "data"]
-  },
-  {
-    id: "8",
-    title: "Intersection Observer Hook",
-    description: "React hook for detecting when an element enters the viewport.",
-    language: "typescript",
-    code: `import { useEffect, useRef, useState } from 'react';
-
-export function useInView(options?: IntersectionObserverInit) {
-  const ref = useRef<HTMLElement>(null);
-  const [isInView, setIsInView] = useState(false);
+function useIntersectionObserver<T extends Element>(
+  options: UseIntersectionObserverOptions = {}
+): [RefObject<T | null>, boolean] {
+  const { 
+    threshold = 0, 
+    root = null, 
+    rootMargin = '0px',
+    triggerOnce = false 
+  } = options;
   
+  const ref = useRef<T>(null);
+  const [isIntersecting, setIsIntersecting] = useState(false);
+
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    
-    const observer = new IntersectionObserver(([entry]) => {
-      setIsInView(entry.isIntersecting);
-    }, options);
-    
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const intersecting = entry.isIntersecting;
+        setIsIntersecting(intersecting);
+        
+        if (intersecting && triggerOnce) {
+          observer.unobserve(element);
+        }
+      },
+      { threshold, root, rootMargin }
+    );
+
     observer.observe(element);
-    return () => observer.disconnect();
-  }, [options]);
-  
-  return { ref, isInView };
-}`,
-    tags: ["react", "hooks", "intersection-observer"]
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [threshold, root, rootMargin, triggerOnce]);
+
+  return [ref, isIntersecting];
+}
+
+export default useIntersectionObserver;`
   },
   {
-    id: "9",
-    title: "Deep Clone",
-    description: "Deep clone an object using the structured clone algorithm.",
+    id: "5",
+    title: "Fetch with Retry",
+    description: "A robust fetch wrapper with automatic retry logic",
     language: "typescript",
-    code: `export function deepClone<T>(obj: T): T {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(obj);
+    complexity: "advanced",
+    tags: ["api", "utilities", "async"],
+    code: `interface FetchWithRetryOptions extends RequestInit {
+  retries?: number;
+  retryDelay?: number;
+  onRetry?: (attempt: number, error: Error) => void;
+}
+
+async function fetchWithRetry<T>(
+  url: string,
+  options: FetchWithRetryOptions = {}
+): Promise<T> {
+  const {
+    retries = 3,
+    retryDelay = 1000,
+    onRetry,
+    ...fetchOptions
+  } = options;
+
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, fetchOptions);
+      
+      if (!response.ok) {
+        throw new Error(\`HTTP error! status: \${response.status}\`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt < retries) {
+        onRetry?.(attempt + 1, lastError);
+        
+        // Exponential backoff
+        const delay = retryDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
-  
-  // Fallback for older browsers
-  return JSON.parse(JSON.stringify(obj));
+
+  throw lastError!;
 }
 
-// Note: structuredClone handles more types than JSON methods
-// including Date, Map, Set, ArrayBuffer, and circular references`,
-    tags: ["utility", "object", "clone"]
+// Usage
+const data = await fetchWithRetry('/api/data', {
+  retries: 5,
+  retryDelay: 500,
+  onRetry: (attempt, error) => {
+    console.log(\`Retry attempt \${attempt}: \${error.message}\`);
+  }
+});`
   },
   {
-    id: "10",
-    title: "CSS Custom Scrollbar",
-    description: "Beautiful custom scrollbar styling with CSS.",
-    language: "css",
-    code: `/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
-}
-
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
-}`,
-    tags: ["css", "ui", "scrollbar"]
-  },
-  {
-    id: "11",
-    title: "Sleep Function",
-    description: "Promise-based delay function for async/await flows.",
+    id: "6",
+    title: "Animated Counter",
+    description: "A React component that animates counting up to a target number",
     language: "typescript",
-    code: `export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+    complexity: "intermediate",
+    tags: ["react", "animation"],
+    code: `import { useState, useEffect, useRef } from 'react';
+
+interface AnimatedCounterProps {
+  target: number;
+  duration?: number;
+  prefix?: string;
+  suffix?: string;
 }
 
-// Usage:
-// await sleep(1000); // Wait 1 second`,
-    tags: ["async", "utility", "timing"]
-  },
-  {
-    id: "12",
-    title: "Capitalize String",
-    description: "Capitalize the first letter of a string.",
-    language: "typescript",
-    code: `export function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+function AnimatedCounter({
+  target,
+  duration = 2000,
+  prefix = '',
+  suffix = ''
+}: AnimatedCounterProps) {
+  const [count, setCount] = useState(0);
+  const countRef = useRef(0);
+  const frameRef = useRef<number>();
+
+  useEffect(() => {
+    const startTime = performance.now();
+    const startValue = countRef.current;
+    const diff = target - startValue;
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function (ease-out cubic)
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      const currentCount = Math.floor(startValue + diff * easeOut);
+      countRef.current = currentCount;
+      setCount(currentCount);
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, [target, duration]);
+
+  return (
+    <span>
+      {prefix}{count.toLocaleString()}{suffix}
+    </span>
+  );
 }
 
-// Usage:
-// capitalize('hello world') // 'Hello world'`,
-    tags: ["string", "utility", "formatting"]
+export default AnimatedCounter;`
   }
 ];
 
-const languages = ["All", "typescript", "css", "javascript"];
+function CodeTypingAnimation({ code, isPlaying, speed, onComplete }: { 
+  code: string; 
+  isPlaying: boolean; 
+  speed: number;
+  onComplete?: () => void;
+}) {
+  const [displayedCode, setDisplayedCode] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const codeRef = useRef<HTMLPreElement>(null);
 
-const languageIcons: Record<string, React.ElementType> = {
-  "All": Code2,
-  "typescript": FileCode,
-  "css": Hash,
-  "javascript": Braces
-};
+  useEffect(() => {
+    if (!isPlaying) return;
 
-const languageColors: Record<string, string> = {
-  "typescript": "bg-blue-500/10 text-blue-500",
-  "css": "bg-pink-500/10 text-pink-500",
-  "javascript": "bg-yellow-500/10 text-yellow-500"
-};
+    if (currentIndex < code.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedCode(code.slice(0, currentIndex + 1));
+        setCurrentIndex(prev => prev + 1);
+        
+        // Auto-scroll to bottom
+        if (codeRef.current) {
+          codeRef.current.scrollTop = codeRef.current.scrollHeight;
+        }
+      }, speed);
 
-function CodeBlock({ snippet }: { snippet: CodeSnippet }) {
+      return () => clearTimeout(timeout);
+    } else {
+      onComplete?.();
+    }
+  }, [isPlaying, currentIndex, code, speed, onComplete]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      setDisplayedCode(code);
+      setCurrentIndex(code.length);
+    }
+  }, [code, isPlaying]);
+
+  return (
+    <pre
+      ref={codeRef}
+      className="font-mono text-sm leading-relaxed overflow-auto max-h-[400px] scrollbar-hide"
+    >
+      <code className="block">
+        {displayedCode}
+        {currentIndex < code.length && isPlaying && (
+          <span className="animate-pulse">|</span>
+        )}
+      </code>
+    </pre>
+  );
+}
+
+function SyntaxHighlighter({ code, language }: { code: string; language: string }) {
+  // Simple syntax highlighting
+  const highlightCode = (code: string) => {
+    let highlighted = code
+      // Keywords
+      .replace(/\b(const|let|var|function|return|if|else|for|while|try|catch|async|await|import|export|from|interface|type|class|extends|implements|new|this|typeof|instanceof)\b/g, '<span class="text-purple-400">$1</span>')
+      // Strings
+      .replace(/(['"`])(.*?)\1/g, '<span class="text-green-400">$1$2$1</span>')
+      // Comments
+      .replace(/(\/\/.*$)/gm, '<span class="text-gray-500">$1</span>')
+      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-gray-500">$1</span>')
+      // Numbers
+      .replace(/\b(\d+)\b/g, '<span class="text-orange-400">$1</span>')
+      // Functions
+      .replace(/(\w+)(?=\()/g, '<span class="text-blue-400">$1</span>');
+    
+    return highlighted;
+  };
+
+  return (
+    <pre className="font-mono text-sm leading-relaxed overflow-auto max-h-[400px] scrollbar-hide">
+      <code 
+        className="block"
+        dangerouslySetInnerHTML={{ __html: highlightCode(code) }}
+      />
+    </pre>
+  );
+}
+
+export default function CodeSnippetsPage() {
+  const [selectedSnippet, setSelectedSnippet] = useState<CodeSnippet>(codeSnippets[0]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(20);
+  const [showLineNumbers, setShowLineNumbers] = useState(true);
+  const [viewMode, setViewMode] = useState<"typing" | "static">("static");
   const [copied, setCopied] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  const filteredSnippets = codeSnippets.filter(snippet => {
+    const matchesSearch = snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      snippet.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      snippet.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesTag = !selectedTag || snippet.tags.includes(selectedTag);
+    return matchesSearch && matchesTag;
+  });
+
+  const allTags = Array.from(new Set(codeSnippets.flatMap(s => s.tags)));
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(snippet.code);
+    await navigator.clipboard.writeText(selectedSnippet.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="rounded-xl border border-border bg-card overflow-hidden"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-          </div>
-          <span className="text-sm font-medium ml-2">{snippet.title}</span>
-        </div>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-secondary hover:bg-secondary/80"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5 text-green-500" />
-              <span className="text-green-500">Copied!</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              Copy
-            </>
-          )}
-        </button>
-      </div>
+  const handleDownload = () => {
+    const blob = new Blob([selectedSnippet.code], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedSnippet.title.toLowerCase().replace(/\s+/g, '-')}.${selectedSnippet.language}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-      {/* Code */}
-      <div className="relative">
-        <pre className="p-4 overflow-x-auto text-sm font-mono leading-relaxed">
-          <code>{snippet.code}</code>
-        </pre>
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-border bg-muted/30">
-        <p className="text-sm text-muted-foreground mb-2">{snippet.description}</p>
-        <div className="flex items-center gap-2">
-          <Badge className={languageColors[snippet.language]}>
-            {snippet.language}
-          </Badge>
-          {snippet.tags.map((tag) => (
-            <span 
-              key={tag} 
-              className="text-xs text-muted-foreground"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-export default function SnippetsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeLanguage, setActiveLanguage] = useState("All");
-
-  const filteredSnippets = snippets.filter((snippet) => {
-    const matchesSearch = 
-      snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      snippet.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      snippet.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesLanguage = activeLanguage === "All" || snippet.language === activeLanguage;
-    
-    return matchesSearch && matchesLanguage;
-  });
+  const complexityColors = {
+    beginner: "bg-green-500/10 text-green-500",
+    intermediate: "bg-yellow-500/10 text-yellow-500",
+    advanced: "bg-red-500/10 text-red-500"
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
-          >
-            <Terminal className="h-4 w-4" />
-            <span className="text-sm font-medium">Code Collection</span>
-          </motion.div>
-
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+            <Code2 className="h-4 w-4" />
+            <span className="text-sm font-medium">Developer Resources</span>
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Code{" "}
-            <span className="text-gradient-animated">Snippets</span>
+            Code <span className="text-gradient-animated">Snippets</span>
           </h1>
-          
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            A collection of useful code snippets I use regularly. Copy, paste, and build faster.
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            A curated collection of reusable code snippets with animated typing demos.
+            Copy, learn, and use in your projects.
           </p>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex justify-center gap-8 mb-8"
-        >
-          {[
-            { label: "Snippets", value: snippets.length },
-            { label: "Languages", value: new Set(snippets.map(s => s.language)).size },
-            { label: "Tags", value: new Set(snippets.flatMap(s => s.tags)).size },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-2xl font-bold text-primary">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
         </motion.div>
 
         {/* Search and Filter */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8 space-y-4"
+          transition={{ delay: 0.1 }}
+          className="mb-8"
         >
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search snippets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Language Filter */}
-          <div className="flex flex-wrap justify-center gap-2">
-            {languages.map((language) => {
-              const Icon = languageIcons[language];
-              return (
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search snippets..."
+                className="w-full px-4 py-3 rounded-xl bg-card border border-border focus:border-primary focus:outline-none transition-colors"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedTag(null)}
+                className={`px-4 py-2 rounded-full text-sm transition-all ${
+                  selectedTag === null
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80"
+                }`}
+              >
+                All
+              </button>
+              {allTags.map(tag => (
                 <button
-                  key={language}
-                  onClick={() => setActiveLanguage(language)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    activeLanguage === language
+                  key={tag}
+                  onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+                  className={`px-4 py-2 rounded-full text-sm transition-all ${
+                    selectedTag === tag
                       ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      : "bg-muted hover:bg-muted/80"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {language.charAt(0).toUpperCase() + language.slice(1)}
+                  {tag}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </motion.div>
 
-        {/* Snippets Grid */}
-        <motion.div
-          layout
-          className="space-y-6"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredSnippets.map((snippet) => (
-              <CodeBlock key={snippet.id} snippet={snippet} />
-            ))}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Empty State */}
-        {filteredSnippets.length === 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Snippets List */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
           >
-            <Code2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-            <h3 className="text-xl font-semibold mb-2">No snippets found</h3>
-            <p className="text-muted-foreground">Try adjusting your search or filters</p>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Available Snippets ({filteredSnippets.length})
+            </h2>
+            
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
+              {filteredSnippets.map((snippet, index) => (
+                <motion.button
+                  key={snippet.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => {
+                    setSelectedSnippet(snippet);
+                    setIsPlaying(false);
+                  }}
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                    selectedSnippet.id === snippet.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-sm">{snippet.title}</h3>
+                    <Badge variant="outline" className={complexityColors[snippet.complexity]}>
+                      {snippet.complexity}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                    {snippet.description}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {snippet.tags.map(tag => (
+                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-muted">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
           </motion.div>
-        )}
 
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-12 text-center"
-        >
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/5 to-orange-500/5 border border-border">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span className="text-muted-foreground">
-              More snippets coming soon! Have a suggestion?{" "}
-              <a 
-                href="/contact" 
-                className="text-primary hover:underline"
-              >
-                Let me know
-              </a>
-            </span>
-          </div>
-        </motion.div>
+          {/* Code Viewer */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="lg:col-span-2"
+          >
+            <div className="rounded-2xl bg-card border border-border overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                  </div>
+                  <span className="text-sm font-medium ml-2">{selectedSnippet.title}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopy}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                    title="Copy code"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                    title="Download"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-between p-4 border-b border-border bg-muted/50">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setViewMode("typing")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        viewMode === "typing" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                      }`}
+                    >
+                      <Type className="h-3.5 w-3.5" />
+                      Typing
+                    </button>
+                    <button
+                      onClick={() => setViewMode("static")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        viewMode === "static" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                      }`}
+                    >
+                      <Code2 className="h-3.5 w-3.5" />
+                      Static
+                    </button>
+                  </div>
+                  
+                  {viewMode === "typing" && (
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm"
+                      >
+                        {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                        {isPlaying ? "Pause" : "Play"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsPlaying(false);
+                          setTimeout(() => setIsPlaying(true), 100);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-muted"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {viewMode === "typing" && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">Speed</span>
+                    <Slider
+                      value={[typingSpeed]}
+                      onValueChange={(value) => setTypingSpeed(value[0])}
+                      min={5}
+                      max={100}
+                      step={5}
+                      className="w-24"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Code Display */}
+              <div className="p-6 bg-[#0d1117] text-gray-300 overflow-auto">
+                {viewMode === "typing" ? (
+                  <CodeTypingAnimation
+                    code={selectedSnippet.code}
+                    isPlaying={isPlaying}
+                    speed={105 - typingSpeed}
+                  />
+                ) : (
+                  <SyntaxHighlighter
+                    code={selectedSnippet.code}
+                    language={selectedSnippet.language}
+                  />
+                )}
+              </div>
+
+              {/* Footer Info */}
+              <div className="p-4 border-t border-border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="outline">{selectedSnippet.language}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedSnippet.code.split('\n').length} lines
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedSnippet.tags.map(tag => (
+                      <span key={tag} className="text-xs px-2 py-1 rounded-full bg-muted">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <motion.div
+              key={selectedSnippet.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-orange-500/5 border border-border"
+            >
+              <h3 className="font-semibold mb-2">About this snippet</h3>
+              <p className="text-muted-foreground text-sm">{selectedSnippet.description}</p>
+            </motion.div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

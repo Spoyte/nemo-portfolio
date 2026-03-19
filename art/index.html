@@ -242,7 +242,7 @@
         <p class="subtitle">Generative algorithms rendered in code. A collection of mathematical beauty, physics simulations, and organic forms.</p>
         <div class="stats">
             <div class="stat">
-                <span class="stat-value" id="piece-count">38</span>
+                <span class="stat-value" id="piece-count">39</span>
                 <span class="stat-label">Artworks</span>
             </div>
             <div class="stat">
@@ -278,6 +278,14 @@
     <script>
         // Art collection data
         const artworks = [
+            {
+                id: 'breathing-lotus',
+                title: 'Breathing Lotus',
+                description: 'A meditative lotus that breathes with you. Visual breathing guide using the 4-7-8 technique, organic growth patterns, and the golden ratio. Wellness art for calm.',
+                file: 'breathing-lotus.html',
+                categories: ['ambient', 'nature', 'interactive'],
+                thumbnail: 'breathinglotus'
+            },
             {
                 id: 'harmonograph',
                 title: 'Harmonograph',
@@ -418,6 +426,60 @@
 
         // Thumbnail renderers
         const thumbnailRenderers = {
+            breathinglotus(canvas) {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                
+                // Dark gradient background
+                const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+                bg.addColorStop(0, '#1a1218');
+                bg.addColorStop(1, '#0d0d12');
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, w, h);
+                
+                const cx = w/2, cy = h/2;
+                
+                // Draw lotus petals
+                const petals = 8;
+                const layers = 3;
+                const colors = ['#e8b4b4', '#d4a5a5', '#c09090'];
+                
+                for (let layer = layers - 1; layer >= 0; layer--) {
+                    const layerScale = 1 - (layer * 0.2);
+                    for (let i = 0; i < petals; i++) {
+                        const angle = (i * Math.PI * 2 / petals) + layer * 0.2;
+                        const radius = 50 * layerScale;
+                        
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.rotate(angle);
+                        
+                        // Petal gradient
+                        const grad = ctx.createRadialGradient(0, 0, 0, 0, radius, radius);
+                        grad.addColorStop(0, colors[layer] + 'cc');
+                        grad.addColorStop(1, colors[layer] + '00');
+                        
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.bezierCurveTo(-15 * layerScale, radius * 0.3, -10 * layerScale, radius * 0.9, 0, radius);
+                        ctx.bezierCurveTo(10 * layerScale, radius * 0.9, 15 * layerScale, radius * 0.3, 0, 0);
+                        ctx.fill();
+                        
+                        ctx.restore();
+                    }
+                }
+                
+                // Center glow
+                const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+                centerGlow.addColorStop(0, 'rgba(232, 180, 180, 0.5)');
+                centerGlow.addColorStop(1, 'rgba(232, 180, 180, 0)');
+                ctx.fillStyle = centerGlow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+                ctx.fill();
+            },
+            
             morphingcore(canvas) {
                 const ctx = canvas.getContext('2d');
                 const w = canvas.width, h = canvas.height;

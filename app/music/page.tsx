@@ -1,175 +1,190 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Volume2, 
-  VolumeX,
+import {
   Music,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
   Heart,
   Shuffle,
   Repeat,
   ListMusic,
-  Mic2,
   Disc,
-  Radio,
-  Headphones,
-  Sparkles
+  Mic2,
+  Share2,
+  Download,
+  Search,
+  Filter
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Simulated playlist data
-const playlists = [
+interface Track {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  cover: string;
+  genre: string;
+  year: number;
+  liked: boolean;
+}
+
+const tracks: Track[] = [
   {
-    id: "coding",
-    name: "Coding Focus",
-    description: "Deep focus music for productive coding sessions",
-    cover: "💻",
-    color: "from-blue-500 to-cyan-500",
-    tracks: [
-      { id: 1, title: "Neon Dreams", artist: "Synthwave Boy", duration: 245, genre: "Synthwave" },
-      { id: 2, title: "Binary Sunset", artist: "Code Walker", duration: 198, genre: "Ambient" },
-      { id: 3, title: "Algorithm", artist: "The Developers", duration: 312, genre: "Electronic" },
-      { id: 4, title: "Deep Focus", artist: "Mindful Coding", duration: 420, genre: "Ambient" },
-      { id: 5, title: "Terminal Velocity", artist: "Root Access", duration: 267, genre: "Techno" },
-    ],
+    id: "1",
+    title: "Midnight Coding",
+    artist: "Lo-Fi Dreams",
+    album: "Developer Vibes",
+    duration: 184,
+    cover: "🌙",
+    genre: "Lo-Fi",
+    year: 2024,
+    liked: true
   },
   {
-    id: "chill",
-    name: "Chill Vibes",
-    description: "Relaxing tunes for unwinding after a long day",
-    cover: "🌊",
-    color: "from-teal-500 to-emerald-500",
-    tracks: [
-      { id: 6, title: "Ocean Breeze", artist: "Coastal Dreams", duration: 284, genre: "Lo-Fi" },
-      { id: 7, title: "Coffee Shop", artist: "Morning Brew", duration: 195, genre: "Jazz" },
-      { id: 8, title: "Rainy Day", artist: "Cloudy Skies", duration: 234, genre: "Lo-Fi" },
-      { id: 9, title: "Sunset Drive", artist: "Golden Hour", duration: 278, genre: "Chillwave" },
-      { id: 10, title: "Stargazing", artist: "Night Owl", duration: 356, genre: "Ambient" },
-    ],
+    id: "2",
+    title: "Syntax Error",
+    artist: "The Algorithms",
+    album: "Debug Mode",
+    duration: 226,
+    cover: "🐛",
+    genre: "Electronic",
+    year: 2024,
+    liked: false
   },
   {
-    id: "workout",
-    name: "Workout Energy",
-    description: "High-energy tracks to keep you moving",
-    cover: "⚡",
-    color: "from-orange-500 to-red-500",
-    tracks: [
-      { id: 11, title: "Power Up", artist: "Energy Boost", duration: 189, genre: "EDM" },
-      { id: 12, title: "Sprint Mode", artist: "Fast Lane", duration: 156, genre: "House" },
-      { id: 13, title: "Adrenaline", artist: "Rush Hour", duration: 201, genre: "Drum & Bass" },
-      { id: 14, title: "Beast Mode", artist: "Iron Will", duration: 234, genre: "Rock" },
-      { id: 15, title: "Finish Line", artist: "Victory Lap", duration: 178, genre: "Pop" },
-    ],
+    id: "3",
+    title: "Git Push Origin",
+    artist: "Terminal Beats",
+    album: "Command Line",
+    duration: 198,
+    cover: "📤",
+    genre: "Techno",
+    year: 2023,
+    liked: true
   },
   {
-    id: "retro",
-    name: "Retro Gaming",
-    description: "8-bit and 16-bit inspired chiptune music",
-    cover: "🎮",
-    color: "from-purple-500 to-pink-500",
-    tracks: [
-      { id: 16, title: "Pixel Adventure", artist: "8-Bit Hero", duration: 145, genre: "Chiptune" },
-      { id: 17, title: "Boss Battle", artist: "Game Over", duration: 198, genre: "Chiptune" },
-      { id: 18, title: "Level Complete", artist: "High Score", duration: 67, genre: "Chiptune" },
-      { id: 19, title: "Secret Level", artist: "Cheat Code", duration: 234, genre: "Chiptune" },
-      { id: 20, title: "Continue?", artist: "Insert Coin", duration: 189, genre: "Chiptune" },
-    ],
+    id: "4",
+    title: "Refactoring Jazz",
+    artist: "Clean Code Trio",
+    album: "Legacy",
+    duration: 312,
+    cover: "🎷",
+    genre: "Jazz",
+    year: 2023,
+    liked: false
   },
+  {
+    id: "5",
+    title: "CSS Grid Groove",
+    artist: "Flexbox Collective",
+    album: "Layout Sessions",
+    duration: 245,
+    cover: "📐",
+    genre: "Funk",
+    year: 2024,
+    liked: true
+  },
+  {
+    id: "6",
+    title: "Async Await",
+    artist: "Promise Keepers",
+    album: "Non-Blocking",
+    duration: 267,
+    cover: "⏳",
+    genre: "Ambient",
+    year: 2023,
+    liked: false
+  },
+  {
+    id: "7",
+    title: "Memory Leak",
+    artist: "Garbage Collectors",
+    album: "Heap Space",
+    duration: 189,
+    cover: "🗑️",
+    genre: "Industrial",
+    year: 2024,
+    liked: false
+  },
+  {
+    id: "8",
+    title: "Hello World",
+    artist: "First Commit",
+    album: "Initialization",
+    duration: 156,
+    cover: "👋",
+    genre: "Pop",
+    year: 2023,
+    liked: true
+  }
 ];
 
-const formatTime = (seconds: number) => {
+const playlists = [
+  { id: "1", name: "Deep Focus", tracks: 24, icon: "🎯" },
+  { id: "2", name: "Coding Energy", tracks: 18, icon: "⚡" },
+  { id: "3", name: "Bug Fixing", tracks: 12, icon: "🔧" },
+  { id: "4", name: "Late Night Deploy", tracks: 15, icon: "🌃" },
+  { id: "5", name: "Code Review", tracks: 20, icon: "👀" }
+];
+
+function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
+}
 
-// Visualizer component
-function AudioVisualizer({ isPlaying, color }: { isPlaying: boolean; color: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+function Visualizer() {
+  const [bars, setBars] = useState<number[]>(Array(20).fill(0));
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d")!;
-    let animationId: number;
-
-    const bars = 64;
-    const barWidth = canvas.width / bars;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (isPlaying) {
-        for (let i = 0; i < bars; i++) {
-          const height = Math.random() * canvas.height * 0.8;
-          const x = i * barWidth;
-          const y = (canvas.height - height) / 2;
-
-          const gradient = ctx.createLinearGradient(0, y, 0, y + height);
-          gradient.addColorStop(0, color);
-          gradient.addColorStop(1, "transparent");
-
-          ctx.fillStyle = gradient;
-          ctx.fillRect(x, y, barWidth - 1, height);
-        }
-      } else {
-        // Static line when paused
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height / 2);
-        ctx.lineTo(canvas.width, canvas.height / 2);
-        ctx.stroke();
-      }
-
-      animationId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => cancelAnimationFrame(animationId);
-  }, [isPlaying, color]);
+    const interval = setInterval(() => {
+      setBars(Array(20).fill(0).map(() => Math.random() * 100));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={300}
-      height={100}
-      className="w-full h-24 rounded-lg"
-    />
+    <div className="flex items-end justify-center gap-1 h-16">
+      {bars.map((height, i) => (
+        <motion.div
+          key={i}
+          className="w-1.5 bg-gradient-to-t from-primary to-orange-500 rounded-full"
+          animate={{ height: `${height}%` }}
+          transition={{ duration: 0.1 }}
+        />
+      ))}
+    </div>
   );
 }
 
 export default function MusicPage() {
-  const [currentPlaylist, setCurrentPlaylist] = useState(playlists[0]);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [currentTrack, setCurrentTrack] = useState<Track>(tracks[0]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<"none" | "one" | "all">("none");
-  const [likedTracks, setLikedTracks] = useState<Set<number>>(new Set());
-  const [activeTab, setActiveTab] = useState("playlists");
+  const [likedTracks, setLikedTracks] = useState<Set<string>>(new Set(tracks.filter(t => t.liked).map(t => t.id)));
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("tracks");
 
-  const currentTrack = currentPlaylist.tracks[currentTrackIndex];
-  const progressPercent = (progress / currentTrack.duration) * 100;
-
-  // Simulate playback progress
+  // Simulate playback
   useEffect(() => {
     if (!isPlaying) return;
-
     const interval = setInterval(() => {
-      setProgress((prev) => {
+      setCurrentTime(prev => {
         if (prev >= currentTrack.duration) {
           handleNext();
           return 0;
@@ -177,43 +192,34 @@ export default function MusicPage() {
         return prev + 1;
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [isPlaying, currentTrack]);
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
+  const handlePlay = () => setIsPlaying(!isPlaying);
 
   const handleNext = () => {
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+    let nextIndex: number;
     if (isShuffle) {
-      const nextIndex = Math.floor(Math.random() * currentPlaylist.tracks.length);
-      setCurrentTrackIndex(nextIndex);
+      nextIndex = Math.floor(Math.random() * tracks.length);
     } else {
-      setCurrentTrackIndex((prev) =
-        prev >= currentPlaylist.tracks.length - 1 ? 0 : prev + 1
-      );
+      nextIndex = (currentIndex + 1) % tracks.length;
     }
-    setProgress(0);
+    setCurrentTrack(tracks[nextIndex]);
+    setCurrentTime(0);
+    setIsPlaying(true);
   };
 
-  const handlePrevious = () => {
-    if (progress > 5) {
-      setProgress(0);
-    } else {
-      setCurrentTrackIndex((prev) =
-        prev <= 0 ? currentPlaylist.tracks.length - 1 : prev - 1
-      );
-      setProgress(0);
-    }
+  const handlePrev = () => {
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+    const prevIndex = currentIndex === 0 ? tracks.length - 1 : currentIndex - 1;
+    setCurrentTrack(tracks[prevIndex]);
+    setCurrentTime(0);
+    setIsPlaying(true);
   };
 
-  const handleSeek = (value: number[]) => {
-    setProgress(Math.floor((value[0] / 100) * currentTrack.duration));
-  };
-
-  const toggleLike = (trackId: number) => {
-    setLikedTracks((prev) => {
+  const toggleLike = (trackId: string) => {
+    setLikedTracks(prev => {
       const newSet = new Set(prev);
       if (newSet.has(trackId)) {
         newSet.delete(trackId);
@@ -224,417 +230,318 @@ export default function MusicPage() {
     });
   };
 
-  const selectTrack = (index: number) => {
-    setCurrentTrackIndex(index);
-    setProgress(0);
-    setIsPlaying(true);
-  };
+  const filteredTracks = tracks.filter(track => {
+    const matchesSearch = track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.album.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGenre = !selectedGenre || track.genre === selectedGenre;
+    return matchesSearch && matchesGenre;
+  });
+
+  const genres = Array.from(new Set(tracks.map(t => t.genre)));
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-24 pb-32">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="mb-8"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
-          >
-            <Music className="h-4 w-4" />
-            <span className="text-sm font-medium">Music Player</span>
-          </motion.div>
-
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">My Music</h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            A curated collection of playlists for coding, relaxing, and everything in between.
-          </p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <Music className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Music Player</h1>
+              <p className="text-muted-foreground">Curated tracks for coding sessions</p>
+            </div>
+          </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Now Playing */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <Card className="sticky top-24">
-              <CardContent className="p-6">
-                {/* Album Art */}
-                <motion.div
-                  className={`aspect-square rounded-2xl bg-gradient-to-br ${currentPlaylist.color} flex items-center justify-center text-6xl mb-6 relative overflow-hidden`}
-                  animate={{ 
-                    scale: isPlaying ? [1, 1.02, 1] : 1,
-                    rotate: isPlaying ? [0, 2, -2, 0] : 0
-                  }}
-                  transition={{ 
-                    repeat: isPlaying ? Infinity : 0, 
-                    duration: 4 
-                  }}
-                >
-                  <span className="relative z-10">{currentPlaylist.cover}</span>
-                  <motion.div
-                    className="absolute inset-0 bg-white/10"
-                    animate={{ 
-                      opacity: isPlaying ? [0.3, 0.5, 0.3] : 0.3 
-                    }}
-                    transition={{ 
-                      repeat: Infinity, 
-                      duration: 2 
-                    }}
-                  />
-                </motion.div>
-
-                {/* Track Info */}
-                <div className="text-center mb-6">
-                  <motion.h3 
-                    key={currentTrack.title}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-xl font-bold mb-1"
-                  >
-                    {currentTrack.title}
-                  </motion.h3>
-                  <motion.p 
-                    key={currentTrack.artist}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-muted-foreground"
-                  >
-                    {currentTrack.artist}
-                  </motion.p>
-                  <Badge variant="secondary" className="mt-2">
-                    {currentTrack.genre}
-                  </Badge>
-                </div>
-
-                {/* Visualizer */}
-                <div className="mb-6">
-                  <AudioVisualizer 
-                    isPlaying={isPlaying} 
-                    color={currentPlaylist.color.includes("blue") ? "#3b82f6" : 
-                           currentPlaylist.color.includes("teal") ? "#14b8a6" :
-                           currentPlaylist.color.includes("orange") ? "#f97316" : "#a855f7"} 
-                  />
-                </div>
-
-                {/* Progress */}
-                <div className="mb-6">
-                  <Slider
-                    value={[progressPercent]}
-                    onValueChange={handleSeek}
-                    max={100}
-                    step={1}
-                    className="mb-2"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatTime(progress)}</span>
-                    <span>{formatTime(currentTrack.duration)}</span>
-                  </div>
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center justify-center gap-4 mb-6">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsShuffle(!isShuffle)}
-                    className={isShuffle ? "text-primary" : ""}
-                  >
-                    <Shuffle className="h-5 w-5" />
-                  </Button>
-
-                  <Button variant="ghost" size="icon" onClick={handlePrevious}>
-                    <SkipBack className="h-6 w-6" />
-                  </Button>
-
-                  <Button 
-                    size="icon" 
-                    className="h-14 w-14"
-                    onClick={handlePlayPause}
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-6 w-6" />
-                    ) : (
-                      <Play className="h-6 w-6 ml-1" />
-                    )}
-                  </Button>
-
-                  <Button variant="ghost" size="icon" onClick={handleNext}>
-                    <SkipForward className="h-6 w-6" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setRepeatMode(
-                      repeatMode === "none" ? "all" : repeatMode === "all" ? "one" : "none"
-                    )}
-                    className={repeatMode !== "none" ? "text-primary" : ""}
-                  >
-                    <Repeat className="h-5 w-5" />
-                    {repeatMode === "one" && (
-                      <span className="absolute text-[10px] font-bold">1</span>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Volume */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsMuted(!isMuted)}
-                  >
-                    {isMuted || volume === 0 ? (
-                      <VolumeX className="h-5 w-5" />
-                    ) : (
-                      <Volume2 className="h-5 w-5" />
-                    )}
-                  </Button>
-                  <Slider
-                    value={[isMuted ? 0 : volume]}
-                    onValueChange={(v) => {
-                      setVolume(v[0]);
-                      setIsMuted(v[0] === 0);
-                    }}
-                    max={100}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground w-10 text-right">
-                    {isMuted ? 0 : volume}%
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Playlists & Queue */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="playlists">
-                  <ListMusic className="h-4 w-4 mr-2" />
-                  Playlists
-                </TabsTrigger>
-                <TabsTrigger value="queue">
-                  <Disc className="h-4 w-4 mr-2" />
-                  Queue
-                </TabsTrigger>
-                <TabsTrigger value="lyrics">
-                  <Mic2 className="h-4 w-4 mr-2" />
-                  Lyrics
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="playlists" className="mt-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {playlists.map((playlist, index) => (
-                    <motion.div
-                      key={playlist.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      whileHover={{ scale: 1.02 }}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        setCurrentPlaylist(playlist);
-                        setCurrentTrackIndex(0);
-                        setProgress(0);
-                        setIsPlaying(true);
-                      }}
-                    >
-                      <Card className={`overflow-hidden transition-all ${
-                        currentPlaylist.id === playlist.id ? "ring-2 ring-primary" : ""
-                      }`}>
-                        <div className={`h-32 bg-gradient-to-br ${playlist.color} flex items-center justify-center text-5xl`}>
-                          {playlist.cover}
-                        </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-semibold mb-1">{playlist.name}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{playlist.description}</p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {playlist.tracks.length} tracks
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatTime(playlist.tracks.reduce((acc, t) => acc + t.duration, 0))}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="queue" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ListMusic className="h-5 w-5" />
-                      {currentPlaylist.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y">
-                      {currentPlaylist.tracks.map((track, index) => (
-                        <motion.div
-                          key={track.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className={`flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                            index === currentTrackIndex ? "bg-primary/5" : ""
-                          }`}
-                          onClick={() => selectTrack(index)}
-                        >
-                          <div className="w-8 text-center text-sm text-muted-foreground">
-                            {index === currentTrackIndex && isPlaying ? (
-                              <div className="flex items-end justify-center gap-0.5 h-4">
-                                {[1, 2, 3].map((i) => (
-                                  <motion.div
-                                    key={i}
-                                    className="w-1 bg-primary rounded-full"
-                                    animate={{ height: [4, 16, 4] }}
-                                    transition={{
-                                      repeat: Infinity,
-                                      duration: 0.5,
-                                      delay: i * 0.1,
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                            ) : (
-                              index + 1
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-medium truncate ${
-                              index === currentTrackIndex ? "text-primary" : ""
-                            }`}>
-                              {track.title}
-                            </p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {track.artist}
-                            </p>
-                          </div>
-
-                          <Badge variant="secondary" className="hidden sm:inline-flex">
-                            {track.genre}
-                          </Badge>
-
-                          <span className="text-sm text-muted-foreground">
-                            {formatTime(track.duration)}
-                          </span>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleLike(track.id);
-                            }}
-                          >
-                            <Heart 
-                              className={`h-4 w-4 ${
-                                likedTracks.has(track.id) ? "fill-red-500 text-red-500" : ""
-                              }`} 
-                            />
-                          </Button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="lyrics" className="mt-6">
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <Headphones className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-xl font-semibold mb-2">Lyrics Mode</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Sing along to your favorite tracks
-                    </p>
-
-                    <div className="max-w-md mx-auto space-y-4 text-lg">
-                      <motion.p
-                        animate={{ 
-                          opacity: isPlaying ? [0.5, 1, 0.5] : 0.5,
-                          scale: isPlaying ? [0.98, 1, 0.98] : 1
-                        }}
-                        transition={{ repeat: Infinity, duration: 3 }}
-                        className="text-muted-foreground"
-                      >
-                        🎵 Instrumental intro... 🎵
-                      </motion.p>
-
-                      <motion.div
-                        animate={{ 
-                          opacity: isPlaying ? 1 : 0.5 
-                        }}
-                        className="space-y-2"
-                      >
-                        <p>{currentTrack.title} 🎶</p>
-                        <p className="text-primary font-semibold">By {currentTrack.artist}</p>
-                        <p className="text-sm text-muted-foreground">
-                          [{currentTrack.genre} | {formatTime(currentTrack.duration)}]
-                        </p>
-                      </motion.div>
-
-                      <p className="text-sm text-muted-foreground mt-8">
-                        * This is a demo player with simulated tracks
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
-        </div>
-
-        {/* Stats */}
+        {/* Search and Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4"
+          transition={{ delay: 0.1 }}
+          className="flex flex-col md:flex-row gap-4 mb-8"
         >
-          {[
-            { label: "Total Tracks", value: playlists.reduce((acc, p) => acc + p.tracks.length, 0), icon: ListMusic },
-            { label: "Playlists", value: playlists.length, icon: Disc },
-            { label: "Hours of Music", value: "12+", icon: Radio },
-            { label: "Liked Songs", value: likedTracks.size, icon: Heart },
-          ].map((stat, index) => (
-            <Card key={stat.label}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <stat.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tracks, artists, albums..."
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border focus:border-primary focus:outline-none transition-colors"
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setSelectedGenre(null)}
+              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
+                selectedGenre === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-muted/80"
+              }`}
+            >
+              All Genres
+            </button>
+            {genres.map(genre => (
+              <button
+                key={genre}
+                onClick={() => setSelectedGenre(genre === selectedGenre ? null : genre)}
+                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
+                  selectedGenre === genre
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80"
+                }`}
+              >
+                {genre}
+              </button>
+            ))}
+          </div>
         </motion.div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 max-w-md">
+            <TabsTrigger value="tracks">Tracks</TabsTrigger>
+            <TabsTrigger value="playlists">Playlists</TabsTrigger>
+            <TabsTrigger value="liked">Liked ({likedTracks.size})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tracks" className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-card rounded-2xl border border-border overflow-hidden"
+            >
+              {filteredTracks.map((track, index) => (
+                <motion.div
+                  key={track.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => {
+                    setCurrentTrack(track);
+                    setCurrentTime(0);
+                    setIsPlaying(true);
+                  }}
+                  className={`flex items-center gap-4 p-4 cursor-pointer transition-colors ${
+                    currentTrack.id === track.id
+                      ? "bg-primary/10"
+                      : "hover:bg-muted/50"
+                  } ${index !== filteredTracks.length - 1 ? "border-b border-border" : ""}`}
+                >
+                  <div className="w-8 text-center text-sm text-muted-foreground">
+                    {currentTrack.id === track.id && isPlaying ? (
+                      <div className="flex items-end justify-center gap-0.5 h-4">
+                        <motion.div animate={{ height: [4, 12, 4] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-0.5 bg-primary" />
+                        <motion.div animate={{ height: [8, 4, 8] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-0.5 bg-primary" />
+                        <motion.div animate={{ height: [4, 10, 4] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-0.5 bg-primary" />
+                      </div>
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  <div className="text-2xl">{track.cover}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium truncate ${currentTrack.id === track.id ? "text-primary" : ""}`}>
+                      {track.title}
+                    </div>
+                    <div className="text-sm text-muted-foreground truncate">
+                      {track.artist} • {track.album}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="hidden sm:inline-flex">
+                    {track.genre}
+                  </Badge>
+                  <div className="text-sm text-muted-foreground w-12 text-right">
+                    {formatTime(track.duration)}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLike(track.id);
+                    }}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${likedTracks.has(track.id) ? "fill-red-500 text-red-500" : ""}`}
+                    />
+                  </button>
+                </motion.div>
+              ))}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="playlists" className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {playlists.map((playlist, index) => (
+                <motion.div
+                  key={playlist.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all cursor-pointer group"
+                >
+                  <div className="text-4xl mb-4">{playlist.icon}</div>
+                  <h3 className="font-semibold text-lg mb-1">{playlist.name}</h3>
+                  <p className="text-sm text-muted-foreground">{playlist.tracks} tracks</p>
+                  <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button size="sm" className="gap-2">
+                      <Play className="h-3 w-3" />
+                      Play
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="liked" className="space-y-4">
+            <motion.div className="bg-card rounded-2xl border border-border overflow-hidden">
+              {tracks.filter(t => likedTracks.has(t.id)).map((track, index) => (
+                <motion.div
+                  key={track.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => {
+                    setCurrentTrack(track);
+                    setCurrentTime(0);
+                    setIsPlaying(true);
+                  }}
+                  className={`flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
+                    index !== tracks.filter(t => likedTracks.has(t.id)).length - 1 ? "border-b border-border" : ""
+                  }`}
+                >
+                  <div className="text-2xl">{track.cover}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{track.title}</div>
+                    <div className="text-sm text-muted-foreground truncate">
+                      {track.artist}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLike(track.id);
+                    }}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                  </button>
+                </motion.div>
+              ))}
+              {likedTracks.size === 0 && (
+                <div className="p-12 text-center">
+                  <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No liked tracks yet</p>
+                </div>
+              )}
+            </motion.div>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {/* Player Bar */}
+      <motion.div
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-border z-50"
+      >
+        {/* Visualizer */}
+        {isPlaying && <Visualizer />}
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-4">
+            {/* Track Info */}
+            <div className="flex items-center gap-3 w-1/4 min-w-0">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                {currentTrack.cover}
+              </div>
+              <div className="min-w-0">
+                <div className="font-medium truncate">{currentTrack.title}</div>
+                <div className="text-sm text-muted-foreground truncate">{currentTrack.artist}</div>
+              </div>
+              <button
+                onClick={() => toggleLike(currentTrack.id)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Heart
+                  className={`h-4 w-4 ${likedTracks.has(currentTrack.id) ? "fill-red-500 text-red-500" : ""}`}
+                />
+              </button>
+            </div>
+
+            {/* Controls */}
+            <div className="flex-1 flex flex-col items-center">
+              <div className="flex items-center gap-4 mb-2">
+                <button
+                  onClick={() => setIsShuffle(!isShuffle)}
+                  className={`p-2 rounded-lg transition-colors ${isShuffle ? "text-primary" : "hover:bg-muted"}`}
+                >
+                  <Shuffle className="h-4 w-4" />
+                </button>
+                <button onClick={handlePrev} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                  <SkipBack className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handlePlay}
+                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+                >
+                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                </button>
+                <button onClick={handleNext} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                  <SkipForward className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setRepeatMode(prev => prev === "none" ? "all" : prev === "all" ? "one" : "none")}
+                  className={`p-2 rounded-lg transition-colors ${repeatMode !== "none" ? "text-primary" : "hover:bg-muted"}`}
+                >
+                  <Repeat className="h-4 w-4" />
+                  {repeatMode === "one" && <span className="text-[10px]">1</span>}
+                </button>
+              </div>
+              <div className="w-full max-w-md flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-10 text-right">
+                  {formatTime(currentTime)}
+                </span>
+                <Slider
+                  value={[currentTime]}
+                  max={currentTrack.duration}
+                  onValueChange={(value) => setCurrentTime(value[0])}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-10">
+                  {formatTime(currentTrack.duration)}
+                </span>
+              </div>
+            </div>
+
+            {/* Volume */}
+            <div className="flex items-center gap-2 w-1/4 justify-end">
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <Slider
+                value={[isMuted ? 0 : volume]}
+                max={100}
+                onValueChange={(value) => {
+                  setVolume(value[0]);
+                  setIsMuted(false);
+                }}
+                className="w-24"
+              />
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

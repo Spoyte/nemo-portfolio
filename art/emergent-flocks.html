@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergent Flocks — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 80, 200, 0.2);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: right;
+        }
+        
+        .param-panel {
+            position: fixed;
+            left: 20px;
+            bottom: 100px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 11px;
+            color: rgba(160, 160, 192, 0.8);
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+        }
+        
+        .param-panel label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        
+        .param-panel input[type="range"] {
+            width: 80px;
+            accent-color: rgba(140, 120, 220, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Emergent Flocks — Boids Simulation</div>
+    <div class="stats" id="stats">Boids: 200</div>
+    
+    <div class="param-panel">
+        <label>Alignment <input type="range" id="align" min="0" max="5" step="0.1" value="1"></label>
+        <label>Cohesion <input type="range" id="cohesion" min="0" max="5" step="0.1" value="1"></label>
+        <label>Separation <input type="range" id="separation" min="0" max="5" step="0.1" value="1.5"></label>
+        <label>Visual Range <input type="range" id="range" min="20" max="100" step="5" value="50"></label>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <button onclick="regenerate()">Regenerate</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="toggleTrails()" id="trailBtn">Trails: On</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script src="lib/nemo-art-kit.js"></script>
+    <script>
+        const SIZE = 800;
+        const { canvas, ctx } = NemoArt.wrapCanvas('canvas', SIZE, SIZE);
+        
+        const loop = NemoArt.createLoop(render, { fps: 60 });
+        
+        // Boid parameters
+        let boids = [];
+        const NUM_BOIDS = 200;
+        const MAX_SPEED = 4;
+        const MAX_FORCE = 0.1;
+        
+        // Parameters (controlled by sliders)
+        let params = {
+            alignment: 1,
+            cohesion: 1,
+            separation: 1.5,
+            visualRange: 50
+        };
+        
+        let trails = true;
+        let mouse = { x: SIZE / 2, y: SIZE / 2, active: false };
+        
+        // Color palette — ethereal with variation
+        const palette = [
+            { h: 260, s: 80, l: 65 },  // Purple
+            { h: 200, s: 85, l: 60 },  // Cyan
+            { h: 320, s: 70, l: 70 },  // Pink
+            { h: 180, s: 75, l: 55 },  // Teal
+            { h: 280, s: 60, l: 75 }   // Lavender
+        ];
+        
+        class Boid {
+            constructor() {
+                this.position = {
+                    x: Math.random() * SIZE,
+                    y: Math.random() * SIZE
+                };
+                this.velocity = {
+                    x: (Math.random() - 0.5) * MAX_SPEED * 2,
+                    y: (Math.random() - 0.5) * MAX_SPEED * 2
+                };
+                this.acceleration = { x: 0, y: 0 };
+                this.color = palette[Math.floor(Math.random() * palette.length)];
+                this.hueOffset = Math.random() * 30 - 15;
+            }
+            
+            update() {
+                // Update velocity
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+                
+                // Limit speed
+                const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+                if (speed > MAX_SPEED) {
+                    this.velocity.x = (this.velocity.x / speed) * MAX_SPEED;
+                    this.velocity.y = (this.velocity.y / speed) * MAX_SPEED;
+                }
+                
+                // Update position
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                
+                // Reset acceleration
+                this.acceleration.x = 0;
+                this.acceleration.y = 0;
+                
+                // Wrap around edges
+                if (this.position.x < 0) this.position.x = SIZE;
+                if (this.position.x > SIZE) this.position.x = 0;
+                if (this.position.y < 0) this.position.y = SIZE;
+                if (this.position.y > SIZE) this.position.y = 0;
+            }
+            
+            applyForce(force) {
+                this.acceleration.x += force.x;
+                this.acceleration.y += force.y;
+            }
+            
+            flock(boids) {
+                let alignment = this.align(boids);
+                let cohesion = this.cohesion(boids);
+                let separation = this.separation(boids);
+                let mouseForce = this.avoidMouse();
+                
+                // Weight forces
+                alignment.x *= params.alignment;
+                alignment.y *= params.alignment;
+                cohesion.x *= params.cohesion;
+                cohesion.y *= params.cohesion;
+                separation.x *= params.separation;
+                separation.y *= params.separation;
+                
+                this.applyForce(alignment);
+                this.applyForce(cohesion);
+                this.applyForce(separation);
+                this.applyForce(mouseForce);
+            }
+            
+            align(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                
+                for (let other of boids) {
+                    let d = NemoArt.Math.dist(
+                        this.position.x, this.position.y,
+                        other.position.x, other.position.y
+                    );
+                    if (other !== this && d < params.visualRange) {
+                        steering.x += other.velocity.x;
+                        steering.y += other.velocity.y;
+                        total++;
+                    }
+                }
+                
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    // Set magnitude to max speed
+                    const mag = Math.sqrt(steering.x ** 2 + steering.y ** 2);
+                    if (mag > 0) {
+                        steering.x = (steering.x / mag) * MAX_SPEED;
+                        steering.y = (steering.y / mag) * MAX_SPEED;
+                    }
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    // Limit force
+                    const forceMag = Math.sqrt(steering.x ** 2 + steering.y ** 2);
+                    if (forceMag > MAX_FORCE) {
+                        steering.x = (steering.x / forceMag) * MAX_FORCE;
+                        steering.y = (steering.y / forceMag) * MAX_FORCE;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            cohesion(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                
+                for (let other of boids) {
+                    let d = NemoArt.Math.dist(
+                        this.position.x, this.position.y,
+                        other.position.x, other.position.y
+                    );
+                    if (other !== this && d < params.visualRange) {
+                        steering.x += other.position.x;
+                        steering.y += other.position.y;
+                        total++;
+                    }
+                }
+                
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    steering.x -= this.position.x;
+                    steering.y -= this.position.y;
+                    // Set magnitude to max speed
+                    const mag = Math.sqrt(steering.x ** 2 + steering.y ** 2);
+                    if (mag > 0) {
+                        steering.x = (steering.x / mag) * MAX_SPEED;
+                        steering.y = (steering.y / mag) * MAX_SPEED;
+                    }
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    // Limit force
+                    const forceMag = Math.sqrt(steering.x ** 2 + steering.y ** 2);
+                    if (forceMag > MAX_FORCE) {
+                        steering.x = (steering.x / forceMag) * MAX_FORCE;
+                        steering.y = (steering.y / forceMag) * MAX_FORCE;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            separation(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                
+                for (let other of boids) {
+                    let d = NemoArt.Math.dist(
+                        this.position.x, this.position.y,
+                        other.position.x, other.position.y
+                    );
+                    if (other !== this && d < params.visualRange / 2) {
+                        let diff = {
+                            x: this.position.x - other.position.x,
+                            y: this.position.y - other.position.y
+                        };
+                        // Weight by distance (closer = stronger)
+                        if (d > 0) {
+                            diff.x /= d;
+                            diff.y /= d;
+                        }
+                        steering.x += diff.x;
+                        steering.y += diff.y;
+                        total++;
+                    }
+                }
+                
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    // Set magnitude to max speed
+                    const mag = Math.sqrt(steering.x ** 2 + steering.y ** 2);
+                    if (mag > 0) {
+                        steering.x = (steering.x / mag) * MAX_SPEED;
+                        steering.y = (steering.y / mag) * MAX_SPEED;
+                    }
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    // Limit force
+                    const forceMag = Math.sqrt(steering.x ** 2 + steering.y ** 2);
+                    if (forceMag > MAX_FORCE) {
+                        steering.x = (steering.x / forceMag) * MAX_FORCE;
+                        steering.y = (steering.y / forceMag) * MAX_FORCE;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            avoidMouse() {
+                let steering = { x: 0, y: 0 };
+                
+                if (mouse.active) {
+                    let d = NemoArt.Math.dist(
+                        this.position.x, this.position.y,
+                        mouse.x, mouse.y
+                    );
+                    if (d < 100) {
+                        let diff = {
+                            x: this.position.x - mouse.x,
+                            y: this.position.y - mouse.y
+                        };
+                        if (d > 0) {
+                            diff.x /= d;
+                            diff.y /= d;
+                        }
+                        steering.x = diff.x * 2;
+                        steering.y = diff.y * 2;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            draw(ctx) {
+                const angle = Math.atan2(this.velocity.y, this.velocity.x);
+                const size = 4;
+                
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(angle);
+                
+                // Draw boid as small triangle
+                ctx.beginPath();
+                ctx.moveTo(size * 2, 0);
+                ctx.lineTo(-size, -size);
+                ctx.lineTo(-size, size);
+                ctx.closePath();
+                
+                const hue = (this.color.h + this.hueOffset) % 360;
+                ctx.fillStyle = `hsla(${hue}, ${this.color.s}%, ${this.color.l}%, 0.8)`;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        function init() {
+            // Clear with dark gradient background
+            const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE);
+            bg.addColorStop(0, '#0f0a1a');
+            bg.addColorStop(0.5, '#0a0a12');
+            bg.addColorStop(1, '#050508');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+            
+            // Create boids
+            boids = [];
+            for (let i = 0; i < NUM_BOIDS; i++) {
+                boids.push(new Boid());
+            }
+            
+            updateStats();
+        }
+        
+        function render({ time, deltaTime, frameCount }) {
+            // Fade for trails effect
+            if (trails) {
+                ctx.fillStyle = 'rgba(5, 5, 8, 0.15)';
+                ctx.fillRect(0, 0, SIZE, SIZE);
+            } else {
+                const bg = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE);
+                bg.addColorStop(0, '#0f0a1a');
+                bg.addColorStop(0.5, '#0a0a12');
+                bg.addColorStop(1, '#050508');
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, SIZE, SIZE);
+            }
+            
+            // Update and draw boids
+            for (let boid of boids) {
+                boid.flock(boids);
+                boid.update();
+                boid.draw(ctx);
+            }
+            
+            // Draw mouse influence radius
+            if (mouse.active) {
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, 100, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(140, 120, 220, 0.2)';
+                ctx.stroke();
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('stats').textContent = `Boids: ${boids.length}`;
+        }
+        
+        function regenerate() {
+            loop.stop();
+            init();
+            loop.start();
+        }
+        
+        function togglePause() {
+            loop.toggle();
+            document.getElementById('pauseBtn').textContent = 
+                loop.isRunning ? 'Pause' : 'Resume';
+        }
+        
+        function toggleTrails() {
+            trails = !trails;
+            document.getElementById('trailBtn').textContent = 
+                trails ? 'Trails: On' : 'Trails: Off';
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'emergent-flocks-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Parameter sliders
+        document.getElementById('align').addEventListener('input', (e) => {
+            params.alignment = parseFloat(e.target.value);
+        });
+        document.getElementById('cohesion').addEventListener('input', (e) => {
+            params.cohesion = parseFloat(e.target.value);
+        });
+        document.getElementById('separation').addEventListener('input', (e) => {
+            params.separation = parseFloat(e.target.value);
+        });
+        document.getElementById('range').addEventListener('input', (e) => {
+            params.visualRange = parseFloat(e.target.value);
+        });
+        
+        // Mouse interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = (e.clientX - rect.left) * (SIZE / rect.width);
+            mouse.y = (e.clientY - rect.top) * (SIZE / rect.height);
+            mouse.active = true;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            mouse.active = false;
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            // Add a boid at click position
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            const newBoid = new Boid();
+            newBoid.position.x = x;
+            newBoid.position.y = y;
+            boids.push(newBoid);
+            
+            // Limit max boids
+            if (boids.length > 400) {
+                boids.shift();
+            }
+            updateStats();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyT') {
+                toggleTrails();
+            }
+        });
+        
+        // Start
+        init();
+        loop.start();
+    </script>
+</body>
+</html>
