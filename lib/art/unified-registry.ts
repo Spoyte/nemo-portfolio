@@ -350,6 +350,24 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     renderFnName: "renderNBodyGravity",
     importName: "nBodyGravity",
   },
+  {
+    id: "chladni-sound-plate",
+    name: "Chladni Sound Plate",
+    description: "Interactive cymatics visualization with generative audio. Watch sand particles settle into resonant patterns as tones play.",
+    category: "physics",
+    loader: () => import("./chladni-sound-plate"),
+    renderFnName: "renderChladniSoundPlate",
+    importName: "chladniSoundPlate",
+  },
+  {
+    id: "lightning-storm",
+    name: "Lightning Storm",
+    description: "Atmospheric thunderstorm with branching lightning, rain, and illuminated clouds",
+    category: "physics",
+    loader: () => import("./lightning-storm"),
+    renderFnName: "renderLightningStorm",
+    importName: "lightningStorm",
+  },
 
   // === GEOMETRIC (15) ===
   {

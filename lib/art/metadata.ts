@@ -126,6 +126,18 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
     tags: ["animated", "organic", "chaotic", "colorful"],
     created: "2024-02-23",
   },
+  "chladni-sound-plate": {
+    category: "physics",
+    complexity: "moderate",
+    tags: ["animated", "physics", "interactive", "detailed"],
+    created: "2026-03-19",
+  },
+  "lightning-storm": {
+    category: "physics",
+    complexity: "complex",
+    tags: ["animated", "atmospheric", "chaotic", "detailed"],
+    created: "2026-03-19",
+  },
 
   // === GEOMETRIC ===
   "geometric-mandala": {
