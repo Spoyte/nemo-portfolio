@@ -149,7 +149,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "cantorSet",
   },
 
-  // === NATURAL (11) ===
+  // === NATURAL (10) ===
   {
     id: "aurora-borealis",
     name: "Aurora Borealis",
@@ -158,6 +158,24 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./aurora-borealis"),
     renderFnName: "renderAuroraBorealis",
     importName: "auroraBorealis",
+  },
+  {
+    id: "living-ink",
+    name: "Living Ink",
+    description: "Generative calligraphy with breathing strokes — East Asian ink wash painting where brush strokes live and fade like organisms",
+    category: "natural",
+    loader: () => import("./living-ink"),
+    renderFnName: "renderLivingInk",
+    importName: "livingInk",
+  },
+  {
+    id: "physarum-network",
+    name: "Physarum Network",
+    description: "Slime mold transport networks — emergent optimal pathfinding through trail deposition and chemotaxis",
+    category: "natural",
+    loader: () => import("./physarum-network"),
+    renderFnName: "renderPhysarumNetwork",
+    importName: "physarumNetwork",
   },
   {
     id: "recursive-trees",
@@ -223,7 +241,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "bioluminescentPlankton",
   },
 
-  // === PHYSICS (16) ===
+  // === PHYSICS (22) ===
   {
     id: "wave-interference",
     name: "Wave Interference",
@@ -232,6 +250,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./wave-interference"),
     renderFnName: "renderWaves",
     importName: "waveInterference",
+  },
+  {
+    id: "celestial-mechanics",
+    name: "Celestial Mechanics",
+    description: "Gravitational dance of multiple celestial bodies — n-body orbital mechanics with trails",
+    category: "physics",
+    loader: () => import("./celestial-mechanics"),
+    renderFnName: "renderCelestialMechanics",
+    importName: "celestialMechanics",
   },
   {
     id: "orbital-mechanics",
@@ -708,7 +735,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "stippledPortraits",
   },
 
-  // === TEXT (5) ===
+  // === TEXT (11) ===
   {
     id: "kinetic-typography",
     name: "Kinetic Typography",
@@ -717,6 +744,42 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./kinetic-typography"),
     renderFnName: "renderKineticTypography",
     importName: "kineticTypography",
+  },
+  {
+    id: "textile-weave",
+    name: "Textile Weave",
+    description: "Text becomes thread in a digital tapestry — characters weave together creating fabric-like patterns where words form the warp and weft",
+    category: "text",
+    loader: () => import("./textile-weave"),
+    renderFnName: "renderTextileWeave",
+    importName: "textileWeave",
+  },
+  {
+    id: "typographic-waves",
+    name: "Typographic Waves",
+    description: "Text flows like ocean waves, with letters undulating in synchronized motion through multiple wave layers",
+    category: "text",
+    loader: () => import("./typographic-waves"),
+    renderFnName: "renderTypographicWaves",
+    importName: "typographicWaves",
+  },
+  {
+    id: "kinetic-poetry",
+    name: "Kinetic Poetry",
+    description: "Floating words connected by ethereal threads — drift through themes of cosmos, dreams, nature, time, and silence",
+    category: "text",
+    loader: () => import("./kinetic-poetry"),
+    renderFnName: "renderKineticPoetry",
+    importName: "kineticPoetry",
+  },
+  {
+    id: "breath-poetry",
+    name: "Breath Poetry",
+    description: "Guided breathing through kinetic text — words emerge and dissolve in rhythm with calming breath cycles",
+    category: "text",
+    loader: () => import("./breath-poetry"),
+    renderFnName: "renderBreathPoetry",
+    importName: "breathPoetry",
   },
   {
     id: "poetry-rain",
@@ -728,7 +791,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "poetryRain",
   },
 
-  // === 3D (10) ===
+  // === 3D (12) ===
   {
     id: "floating-glyphs",
     name: "Floating Glyphs",
@@ -737,6 +800,15 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./floating-glyphs"),
     renderFnName: "generateFloatingGlyphs",
     importName: "floatingGlyphs",
+  },
+  {
+    id: "raymarcher",
+    name: "Raymarcher",
+    description: "Real-time raymarching through signed distance fields — infinite 3D forms rendered through sphere tracing",
+    category: "3d",
+    loader: () => import("./raymarcher"),
+    renderFnName: "renderRaymarcher",
+    importName: "raymarcher",
   },
   {
     id: "light-caverns",
@@ -784,7 +856,7 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "volumetricMist",
   },
 
-  // === INTERACTIVE (10) ===
+  // === INTERACTIVE (14) ===
   {
     id: "floating-letters",
     name: "Floating Letters",
@@ -793,6 +865,42 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     loader: () => import("./floating-letters"),
     renderFnName: "generateKineticTypography",
     importName: "floatingLetters",
+  },
+  {
+    id: "pulse-garden",
+    name: "Pulse Garden",
+    description: "Meditative concentric rings that pulse and breathe, responding to your presence with rhythmic motion",
+    category: "interactive",
+    loader: () => import("./pulse-garden"),
+    renderFnName: "renderPulseGarden",
+    importName: "pulseGarden",
+  },
+  {
+    id: "gravity-sandbox",
+    name: "Gravity Sandbox",
+    description: "Interactive n-body gravity simulation — create particle systems and watch them dance under mutual attraction",
+    category: "interactive",
+    loader: () => import("./gravity-sandbox"),
+    renderFnName: "renderGravitySandbox",
+    importName: "gravitySandbox",
+  },
+  {
+    id: "boids-flocking",
+    name: "Boids Flocking",
+    description: "Craig Reynolds' classic flocking algorithm — separation, alignment, and cohesion create emergent swarming behavior",
+    category: "interactive",
+    loader: () => import("./boids-flocking"),
+    renderFnName: "renderBoidsFlocking",
+    importName: "boidsFlocking",
+  },
+  {
+    id: "polyrhythm-sequencer",
+    name: "Polyrhythm Sequencer",
+    description: "Interactive drum machine with emergent polyrhythms — multiple rhythms of different lengths create ever-changing beats",
+    category: "interactive",
+    loader: () => import("./polyrhythm-sequencer"),
+    renderFnName: "renderPolyrhythmSequencer",
+    importName: "polyrhythmSequencer",
   },
   {
     id: "audio-reactive-waves",
