@@ -172,6 +172,12 @@ export const ARTWORK_METADATA: Record<string, ArtworkMetadata> = {
   },
 
   // === ABSTRACT ===
+  "emergent-canvas": {
+    category: "abstract",
+    complexity: "moderate",
+    tags: ["animated", "organic", "chaotic", "colorful"],
+    created: "2026-03-18",
+  },
   "impossible-geometry": {
     category: "abstract",
     complexity: "moderate",

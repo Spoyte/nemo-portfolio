@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Garden — Generative Art</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a0a1e 50%, #0d0d1a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0a0b0;
+        }
+        
+        canvas {
+            box-shadow: 
+                0 0 60px rgba(100, 80, 200, 0.15),
+                0 0 120px rgba(100, 80, 200, 0.05);
+            border-radius: 50%;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 80, 200, 0.4);
+            color: #a0a0c0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 40, 60, 0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(100, 80, 200, 0.2);
+        }
+        
+        button.active {
+            background: rgba(100, 80, 200, 0.3);
+            border-color: rgba(140, 120, 220, 0.8);
+            color: #d0c0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 160, 192, 0.5);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 160, 192, 0.7);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        .pulse-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(160, 160, 192, 0.4);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Pulse Garden — Generative Art</div>
+    <div class="status" id="status">Click to plant a pulse</div>
+    <div class="pulse-hint">Click anywhere • Watch it bloom</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="regenerate()">Clear Garden</button>
+        <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        <button onclick="toggleAutoPulse()" id="autoBtn">Auto: Off</button>
+        <button onclick="changePalette()">Palette</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Canvas size
+        const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 700);
+        canvas.width = size;
+        canvas.height = size;
+        
+        const cx = size / 2;
+        const cy = size / 2;
+        
+        // State
+        let isRunning = true;
+        let animationId = null;
+        let time = 0;
+        let autoPulse = false;
+        let autoPulseTimer = 0;
+        
+        // Pulses and particles
+        let pulses = [];
+        let ambientParticles = [];
+        let paletteIndex = 0;
+        
+        // Color palettes
+        const palettes = [
+            { // Ethereal
+                name: 'ethereal',
+                bg: '#0a0a0f',
+                colors: ['#a29bfe', '#6c5ce7', '#fd79a8', '#fdcb6e', '#dfe6e9'],
+                glow: 'rgba(162, 155, 254, 0.3)'
+            },
+            { // Sunset
+                name: 'sunset',
+                bg: '#0f0a0a',
+                colors: ['#ff6b6b', '#feca57', '#ff9ff3', '#ff8a80', '#ffd54f'],
+                glow: 'rgba(255, 107, 107, 0.3)'
+            },
+            { // Ocean
+                name: 'ocean',
+                bg: '#0a0f14',
+                colors: ['#00d2d3', '#01a3a4', '#54a0ff', '#48dbfb', '#0abde3'],
+                glow: 'rgba(0, 210, 211, 0.3)'
+            },
+            { // Forest
+                name: 'forest',
+                bg: '#0a0f0a',
+                colors: ['#1dd1a1', '#10ac84', '#55efc4', '#26de81', '#81ecec'],
+                glow: 'rgba(29, 209, 161, 0.3)'
+            },
+            { // Monochrome
+                name: 'monochrome',
+                bg: '#0a0a0a',
+                colors: ['#ffffff', '#b2bec3', '#636e72', '#dfe6e9', '#74b9ff'],
+                glow: 'rgba(255, 255, 255, 0.2)'
+            }
+        ];
+        
+        class Pulse {
+            constructor(x, y, hue = null) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = size * (0.15 + Math.random() * 0.25);
+                this.speed = 1 + Math.random() * 1.5;
+                this.life = 1;
+                this.decay = 0.005 + Math.random() * 0.005;
+                this.hue = hue !== null ? hue : Math.random() * 360;
+                this.rings = 3 + Math.floor(Math.random() * 4);
+                this.ringOffset = Math.random() * 20;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+            }
+            
+            update() {
+                this.radius += this.speed;
+                this.life -= this.decay;
+                this.pulsePhase += 0.05;
+                
+                // Slow down as it expands
+                this.speed *= 0.99;
+                
+                return this.life > 0 && this.radius < this.maxRadius;
+            }
+            
+            draw(ctx, palette) {
+                const paletteColor = palette.colors[Math.floor(this.hue / 72) % palette.colors.length];
+                
+                for (let i = 0; i < this.rings; i++) {
+                    const ringRadius = this.radius - i * this.ringOffset;
+                    if (ringRadius <= 0) continue;
+                    
+                    const pulse = 1 + Math.sin(this.pulsePhase + i * 0.5) * 0.2;
+                    const alpha = this.life * (1 - i / this.rings) * 0.6;
+                    const lineWidth = (3 - i * 0.5) * this.life * pulse;
+                    
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, ringRadius * pulse, 0, Math.PI * 2);
+                    ctx.strokeStyle = hexToRgba(paletteColor, alpha);
+                    ctx.lineWidth = Math.max(0.5, lineWidth);
+                    ctx.stroke();
+                }
+                
+                // Inner glow
+                const glow = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius * 0.5
+                );
+                glow.addColorStop(0, hexToRgba(paletteColor, this.life * 0.3));
+                glow.addColorStop(1, hexToRgba(paletteColor, 0));
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        class AmbientParticle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * size * 0.4;
+                this.x = cx + Math.cos(angle) * dist;
+                this.y = cy + Math.sin(angle) * dist;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.life = Math.random() * 300 + 200;
+                this.maxLife = this.life;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.colorIndex = Math.floor(Math.random() * 5);
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+                
+                // Gentle drift toward center
+                const dx = cx - this.x;
+                const dy = cy - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    this.vx += (dx / dist) * 0.001;
+                    this.vy += (dy / dist) * 0.001;
+                }
+                
+                // Damping
+                this.vx *= 0.995;
+                this.vy *= 0.995;
+                
+                if (this.life <= 0) {
+                    this.reset();
+                }
+            }
+            
+            draw(ctx, palette) {
+                const alpha = (this.life / this.maxLife) * 0.5;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = hexToRgba(palette.colors[this.colorIndex], alpha);
+                ctx.fill();
+            }
+        }
+        
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        
+        function init() {
+            pulses = [];
+            ambientParticles = [];
+            
+            // Create ambient particles
+            for (let i = 0; i < 30; i++) {
+                ambientParticles.push(new AmbientParticle());
+            }
+            
+            // Initial pulse at center
+            pulses.push(new Pulse(cx, cy));
+            
+            time = 0;
+        }
+        
+        function draw() {
+            if (!isRunning) return;
+            
+            const palette = palettes[paletteIndex];
+            
+            // Clear with subtle fade for trails
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.08)';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw background gradient
+            const bgGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.7);
+            bgGradient.addColorStop(0, hexToRgba(palette.colors[0], 0.03));
+            bgGradient.addColorStop(0.5, hexToRgba(palette.colors[1], 0.01));
+            bgGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Update and draw ambient particles
+            ambientParticles.forEach(p => {
+                p.update();
+                p.draw(ctx, palette);
+            });
+            
+            // Update and draw pulses
+            pulses = pulses.filter(pulse => {
+                const alive = pulse.update();
+                if (alive) {
+                    pulse.draw(ctx, palette);
+                }
+                return alive;
+            });
+            
+            // Auto pulse generation
+            if (autoPulse) {
+                autoPulseTimer++;
+                if (autoPulseTimer > 120) { // Every 2 seconds at 60fps
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * size * 0.3;
+                    pulses.push(new Pulse(
+                        cx + Math.cos(angle) * dist,
+                        cy + Math.sin(angle) * dist
+                    ));
+                    autoPulseTimer = 0;
+                }
+            }
+            
+            // Draw center glow
+            const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.15);
+            centerGlow.addColorStop(0, hexToRgba(palette.colors[0], 0.1));
+            centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = centerGlow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, size * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            time++;
+            animationId = requestAnimationFrame(draw);
+        }
+        
+        function regenerate() {
+            pulses = [];
+            ambientParticles = [];
+            for (let i = 0; i < 30; i++) {
+                ambientParticles.push(new AmbientParticle());
+            }
+            // Seed with one pulse
+            pulses.push(new Pulse(cx, cy));
+        }
+        
+        function togglePause() {
+            isRunning = !isRunning;
+            document.getElementById('pauseBtn').textContent = isRunning ? 'Pause' : 'Resume';
+            if (isRunning) draw();
+        }
+        
+        function toggleAutoPulse() {
+            autoPulse = !autoPulse;
+            document.getElementById('autoBtn').textContent = autoPulse ? 'Auto: On' : 'Auto: Off';
+            document.getElementById('autoBtn').classList.toggle('active', autoPulse);
+        }
+        
+        function changePalette() {
+            paletteIndex = (paletteIndex + 1) % palettes.length;
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const newSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 700);
+            if (Math.abs(newSize - size) > 50) {
+                location.reload();
+            }
+        });
+        
+        // Click to create pulse
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (size / rect.width);
+            const y = (e.clientY - rect.top) * (size / rect.height);
+            
+            pulses.push(new Pulse(x, y));
+            
+            // Limit pulses
+            if (pulses.length > 20) {
+                pulses.shift();
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                regenerate();
+            } else if (e.code === 'KeyP') {
+                togglePause();
+            } else if (e.code === 'KeyA') {
+                toggleAutoPulse();
+            }
+        });
+        
+        // Initialize
+        init();
+        draw();
+    </script>
+</body>
+</html>

@@ -479,7 +479,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "sacredGeometry",
   },
 
-  // === ABSTRACT (14) ===
+  // === ABSTRACT (15) ===
+  {
+    id: "emergent-canvas",
+    name: "Emergent Canvas",
+    description: "Simple agents with local rules collectively paint a canvas — emergence creates art from decentralized creation",
+    category: "abstract",
+    loader: () => import("./emergent-canvas"),
+    renderFnName: "renderEmergentCanvas",
+    importName: "emergentCanvas",
+  },
   {
     id: "impossible-geometry",
     name: "Impossible Geometry",

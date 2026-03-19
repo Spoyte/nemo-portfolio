@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interference Patterns — Nemo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Mono', Monaco, monospace;
+            overflow: hidden;
+            color: #a0c0d0;
+        }
+        
+        canvas {
+            box-shadow: 0 0 60px rgba(100, 150, 255, 0.15);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
+        }
+        
+        button {
+            background: rgba(20, 30, 40, 0.9);
+            border: 1px solid rgba(100, 150, 200, 0.4);
+            color: #a0c0d0;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: rgba(40, 50, 70, 0.9);
+            transform: translateY(-1px);
+            border-color: rgba(140, 180, 220, 0.6);
+        }
+        
+        button.active {
+            background: rgba(100, 150, 200, 0.3);
+            border-color: rgba(140, 180, 220, 0.8);
+            color: #d0e0f0;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(160, 192, 208, 0.6);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: rgba(160, 192, 208, 0.8);
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-align: right;
+        }
+        
+        .source-count {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(160, 192, 208, 0.6);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Interference Patterns</div>
+    <div class="source-count" id="sourceCount">2 sources</div>
+    <div class="status" id="status">Click to add wave source</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="setMode('double')">Double Slit</button>
+        <button onclick="setMode('circular')">Circular</button>
+        <button onclick="setMode('random')">Random</button>
+        <button onclick="setMode('line')">Line Array</button>
+        <button onclick="toggleAnimation()" id="animBtn">Animate</button>
+        <button onclick="clearSources()">Clear</button>
+        <button onclick="exportPNG()">Export</button>
+    </div>
+
+    <script>
+        // Canvas setup with high-DPI support
+        const SIZE = 800;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Handle high-DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        canvas.style.width = SIZE + 'px';
+        canvas.style.height = SIZE + 'px';
+        ctx.scale(dpr, dpr);
+        
+        // Animation state
+        let isAnimating = true;
+        let time = 0;
+        let animationId = null;
+        
+        // Wave parameters
+        const WAVELENGTH = 30;
+        const FREQUENCY = 0.05;
+        const AMPLITUDE = 1;
+        
+        // Wave sources
+        let sources = [];
+        
+        // Color palettes
+        const palettes = {
+            ocean: { low: [10, 20, 40], mid: [40, 100, 160], high: [100, 200, 255] },
+            heat: { low: [40, 10, 10], mid: [160, 60, 20], high: [255, 200, 50] },
+            neon: { low: [20, 10, 30], mid: [120, 40, 160], high: [200, 100, 255] },
+            matrix: { low: [10, 30, 10], mid: [40, 120, 40], high: [100, 255, 100] }
+        };
+        let currentPalette = palettes.ocean;
+        
+        // Offscreen canvas for pixel manipulation
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = SIZE;
+        offCanvas.height = SIZE;
+        const offCtx = offCanvas.getContext('2d');
+        
+        function init() {
+            // Start with double-slit configuration
+            setMode('double');
+            animate();
+        }
+        
+        function setMode(mode) {
+            sources = [];
+            const centerX = SIZE / 2;
+            const centerY = SIZE / 2;
+            
+            switch(mode) {
+                case 'double':
+                    // Classic double-slit experiment
+                    sources.push({ x: centerX - 100, y: centerY - 40, phase: 0 });
+                    sources.push({ x: centerX - 100, y: centerY + 40, phase: 0 });
+                    currentPalette = palettes.ocean;
+                    break;
+                    
+                case 'circular':
+                    // Sources arranged in a circle
+                    const radius = 150;
+                    const count = 6;
+                    for (let i = 0; i < count; i++) {
+                        const angle = (i / count) * Math.PI * 2;
+                        sources.push({
+                            x: centerX + Math.cos(angle) * radius,
+                            y: centerY + Math.sin(angle) * radius,
+                            phase: (i / count) * Math.PI
+                        });
+                    }
+                    currentPalette = palettes.neon;
+                    break;
+                    
+                case 'random':
+                    // Random scattered sources
+                    const randomCount = 4 + Math.floor(Math.random() * 4);
+                    for (let i = 0; i < randomCount; i++) {
+                        sources.push({
+                            x: 100 + Math.random() * (SIZE - 200),
+                            y: 100 + Math.random() * (SIZE - 200),
+                            phase: Math.random() * Math.PI * 2
+                        });
+                    }
+                    currentPalette = palettes.heat;
+                    break;
+                    
+                case 'line':
+                    // Linear array of sources
+                    const lineCount = 5;
+                    const spacing = 60;
+                    const startY = centerY - ((lineCount - 1) * spacing) / 2;
+                    for (let i = 0; i < lineCount; i++) {
+                        sources.push({
+                            x: centerX - 200,
+                            y: startY + i * spacing,
+                            phase: 0
+                        });
+                    }
+                    currentPalette = palettes.matrix;
+                    break;
+            }
+            
+            updateSourceCount();
+        }
+        
+        function updateSourceCount() {
+            document.getElementById('sourceCount').textContent = 
+                sources.length + ' source' + (sources.length !== 1 ? 's' : '');
+        }
+        
+        function calculateInterference(x, y, t) {
+            let totalAmplitude = 0;
+            
+            for (const source of sources) {
+                const dx = x - source.x;
+                const dy = y - source.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Wave equation: A * sin(kr - ωt + φ)
+                // k = 2π/λ (wave number), ω = 2πf (angular frequency)
+                const waveNumber = (2 * Math.PI) / WAVELENGTH;
+                const angularFreq = 2 * Math.PI * FREQUENCY;
+                const phase = waveNumber * distance - angularFreq * t + source.phase;
+                
+                // Amplitude falls off with distance (1/r for 2D waves)
+                const attenuation = Math.min(1, 200 / (distance + 20));
+                totalAmplitude += AMPLITUDE * attenuation * Math.sin(phase);
+            }
+            
+            return totalAmplitude;
+        }
+        
+        function render() {
+            const imageData = offCtx.createImageData(SIZE, SIZE);
+            const data = imageData.data;
+            
+            // Sample at lower resolution for performance
+            const step = 2;
+            
+            for (let y = 0; y < SIZE; y += step) {
+                for (let x = 0; x < SIZE; x += step) {
+                    const amplitude = calculateInterference(x, y, time);
+                    
+                    // Normalize amplitude to 0-1 range
+                    // With multiple sources, amplitude can exceed [-1, 1]
+                    const normalized = Math.tanh(amplitude * 0.5) * 0.5 + 0.5;
+                    
+                    // Map to color
+                    const r = interpolateColor(currentPalette.low[0], currentPalette.mid[0], currentPalette.high[0], normalized);
+                    const g = interpolateColor(currentPalette.low[1], currentPalette.mid[1], currentPalette.high[1], normalized);
+                    const b = interpolateColor(currentPalette.low[2], currentPalette.mid[2], currentPalette.high[2], normalized);
+                    
+                    // Fill the pixel block
+                    for (let dy = 0; dy < step && y + dy < SIZE; dy++) {
+                        for (let dx = 0; dx < step && x + dx < SIZE; dx++) {
+                            const idx = ((y + dy) * SIZE + (x + dx)) * 4;
+                            data[idx] = r;
+                            data[idx + 1] = g;
+                            data[idx + 2] = b;
+                            data[idx + 3] = 255;
+                        }
+                    }
+                }
+            }
+            
+            offCtx.putImageData(imageData, 0, 0);
+            
+            // Draw to main canvas with smoothing
+            ctx.clearRect(0, 0, SIZE, SIZE);
+            ctx.drawImage(offCanvas, 0, 0);
+            
+            // Draw source markers
+            drawSourceMarkers();
+        }
+        
+        function interpolateColor(low, mid, high, t) {
+            if (t < 0.5) {
+                // Interpolate between low and mid
+                const localT = t * 2;
+                return Math.floor(low + (mid - low) * localT);
+            } else {
+                // Interpolate between mid and high
+                const localT = (t - 0.5) * 2;
+                return Math.floor(mid + (high - mid) * localT);
+            }
+        }
+        
+        function drawSourceMarkers() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            
+            for (const source of sources) {
+                // Pulsing effect for sources
+                const pulse = Math.sin(time * 3 + source.phase) * 0.3 + 0.7;
+                const radius = 6 * pulse;
+                
+                ctx.beginPath();
+                ctx.arc(source.x, source.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ripple ring
+                ctx.beginPath();
+                ctx.arc(source.x, source.y, radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        function animate() {
+            if (!isAnimating) return;
+            
+            time += 0.1;
+            render();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            document.getElementById('animBtn').textContent = 
+                isAnimating ? 'Pause' : 'Resume';
+            document.getElementById('animBtn').classList.toggle('active', isAnimating);
+            
+            if (isAnimating) {
+                animate();
+            } else if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function clearSources() {
+            sources = [];
+            updateSourceCount();
+            // Clear canvas
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, SIZE, SIZE);
+        }
+        
+        function exportPNG() {
+            const link = document.createElement('a');
+            link.download = 'interference-patterns-' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Interaction: click to add wave source
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (SIZE / rect.width);
+            const y = (e.clientY - rect.top) * (SIZE / rect.height);
+            
+            sources.push({
+                x: x,
+                y: y,
+                phase: Math.random() * Math.PI * 2
+            });
+            
+            updateSourceCount();
+            
+            // Brief visual feedback
+            document.getElementById('status').textContent = 'Source added!';
+            setTimeout(() => {
+                document.getElementById('status').textContent = 'Click to add wave source';
+            }, 1000);
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleAnimation();
+            } else if (e.code === 'KeyC') {
+                clearSources();
+            } else if (e.code === 'KeyR') {
+                setMode('random');
+            }
+        });
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>
