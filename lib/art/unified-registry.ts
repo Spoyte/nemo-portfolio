@@ -867,7 +867,16 @@ export const GENERATOR_REGISTRY: GeneratorEntry[] = [
     importName: "typewriterPoetry",
   },
 
-  // === TEXT (5) ===
+  // === TEXT (6) ===
+  {
+    id: "semantic-rain",
+    name: "Semantic Rain",
+    description: "Words fall like raindrops, bonding when semantically related. Emergent poetry from physics and meaning.",
+    category: "text",
+    loader: () => import("./semantic-rain"),
+    renderFnName: "semanticRain",
+    importName: "semanticRain",
+  },
   {
     id: "poetry-visualizer",
     name: "Poetry Visualizer",
