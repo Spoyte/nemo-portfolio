@@ -18,7 +18,7 @@ interface Params {
 }
 
 const defaultParams: Params = {
-  default: {,
+  default: 0,
   amplitude: 50,
   particleCount: 3000,
   mode: "radial",

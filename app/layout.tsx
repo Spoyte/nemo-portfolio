@@ -25,6 +25,7 @@ import { ParticleConstellation } from "@/components/particle-constellation";
 import { KeyboardNavigator } from "@/components/keyboard-navigator";
 import { DynamicFavicon } from "@/components/dynamic-favicon";
 import { VoiceInterface } from "@/components/voice-interface";
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 
 export const metadata: Metadata = {
   title: "Nemo | Creative Developer & Designer",
@@ -79,6 +80,9 @@ export default function RootLayout({
           <FloatingMusicPlayer />
           <MiniMusicPlayer />
           <ThemeSwitcher />
+          
+          {/* Keyboard Shortcuts Help */}
+          <KeyboardShortcutsModal />
           
           {/* Easter Eggs */}
           <KonamiCodeEasterEgg />

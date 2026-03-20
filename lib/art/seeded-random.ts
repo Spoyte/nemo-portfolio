@@ -156,3 +156,8 @@ export function createSeededNoise(seed: string | number) {
 // const x = rng.range(0, width);
 // const color = rng.pick(palette);
 // const noise = createSeededNoise(params.seed);
+
+// Convenience function to create a seeded random instance
+export function seededRandom(seed: string | number): SeededRandom {
+  return new SeededRandom(seed);
+}

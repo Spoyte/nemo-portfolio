@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { defaultParams, defaultParamsDefaultParams } from "@/lib/art/self-organizing-map";
+import { defaultParams as libDefaultParams } from "@/lib/art/self-organizing-map";
 import { Palette, Pause, Play, Sparkles } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 
 interface Params {
-  params: number;
+  gridSize: number;
   learningRate: number;
   neighborhoodRadius: number;
   decayRate: number;
@@ -19,15 +19,15 @@ interface Params {
 }
 
 const defaultParams: Params = {
-  params: defaultParamsDefaultParams.params,
-  learningRate: defaultParamsDefaultParams.learningRate,
-  neighborhoodRadius: defaultParamsDefaultParams.neighborhoodRadius,
-  decayRate: defaultParamsDefaultParams.decayRate,
-  colorScheme: defaultParamsDefaultParams.colorScheme,
-  inputDistribution: defaultParamsDefaultParams.inputDistribution,
-  showConnections: defaultParamsDefaultParams.showConnections,
-  showNodes: defaultParamsDefaultParams.showNodes,
-  animationSpeed: defaultParamsDefaultParams.animationSpeed,
+  gridSize: libDefaultParams.gridSize,
+  learningRate: libDefaultParams.learningRate,
+  neighborhoodRadius: libDefaultParams.neighborhoodRadius,
+  decayRate: libDefaultParams.decayRate,
+  colorScheme: libDefaultParams.colorScheme,
+  inputDistribution: libDefaultParams.inputDistribution,
+  showConnections: libDefaultParams.showConnections ? 1 : 0,
+  showNodes: libDefaultParams.showNodes ? 1 : 0,
+  animationSpeed: libDefaultParams.animationSpeed,
 };
 
 export default function SelfOrganizingMapPage() {

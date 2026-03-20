@@ -49,6 +49,7 @@ const interactiveItems = [
 const communityItems = [
   { href: "/guestbook", label: "Guestbook", icon: BookOpen, description: "Leave a message", badge: "New", color: "text-indigo-400" },
   { href: "/bookmarks", label: "Bookmarks", icon: Bookmark, description: "Curated resources", badge: "New", color: "text-teal-400" },
+  { href: "/resources", label: "Resources", icon: BarChart3, description: "Dev tools & learning", badge: "New", color: "text-cyan-400" },
   { href: "/analytics", label: "Analytics", icon: BarChart3, description: "Visitor insights", badge: "New", color: "text-rose-400" },
 ];
 

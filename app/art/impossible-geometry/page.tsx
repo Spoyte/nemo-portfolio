@@ -16,7 +16,7 @@ interface Params {
 }
 
 const defaultParams: Params = {
-  classic: progress = Math.min(cycle / 4,
+  classic: "white",
   speed: 30,
   complexity: 50,
   colorScheme: "classic",

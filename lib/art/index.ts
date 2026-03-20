@@ -62,7 +62,7 @@ import { auroraBorealis } from "./aurora-borealis";
 import { recursiveTrees } from "./recursive-trees";
 import { lsystemBotany } from "./lsystem-botany";
 import { lsystemFractals } from "./lsystem-fractals";
-import { perlinTerrain } from "./perlin-terrain";
+import { perlinTerrainGenerator as perlinTerrain } from "./perlin-terrain";
 import { dla } from "./dla";
 import { slimeMold } from "./slime-mold";
 import { bioluminescentPlankton } from "./bioluminescent-plankton";

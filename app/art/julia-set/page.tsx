@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { defaultParams, defaultParamsDefaultParams } from "@/lib/art/julia-set";
+import { defaultParams as libDefaultParams } from "@/lib/art/julia-set";
 import { Palette, Pause, Play, Sparkles, ZoomIn } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -23,26 +23,26 @@ interface Params {
 }
 
 const initialParams: Params = {
-  cReal: defaultParamsDefaultParams.cReal,
-  cImag: defaultParamsDefaultParams.cImag,
-  zoom: defaultParamsDefaultParams.zoom,
-  offsetX: defaultParamsDefaultParams.offsetX,
-  offsetY: defaultParamsDefaultParams.offsetY,
-  maxIterations: defaultParamsDefaultParams.maxIterations,
-  palette: defaultParamsDefaultParams.palette,
-  seedIndex: defaultParamsDefaultParams.seedIndex,
-  colorCycles: defaultParamsDefaultParams.colorCycles,
-  smoothColoring: defaultParamsDefaultParams.smoothColoring,
-  showOrbit: defaultParamsDefaultParams.showOrbit,
-  orbitSpeed: defaultParamsDefaultParams.orbitSpeed,
-  bailout: defaultParamsDefaultParams.bailout,
+  cReal: libDefaultParams.cReal,
+  cImag: libDefaultParams.cImag,
+  zoom: libDefaultParams.zoom,
+  offsetX: libDefaultParams.offsetX,
+  offsetY: libDefaultParams.offsetY,
+  maxIterations: libDefaultParams.maxIterations,
+  palette: libDefaultParams.palette,
+  seedIndex: libDefaultParams.seedIndex,
+  colorCycles: libDefaultParams.colorCycles,
+  smoothColoring: libDefaultParams.smoothColoring ? 1 : 0,
+  showOrbit: libDefaultParams.showOrbit ? 1 : 0,
+  orbitSpeed: libDefaultParams.orbitSpeed,
+  bailout: libDefaultParams.bailout,
 };
 
 export default function JuliaSetPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [params, setParams] = useState<Params>(defaultParams);
+  const [params, setParams] = useState<Params>(initialParams);
 
   // Animation loop
   useEffect(() => {
