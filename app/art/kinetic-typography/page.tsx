@@ -1,36 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { kineticTypography } from "@/lib/art/kinetic-typography";
-import { Palette, Pause, Play, Sparkles } from "lucide-react";
+import { kineticTypography, KineticTypographyParams, kineticTypographyDefaultParams } from "@/lib/art/kinetic-typography";
+import { Palette, Pause, Play, Sparkles, SlidersHorizontal, Type, Zap } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-
-interface Params {
-  params: string;
-  fontSize: number;
-  waveAmplitude: number;
-  waveFrequency: number;
-  particleDensity: number;
-  colorScheme: string;
-  seed: number;
-}
-
-const defaultParams: Params = {
-  params: "CREATE",
-  fontSize: 80,
-  waveAmplitude: 20,
-  waveFrequency: 0.03,
-  particleDensity: 3,
-  colorScheme: "neon",
-  seed: 42,
-};
 
 export default function KineticTypographyPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [params, setParams] = useState<Params>(defaultParams);
+  const [params, setParams] = useState<KineticTypographyParams>(kineticTypographyDefaultParams);
 
   // Animation loop
   useEffect(() => {
@@ -86,18 +66,21 @@ export default function KineticTypographyPage() {
 
   const randomize = useCallback(() => {
     setParams({
-      params: ["CREATE", "FLOW", "WAVE", "DREAM", "CHAOS", "LIGHT"][Math.floor(Math.random() * 6)],
-      fontSize: 40 + Math.random() * 80,
-      waveAmplitude: 5 + Math.random() * 45,
-      waveFrequency: 0.01 + Math.random() * 0.09000000000000001,
-      particleDensity: Math.floor(1 + Math.random() * 4),
-      colorScheme: ["neon", "gold", "ocean", "sunset", "monochrome"][Math.floor(Math.random() * 5)],
-      seed: Math.floor(1 + Math.random() * 9999),
+      text: ["MOTION", "CREATE", "FLOW", "WAVE", "DREAM", "TYPE"][Math.floor(Math.random() * 6)],
+      style: ["wave", "scatter", "orbit", "breathe", "glitch", "liquid"][Math.floor(Math.random() * 6)] as KineticTypographyParams["style"],
+      fontFamily: ["serif", "sans", "mono", "display"][Math.floor(Math.random() * 4)] as KineticTypographyParams["fontFamily"],
+      fontSize: 24 + Math.floor(Math.random() * 96),
+      palette: ["neon", "monochrome", "sunset", "ocean", "forest", "candy"][Math.floor(Math.random() * 6)] as KineticTypographyParams["palette"],
+      speed: 0.1 + Math.random() * 2.9,
+      amplitude: 5 + Math.floor(Math.random() * 75),
+      letterSpacing: 0.8 + Math.random() * 1.2,
+      trails: Math.random() > 0.3,
+      seed: Math.floor(1 + Math.random() * 99),
     });
   }, []);
 
   const reset = useCallback(() => {
-    setParams(defaultParams);
+    setParams(kineticTypographyDefaultParams);
   }, []);
 
   return (
@@ -158,207 +141,194 @@ export default function KineticTypographyPage() {
               Settings
             </h2>
 
-            {/* Params */}
+            {/* Text */}
             <div className="mb-5">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                <SlidersHorizontal className="w-4 h-4" />
-                Params
+                <Type className="w-4 h-4" />
+                Text
               </label>
               <div className="grid grid-cols-2 gap-2">
-                                <button
-                  onClick={() => setParams(prev => ({ ...prev, params: "CREATE" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.params === "CREATE"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  CREATE
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, params: "FLOW" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.params === "FLOW"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  FLOW
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, params: "WAVE" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.params === "WAVE"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  WAVE
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, params: "DREAM" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.params === "DREAM"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  DREAM
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, params: "CHAOS" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.params === "CHAOS"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  CHAOS
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, params: "LIGHT" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.params === "LIGHT"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  LIGHT
-                </button>
+                {["MOTION", "CREATE", "FLOW", "WAVE", "DREAM", "TYPE"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setParams(prev => ({ ...prev, text: t }))}
+                    className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
+                      ${params.text === t
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
+                        : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
+                      }
+                    `}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* FontSize */}
+            {/* Style */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                <Zap className="w-4 h-4" />
+                Style
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {["wave", "scatter", "orbit", "breathe", "glitch", "liquid"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setParams(prev => ({ ...prev, style: s as KineticTypographyParams["style"] }))}
+                    className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
+                      ${params.style === s
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
+                        : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
+                      }
+                    `}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Font Family */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                <Type className="w-4 h-4" />
+                Font: {params.fontFamily}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {["serif", "sans", "mono", "display"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setParams(prev => ({ ...prev, fontFamily: f as KineticTypographyParams["fontFamily"] }))}
+                    className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
+                      ${params.fontFamily === f
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
+                        : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
+                      }
+                    `}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Font Size */}
             <div className="mb-5">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
                 <SlidersHorizontal className="w-4 h-4" />
-                FontSize: {params.fontSize}
+                Font Size: {params.fontSize}
               </label>
               <Slider
                 value={[params.fontSize]}
                 onValueChange={([v]) => setParams(prev => ({ ...prev, fontSize: v }))}
-                min={40}
+                min={24}
                 max={120}
-                step={10}
+                step={4}
                 className="w-full"
               />
             </div>
 
-            {/* WaveAmplitude */}
+            {/* Palette */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                <Palette className="w-4 h-4" />
+                Palette
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {["neon", "monochrome", "sunset", "ocean", "forest", "candy"].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setParams(prev => ({ ...prev, palette: p as KineticTypographyParams["palette"] }))}
+                    className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
+                      ${params.palette === p
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
+                        : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
+                      }
+                    `}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Speed */}
             <div className="mb-5">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
                 <SlidersHorizontal className="w-4 h-4" />
-                WaveAmplitude: {params.waveAmplitude}
+                Speed: {params.speed.toFixed(1)}
               </label>
               <Slider
-                value={[params.waveAmplitude]}
-                onValueChange={([v]) => setParams(prev => ({ ...prev, waveAmplitude: v }))}
+                value={[params.speed]}
+                onValueChange={([v]) => setParams(prev => ({ ...prev, speed: v }))}
+                min={0.1}
+                max={3}
+                step={0.1}
+                className="w-full"
+              />
+            </div>
+
+            {/* Amplitude */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                <SlidersHorizontal className="w-4 h-4" />
+                Amplitude: {params.amplitude}
+              </label>
+              <Slider
+                value={[params.amplitude]}
+                onValueChange={([v]) => setParams(prev => ({ ...prev, amplitude: v }))}
                 min={5}
-                max={50}
+                max={80}
                 step={5}
                 className="w-full"
               />
             </div>
 
-            {/* WaveFrequency */}
+            {/* Letter Spacing */}
             <div className="mb-5">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
                 <SlidersHorizontal className="w-4 h-4" />
-                WaveFrequency: {params.waveFrequency.toFixed(2)}
+                Letter Spacing: {params.letterSpacing.toFixed(1)}
               </label>
               <Slider
-                value={[params.waveFrequency]}
-                onValueChange={([v]) => setParams(prev => ({ ...prev, waveFrequency: v }))}
-                min={0.01}
-                max={0.1}
-                step={0.01}
+                value={[params.letterSpacing]}
+                onValueChange={([v]) => setParams(prev => ({ ...prev, letterSpacing: v }))}
+                min={0.8}
+                max={2}
+                step={0.1}
                 className="w-full"
               />
             </div>
 
-            {/* ParticleDensity */}
+            {/* Trails */}
             <div className="mb-5">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
                 <SlidersHorizontal className="w-4 h-4" />
-                ParticleDensity: {params.particleDensity}
+                Trails: {params.trails ? "On" : "Off"}
               </label>
-              <Slider
-                value={[params.particleDensity]}
-                onValueChange={([v]) => setParams(prev => ({ ...prev, particleDensity: v }))}
-                min={1}
-                max={5}
-                step={1}
-                className="w-full"
-              />
-            </div>
-
-            {/* ColorScheme */}
-            <div className="mb-5">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                <Palette className="w-4 h-4" />
-                ColorScheme
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                                <button
-                  onClick={() => setParams(prev => ({ ...prev, colorScheme: "neon" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.colorScheme === "neon"
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setParams(prev => ({ ...prev, trails: true }))}
+                  className={`px-3 py-2 rounded-lg text-sm transition-all
+                    ${params.trails
                       ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
                       : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
                     }
                   `}
                 >
-                  neon
+                  On
                 </button>
                 <button
-                  onClick={() => setParams(prev => ({ ...prev, colorScheme: "gold" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.colorScheme === "gold"
+                  onClick={() => setParams(prev => ({ ...prev, trails: false }))}
+                  className={`px-3 py-2 rounded-lg text-sm transition-all
+                    ${!params.trails
                       ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
                       : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
                     }
                   `}
                 >
-                  gold
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, colorScheme: "ocean" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.colorScheme === "ocean"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  ocean
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, colorScheme: "sunset" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.colorScheme === "sunset"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  sunset
-                </button>
-                <button
-                  onClick={() => setParams(prev => ({ ...prev, colorScheme: "monochrome" }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all capitalize
-                    ${params.colorScheme === "monochrome"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
-                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800 border border-transparent"
-                    }
-                  `}
-                >
-                  monochrome
+                  Off
                 </button>
               </div>
             </div>
@@ -373,7 +343,7 @@ export default function KineticTypographyPage() {
                 value={[params.seed]}
                 onValueChange={([v]) => setParams(prev => ({ ...prev, seed: v }))}
                 min={1}
-                max={10000}
+                max={100}
                 step={1}
                 className="w-full"
               />
