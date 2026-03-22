@@ -1,32 +1,50 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Terminal,
   Play,
-  Pause,
   RotateCcw,
-  Download,
+  Trash2,
   Copy,
   Check,
-  Code2,
-  Sparkles,
-  Zap,
   Settings,
-  ChevronRight,
-  Eye,
-  EyeOff,
+  Download,
+  Share2,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Zap,
+  Code2,
+  FileCode,
+  Braces,
   Type,
-  Palette,
-  Layout,
-  MousePointer
+  Hash,
+  List,
+  Grid,
+  Search,
+  Filter,
+  Plus,
+  Save,
+  Folder,
+  MoreHorizontal,
+  ChevronRight,
+  ChevronDown,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface CodeSnippet {
   id: string;
@@ -35,702 +53,512 @@ interface CodeSnippet {
   language: string;
   code: string;
   tags: string[];
-  complexity: "beginner" | "intermediate" | "advanced";
+  createdAt: string;
+  isPublic: boolean;
 }
 
-const codeSnippets: CodeSnippet[] = [
+interface ExecutionResult {
+  success: boolean;
+  output: string;
+  error?: string;
+  executionTime: number;
+}
+
+const defaultSnippets: CodeSnippet[] = [
   {
     id: "1",
-    title: "React useLocalStorage Hook",
-    description: "A custom hook for persisting state to localStorage with SSR safety",
-    language: "typescript",
-    complexity: "intermediate",
-    tags: ["react", "hooks", "storage"],
-    code: `import { useState, useEffect } from 'react';
-
-function useLocalStorage<T>(key: string, initialValue: T) {
-  // State to store our value
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      if (item) {
-        setStoredValue(JSON.parse(item));
-      }
-    } catch (error) {
-      console.error('Error reading from localStorage:', error);
-    }
-    setIsLoaded(true);
-  }, [key]);
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function 
-        ? value(storedValue) 
-        : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
-    }
-  };
-
-  return [storedValue, setValue, isLoaded] as const;
-}
-
-export default useLocalStorage;`
-  },
-  {
-    id: "2",
     title: "Debounce Function",
-    description: "A utility function to limit how often a function can fire",
+    description: "A utility function to debounce function calls",
     language: "typescript",
-    complexity: "intermediate",
-    tags: ["utilities", "performance"],
-    code: `function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
+    code: `function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  return function (...args: Parameters<T>) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    timeoutId = setTimeout(() => {
-      func(...args);
-    }, wait);
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
   };
 }
 
-// Usage example
-const handleSearch = debounce((query: string) => {
+// Usage
+const debouncedSearch = debounce((query: string) => {
   console.log('Searching for:', query);
-  // Perform search API call
 }, 300);
 
-// In your input handler
-// onChange={(e) => handleSearch(e.target.value)}`
+debouncedSearch('hello');
+debouncedSearch('hello world');`,
+    tags: ["utility", "performance", "typescript"],
+    createdAt: "2024-03-15",
+    isPublic: true,
+  },
+  {
+    id: "2",
+    title: "Array Chunk",
+    description: "Split an array into chunks of specified size",
+    language: "javascript",
+    code: `function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+// Usage
+const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const chunks = chunkArray(numbers, 3);
+console.log(chunks);
+// Output: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]`,
+    tags: ["array", "utility", "javascript"],
+    createdAt: "2024-03-14",
+    isPublic: true,
   },
   {
     id: "3",
-    title: "CSS Grid Masonry Layout",
-    description: "A pure CSS approach to masonry-style layouts using grid",
-    language: "css",
-    complexity: "beginner",
-    tags: ["css", "layout"],
-    code: `.masonry-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  grid-auto-rows: 10px;
-  gap: 1rem;
-}
-
-.masonry-item {
-  grid-row: span var(--row-span, 20);
-  break-inside: avoid;
-}
-
-/* Item heights based on content */
-.masonry-item.small {
-  --row-span: 15;
-}
-
-.masonry-item.medium {
-  --row-span: 25;
-}
-
-.masonry-item.large {
-  --row-span: 35;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .masonry-grid {
-    grid-template-columns: repeat(2, 1fr);
+    title: "Deep Clone",
+    description: "Create a deep copy of an object",
+    language: "typescript",
+    code: `function deepClone<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
   }
+  
+  if (obj instanceof Date) {
+    return new Date(obj.getTime()) as unknown as T;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepClone(item)) as unknown as T;
+  }
+  
+  const cloned = {} as T;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      cloned[key] = deepClone(obj[key]);
+    }
+  }
+  
+  return cloned;
 }
 
-@media (max-width: 480px) {
-  .masonry-grid {
-    grid-template-columns: 1fr;
-  }
-}`
+// Usage
+const original = { a: 1, b: { c: 2 } };
+const cloned = deepClone(original);
+console.log(cloned);`,
+    tags: ["object", "utility", "typescript"],
+    createdAt: "2024-03-13",
+    isPublic: true,
   },
   {
     id: "4",
-    title: "Intersection Observer Hook",
-    description: "React hook for detecting when elements enter the viewport",
-    language: "typescript",
-    complexity: "advanced",
-    tags: ["react", "hooks", "performance"],
-    code: `import { useEffect, useRef, useState, RefObject } from 'react';
-
-interface UseIntersectionObserverOptions {
-  threshold?: number | number[];
-  root?: Element | null;
-  rootMargin?: string;
-  triggerOnce?: boolean;
+    title: "CSS Grid Center",
+    description: "Center elements with CSS Grid",
+    language: "css",
+    code: `.center-container {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
 }
 
-function useIntersectionObserver<T extends Element>(
-  options: UseIntersectionObserverOptions = {}
-): [RefObject<T | null>, boolean] {
-  const { 
-    threshold = 0, 
-    root = null, 
-    rootMargin = '0px',
-    triggerOnce = false 
-  } = options;
-  
-  const ref = useRef<T>(null);
-  const [isIntersecting, setIsIntersecting] = useState(false);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const intersecting = entry.isIntersecting;
-        setIsIntersecting(intersecting);
-        
-        if (intersecting && triggerOnce) {
-          observer.unobserve(element);
-        }
-      },
-      { threshold, root, rootMargin }
-    );
-
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [threshold, root, rootMargin, triggerOnce]);
-
-  return [ref, isIntersecting];
+/* Alternative with flexbox */
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
-export default useIntersectionObserver;`
+/* Center with absolute positioning */
+.absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}`,
+    tags: ["css", "layout", "center"],
+    createdAt: "2024-03-12",
+    isPublic: true,
   },
   {
     id: "5",
     title: "Fetch with Retry",
-    description: "A robust fetch wrapper with automatic retry logic",
+    description: "Fetch API with automatic retry logic",
     language: "typescript",
-    complexity: "advanced",
-    tags: ["api", "utilities", "async"],
-    code: `interface FetchWithRetryOptions extends RequestInit {
-  retries?: number;
-  retryDelay?: number;
-  onRetry?: (attempt: number, error: Error) => void;
-}
-
-async function fetchWithRetry<T>(
+    code: `async function fetchWithRetry(
   url: string,
-  options: FetchWithRetryOptions = {}
-): Promise<T> {
-  const {
-    retries = 3,
-    retryDelay = 1000,
-    onRetry,
-    ...fetchOptions
-  } = options;
-
-  let lastError: Error;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  options: RequestInit = {},
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<Response> {
+  for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch(url, fetchOptions);
-      
-      if (!response.ok) {
-        throw new Error(\`HTTP error! status: \${response.status}\`);
-      }
-      
-      return await response.json();
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      throw new Error(\`HTTP \${response.status}\`);
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      
-      if (attempt < retries) {
-        onRetry?.(attempt + 1, lastError);
-        
-        // Exponential backoff
-        const delay = retryDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+      if (i === maxRetries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
     }
   }
-
-  throw lastError!;
+  throw new Error('Max retries reached');
 }
 
 // Usage
-const data = await fetchWithRetry('/api/data', {
-  retries: 5,
-  retryDelay: 500,
-  onRetry: (attempt, error) => {
-    console.log(\`Retry attempt \${attempt}: \${error.message}\`);
-  }
-});`
+fetchWithRetry('https://api.example.com/data')
+  .then(res => res.json())
+  .then(data => console.log(data))
+  .catch(err => console.error('Failed:', err));`,
+    tags: ["fetch", "async", "retry", "typescript"],
+    createdAt: "2024-03-11",
+    isPublic: true,
   },
-  {
-    id: "6",
-    title: "Animated Counter",
-    description: "A React component that animates counting up to a target number",
-    language: "typescript",
-    complexity: "intermediate",
-    tags: ["react", "animation"],
-    code: `import { useState, useEffect, useRef } from 'react';
-
-interface AnimatedCounterProps {
-  target: number;
-  duration?: number;
-  prefix?: string;
-  suffix?: string;
-}
-
-function AnimatedCounter({
-  target,
-  duration = 2000,
-  prefix = '',
-  suffix = ''
-}: AnimatedCounterProps) {
-  const [count, setCount] = useState(0);
-  const countRef = useRef(0);
-  const frameRef = useRef<number>();
-
-  useEffect(() => {
-    const startTime = performance.now();
-    const startValue = countRef.current;
-    const diff = target - startValue;
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function (ease-out cubic)
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      
-      const currentCount = Math.floor(startValue + diff * easeOut);
-      countRef.current = currentCount;
-      setCount(currentCount);
-
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    frameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
-      }
-    };
-  }, [target, duration]);
-
-  return (
-    <span>
-      {prefix}{count.toLocaleString()}{suffix}
-    </span>
-  );
-}
-
-export default AnimatedCounter;`
-  }
 ];
 
-function CodeTypingAnimation({ code, isPlaying, speed, onComplete }: { 
-  code: string; 
-  isPlaying: boolean; 
-  speed: number;
-  onComplete?: () => void;
-}) {
-  const [displayedCode, setDisplayedCode] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const codeRef = useRef<HTMLPreElement>(null);
+const languages = [
+  { id: "javascript", name: "JavaScript", icon: "JS", color: "bg-yellow-500/10 text-yellow-500" },
+  { id: "typescript", name: "TypeScript", icon: "TS", color: "bg-blue-500/10 text-blue-500" },
+  { id: "python", name: "Python", icon: "PY", color: "bg-green-500/10 text-green-500" },
+  { id: "css", name: "CSS", icon: "CSS", color: "bg-cyan-500/10 text-cyan-500" },
+  { id: "html", name: "HTML", icon: "HTML", color: "bg-orange-500/10 text-orange-500" },
+  { id: "sql", name: "SQL", icon: "SQL", color: "bg-purple-500/10 text-purple-500" },
+  { id: "bash", name: "Bash", icon: "SH", color: "bg-gray-500/10 text-gray-500" },
+  { id: "rust", name: "Rust", icon: "RS", color: "bg-red-500/10 text-red-500" },
+];
 
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    if (currentIndex < code.length) {
-      const timeout = setTimeout(() => {
-        setDisplayedCode(code.slice(0, currentIndex + 1));
-        setCurrentIndex(prev => prev + 1);
-        
-        // Auto-scroll to bottom
-        if (codeRef.current) {
-          codeRef.current.scrollTop = codeRef.current.scrollHeight;
-        }
-      }, speed);
-
-      return () => clearTimeout(timeout);
-    } else {
-      onComplete?.();
-    }
-  }, [isPlaying, currentIndex, code, speed, onComplete]);
-
-  useEffect(() => {
-    if (!isPlaying) {
-      setDisplayedCode(code);
-      setCurrentIndex(code.length);
-    }
-  }, [code, isPlaying]);
-
-  return (
-    <pre
-      ref={codeRef}
-      className="font-mono text-sm leading-relaxed overflow-auto max-h-[400px] scrollbar-hide"
-    >
-      <code className="block">
-        {displayedCode}
-        {currentIndex < code.length && isPlaying && (
-          <span className="animate-pulse">|</span>
-        )}
-      </code>
-    </pre>
-  );
-}
-
-function SyntaxHighlighter({ code, language }: { code: string; language: string }) {
-  // Simple syntax highlighting
-  const highlightCode = (code: string) => {
-    let highlighted = code
-      // Keywords
-      .replace(/\b(const|let|var|function|return|if|else|for|while|try|catch|async|await|import|export|from|interface|type|class|extends|implements|new|this|typeof|instanceof)\b/g, '<span class="text-purple-400">$1</span>')
-      // Strings
-      .replace(/(['"`])(.*?)\1/g, '<span class="text-green-400">$1$2$1</span>')
-      // Comments
-      .replace(/(\/\/.*$)/gm, '<span class="text-gray-500">$1</span>')
-      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-gray-500">$1</span>')
-      // Numbers
-      .replace(/\b(\d+)\b/g, '<span class="text-orange-400">$1</span>')
-      // Functions
-      .replace(/(\w+)(?=\()/g, '<span class="text-blue-400">$1</span>');
-    
-    return highlighted;
-  };
-
-  return (
-    <pre className="font-mono text-sm leading-relaxed overflow-auto max-h-[400px] scrollbar-hide">
-      <code 
-        className="block"
-        dangerouslySetInnerHTML={{ __html: highlightCode(code) }}
-      />
-    </pre>
-  );
-}
-
-export default function CodeSnippetsPage() {
-  const [selectedSnippet, setSelectedSnippet] = useState<CodeSnippet>(codeSnippets[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [typingSpeed, setTypingSpeed] = useState(20);
-  const [showLineNumbers, setShowLineNumbers] = useState(true);
-  const [viewMode, setViewMode] = useState<"typing" | "static">("static");
-  const [copied, setCopied] = useState(false);
+export default function SnippetsPage() {
+  const [snippets, setSnippets] = useState<CodeSnippet[]>(defaultSnippets);
+  const [selectedSnippet, setSelectedSnippet] = useState<CodeSnippet>(defaultSnippets[0]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const filteredSnippets = codeSnippets.filter(snippet => {
-    const matchesSearch = snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredSnippets = snippets.filter((snippet) => {
+    const matchesSearch =
+      snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       snippet.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      snippet.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesTag = !selectedTag || snippet.tags.includes(selectedTag);
-    return matchesSearch && matchesTag;
+      snippet.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesLanguage = !selectedLanguage || snippet.language === selectedLanguage;
+    return matchesSearch && matchesLanguage;
   });
 
-  const allTags = Array.from(new Set(codeSnippets.flatMap(s => s.tags)));
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(selectedSnippet.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async (snippet: CodeSnippet) => {
+    await navigator.clipboard.writeText(snippet.code);
+    setCopiedId(snippet.id);
+    toast.success("Copied to clipboard!");
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([selectedSnippet.code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedSnippet.title.toLowerCase().replace(/\s+/g, '-')}.${selectedSnippet.language}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleExecute = async () => {
+    setIsExecuting(true);
+    setExecutionResult(null);
+
+    // Simulate code execution
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const isSuccess = Math.random() > 0.2;
+    setExecutionResult({
+      success: isSuccess,
+      output: isSuccess
+        ? `> Executing ${selectedSnippet.title}...\n> Success!\n> Output:\n${selectedSnippet.code.split("\n").slice(0, 3).join("\n")}\n...`
+        : `> Executing ${selectedSnippet.title}...\n> Error: SyntaxError: Unexpected token`,
+      error: isSuccess ? undefined : "SyntaxError: Unexpected token",
+      executionTime: Math.random() * 100 + 50,
+    });
+
+    setIsExecuting(false);
   };
 
-  const complexityColors = {
-    beginner: "bg-green-500/10 text-green-500",
-    intermediate: "bg-yellow-500/10 text-yellow-500",
-    advanced: "bg-red-500/10 text-red-500"
+  const handleDelete = (id: string) => {
+    setSnippets((prev) => prev.filter((s) => s.id !== id));
+    if (selectedSnippet.id === id) {
+      setSelectedSnippet(snippets.find((s) => s.id !== id) || snippets[0]);
+    }
+    toast.success("Snippet deleted");
+  };
+
+  const getLanguageConfig = (languageId: string) => {
+    return languages.find((l) => l.id === languageId) || languages[0];
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-            <Code2 className="h-4 w-4" />
-            <span className="text-sm font-medium">Developer Resources</span>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <section className="py-8 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                <Code2 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-3xl md:text-4xl font-bold"
+                >
+                  Code{" "}
+                  <span className="text-gradient-animated">Snippets</span>
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="text-muted-foreground"
+                >
+                  {snippets.length} snippets • {languages.length} languages
+                </motion.p>
+              </div>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center gap-2"
+            >
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Snippet
+              </Button>
+            </motion.div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Code <span className="text-gradient-animated">Snippets</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A curated collection of reusable code snippets with animated typing demos.
-            Copy, learn, and use in your projects.
-          </p>
-        </motion.div>
+        </div>
+      </section>
 
-        {/* Search and Filter */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <input
-                type="text"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sidebar - Snippet List */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search snippets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search snippets..."
-                className="w-full px-4 py-3 rounded-xl bg-card border border-border focus:border-primary focus:outline-none transition-colors"
+                className="pl-10"
               />
             </div>
+
+            {/* Language Filter */}
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedTag(null)}
-                className={`px-4 py-2 rounded-full text-sm transition-all ${
-                  selectedTag === null
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80"
-                }`}
+              <Button
+                variant={selectedLanguage === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedLanguage(null)}
               >
                 All
-              </button>
-              {allTags.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-                  className={`px-4 py-2 rounded-full text-sm transition-all ${
-                    selectedTag === tag
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  }`}
+              </Button>
+              {languages.map((lang) => (
+                <Button
+                  key={lang.id}
+                  variant={selectedLanguage === lang.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedLanguage(lang.id)}
                 >
-                  {tag}
-                </button>
+                  {lang.name}
+                </Button>
               ))}
             </div>
-          </div>
-        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Snippets List */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-4"
-          >
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Available Snippets ({filteredSnippets.length})
-            </h2>
-            
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
-              {filteredSnippets.map((snippet, index) => (
-                <motion.button
-                  key={snippet.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  onClick={() => {
-                    setSelectedSnippet(snippet);
-                    setIsPlaying(false);
-                  }}
-                  className={`w-full text-left p-4 rounded-xl border transition-all ${
-                    selectedSnippet.id === snippet.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-sm">{snippet.title}</h3>
-                    <Badge variant="outline" className={complexityColors[snippet.complexity]}>
-                      {snippet.complexity}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                    {snippet.description}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {snippet.tags.map(tag => (
-                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-muted">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Code Viewer */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-2"
-          >
-            <div className="rounded-2xl bg-card border border-border overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
-                  </div>
-                  <span className="text-sm font-medium ml-2">{selectedSnippet.title}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCopy}
-                    className="p-2 rounded-lg hover:bg-muted transition-colors"
-                    title="Copy code"
-                  >
-                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="p-2 rounded-lg hover:bg-muted transition-colors"
-                    title="Download"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center justify-between p-4 border-b border-border bg-muted/50">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setViewMode("typing")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        viewMode === "typing" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                      }`}
-                    >
-                      <Type className="h-3.5 w-3.5" />
-                      Typing
-                    </button>
-                    <button
-                      onClick={() => setViewMode("static")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        viewMode === "static" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                      }`}
-                    >
-                      <Code2 className="h-3.5 w-3.5" />
-                      Static
-                    </button>
-                  </div>
-                  
-                  {viewMode === "typing" && (
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm"
-                      >
-                        {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                        {isPlaying ? "Pause" : "Play"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsPlaying(false);
-                          setTimeout(() => setIsPlaying(true), 100);
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-muted"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {viewMode === "typing" && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">Speed</span>
-                    <Slider
-                      value={[typingSpeed]}
-                      onValueChange={(value) => setTypingSpeed(value[0])}
-                      min={5}
-                      max={100}
-                      step={5}
-                      className="w-24"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Code Display */}
-              <div className="p-6 bg-[#0d1117] text-gray-300 overflow-auto">
-                {viewMode === "typing" ? (
-                  <CodeTypingAnimation
-                    code={selectedSnippet.code}
-                    isPlaying={isPlaying}
-                    speed={105 - typingSpeed}
-                  />
-                ) : (
-                  <SyntaxHighlighter
-                    code={selectedSnippet.code}
-                    language={selectedSnippet.language}
-                  />
-                )}
-              </div>
-
-              {/* Footer Info */}
-              <div className="p-4 border-t border-border bg-muted/30">
+            {/* Snippet List */}
+            <Card>
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline">{selectedSnippet.language}</Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedSnippet.code.split('\n').length} lines
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {selectedSnippet.tags.map(tag => (
-                      <span key={tag} className="text-xs px-2 py-1 rounded-full bg-muted">
-                        {tag}
-                      </span>
-                    ))}
+                  <CardTitle className="text-lg">Snippets</CardTitle>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant={viewMode === "list" ? "default" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "grid" ? "default" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[500px]">
+                  <div className={viewMode === "grid" ? "grid grid-cols-2 gap-2 p-4" : "space-y-1"}>
+                    {filteredSnippets.map((snippet, index) => {
+                      const langConfig = getLanguageConfig(snippet.language);
+                      return (
+                        <motion.button
+                          key={snippet.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          onClick={() => setSelectedSnippet(snippet)}
+                          className={`w-full text-left p-3 rounded-lg transition-all ${
+                            selectedSnippet.id === snippet.id
+                              ? "bg-primary/10 border border-primary/20"
+                              : "hover:bg-muted"
+                          } ${viewMode === "grid" ? "" : "flex items-center gap-3"}`}
+                        >
+                          <div className={`${viewMode === "grid" ? "mb-2" : ""}`}>
+                            <Badge className={langConfig.color}>
+                              {langConfig.icon}
+                            </Badge>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium truncate ${selectedSnippet.id === snippet.id ? "text-primary" : ""}`}>
+                              {snippet.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {snippet.description}
+                            </p>
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* Description */}
-            <motion.div
-              key={selectedSnippet.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-orange-500/5 border border-border"
-            >
-              <h3 className="font-semibold mb-2">About this snippet</h3>
-              <p className="text-muted-foreground text-sm">{selectedSnippet.description}</p>
-            </motion.div>
-          </motion.div>
+          {/* Main Content - Code Editor */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{selectedSnippet.title}</CardTitle>
+                    <CardDescription>{selectedSnippet.description}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopy(selectedSnippet)}
+                    >
+                      {copiedId === selectedSnippet.id ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button variant="outline" size="icon">
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon">
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDelete(selectedSnippet.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className={getLanguageConfig(selectedSnippet.language).color}>
+                    {getLanguageConfig(selectedSnippet.language).name}
+                  </Badge>
+                  {selectedSnippet.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Created {selectedSnippet.createdAt}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Code Display */}
+                <div className="relative">
+                  <div className="absolute top-2 right-2 flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleExecute}
+                      disabled={isExecuting}
+                    >
+                      {isExecuting ? (
+                        <>
+                          <Zap className="h-4 w-4 mr-2 animate-pulse" />
+                          Running...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Run
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <pre className="p-4 pt-12 text-sm font-mono bg-muted/50 rounded-lg overflow-x-auto max-h-[400px]">
+                    <code>{selectedSnippet.code}</code>
+                  </pre>
+                </div>
+
+                {/* Execution Result */}
+                {executionResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-lg ${
+                      executionResult.success
+                        ? "bg-green-500/10 border border-green-500/20"
+                        : "bg-red-500/10 border border-red-500/20"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {executionResult.success ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className={`font-medium ${executionResult.success ? "text-green-500" : "text-red-500"}`}>
+                        {executionResult.success ? "Success" : "Error"}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {executionResult.executionTime.toFixed(0)}ms
+                      </span>
+                    </div>
+                    <pre className="text-sm font-mono text-muted-foreground whitespace-pre-wrap">
+                      {executionResult.output}
+                    </pre>
+                  </motion.div>
+                )}
+
+                {/* Tags */}
+                <div className="pt-4 border-t">
+                  <h4 className="text-sm font-medium mb-2">Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSnippet.tags.map((tag) => (
+                      <Badge key={tag} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                    <Button variant="ghost" size="sm" className="h-6">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Tag
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
